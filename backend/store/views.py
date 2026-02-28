@@ -15,6 +15,7 @@ def get_categories(request):
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
 
+
 # class ProductViewSet(viewsets.ModelViewSet):
 #     queryset = Product.objects.all()
 #     serializer_class = ProductSerializer
