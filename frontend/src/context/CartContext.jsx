@@ -1,7 +1,15 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authFetch, getAccessToken } from "../utils/auth";
 
-const CartContext = createContext();
+const CartContext = createContext({
+    cartItems: [],
+    total: 0,
+    fetchCart: () => { },
+    addToCart: () => { },
+    removeFromCart: () => { },
+    updateQuantity: () => { },
+    clearCart: () => { },
+});
 
 export const CartProvider = ({ children }) => {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -15,18 +23,20 @@ export const CartProvider = ({ children }) => {
             const data = await res.json();
             setCartItems(data.items || []);
             setTotal(data.total || 0);
-        } catch(error) {
+        } catch (error) {
             console.error("Error fetching cart: ", error)
         }
     }
 
     useEffect(() => {
-        fetchCart();
+        if (getAccessToken()) {
+            fetchCart();
+        }
     }, []);
 
     // Add Product to Cart
     const addToCart = async (productId) => {
-        try{
+        try {
             await authFetch(`${BASEURL}/api/cart/add/`, {
                 method: "POST",
                 headers: {
@@ -35,7 +45,7 @@ export const CartProvider = ({ children }) => {
                 body: JSON.stringify({ product_id: productId }),
             });
             fetchCart();
-        } catch(error) {
+        } catch (error) {
             console.error('Error adding to cart:', error);
         }
     }
@@ -77,15 +87,31 @@ export const CartProvider = ({ children }) => {
     }
 
     const clearCart = () => {
-        setCartItems([0]);
+        setCartItems([]);
         setTotal(0);
     }
 
     return (
-        <CartContext.Provider value={{ cartItems, total, addToCart, removeFromCart, updateQuantity, clearCart }} >
-            { children }
+        <CartContext.Provider value={{
+            cartItems,
+            total,
+            fetchCart,
+            addToCart,
+            removeFromCart,
+            updateQuantity,
+            clearCart
+        }}>
+            {children}
         </CartContext.Provider >
     )
 };
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+    const context = useContext(CartContext);
+
+    if (!context) {
+        throw new Error("useCart must be used inside CartProvider");
+    }
+
+    return context;
+};

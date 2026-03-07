@@ -62,19 +62,3 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(username=username, email=email, password=password)
         
         return user
-        
-
-# class UserProfileSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = UserProfile
-#         fields = '__all__'
-
-# class OrderSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Order
-#         fields = '__all__'
-
-# class OrderItemSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = OrderItem
-#         fields = '__all__'

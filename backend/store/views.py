@@ -100,7 +100,14 @@ def create_order(request):
         
         total = sum([item.product.price * item.quantity for item in cart.items.all()])
         
-        order = Order.objects.create(user = request.user, total_amount = total)
+        # Placeholder logic for ONLINE payment
+        if payment_method == "ONLINE":
+            # Here we will later integrate PayMongo / GCash
+            payment_status = "pending"  # placeholder
+        else:
+            payment_status = "paid"  # COD is considered "paid on delivery" for now
+
+        order = Order.objects.create(user = request.user, total_amount = total, payment_status=payment_status)
         
         for item in cart.items.all():
             OrderItem.objects.create(
@@ -112,7 +119,7 @@ def create_order(request):
             
             # Clear the cart
             cart.items.all().delete()
-            return Response({'message': 'Order created succesfully', 'order_id': order.id})
+            return Response({'message': 'Order created succesfully', 'order_id': order.id, 'payment_method': payment_method})
     except Exception as e:
         return Response({'error': str(e)}, status=500)
         

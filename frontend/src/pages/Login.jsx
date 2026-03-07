@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveTokens } from "../utils/auth";
+import { useCart } from "../context/CartContext";
 
 function Login() {
+    const { fetchCart } = useCart();
+
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;
     const [form, setForm] = useState({ username: "", password: "" });
     const [msg, setMsg] = useState();
@@ -15,7 +18,7 @@ function Login() {
     const handleSubmit = async e => {
         e.preventDefault();
         setMsg("");
-        try{
+        try {
             const response = await fetch(`${BASE}/api/token/`, {
                 method: "POST",
                 headers: {
@@ -24,15 +27,16 @@ function Login() {
                 body: JSON.stringify(form),
             });
             const data = await response.json();
-            if(response.ok) {
+            if (response.ok) {
                 saveTokens(data);
+                await fetchCart();
                 setMsg("Login Successful! Redirecting...");
                 setTimeout(() => nav("/"), 800);
             } else {
                 setMsg(data.detail || "Login Failed. Please try again.");
             }
         } catch (error) {
-            console.error(err);
+            console.error(error);
             setMsg("An error occured. Please try again.");
         }
     };

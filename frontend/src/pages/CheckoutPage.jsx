@@ -29,6 +29,7 @@ function CheckoutPage() {
         e.preventDefault();
         setLoading(true);
         setMessage("");
+
         try {
             const res = await authFetch(`${BASEURL}/api/orders/create/`, {
                 method: "POST",
@@ -41,9 +42,17 @@ function CheckoutPage() {
             const data = await res.json();
 
             if (res.ok) {
-                setMessage("Order placed successfully!");
-                fetch(`${BASEURL}/api/cart/`)
+                if (form.payment_method === "ONLINE") {
+                    // Placeholder for online payment (PayMongo / GCash)
+                    setMessage("Online payment selected. Payment processing will be implemented soon.");
+                } else {
+                    setMessage("Order placed successfully! Cash on delivery selected.");
+                }
+
+                // Always clear cart and navigate back home
+                await authFetch(`${BASEURL}/api/cart/`);
                 clearCart();
+
                 setTimeout(() => {
                     navigate("/");
                 }, 2000);
@@ -51,7 +60,9 @@ function CheckoutPage() {
                 setMessage(data.error || "Failed to place order. Please try again.");
             }
         } catch (error) {
-            setMessage("An error occured. Please try again.");
+            setMessage("An error occurred. Please try again.");
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -98,6 +109,7 @@ function CheckoutPage() {
                         <option value="COD">Cash on Delivery</option>
                         <option value="ONLINE">Online Payment</option>
                     </select>
+
                     <button
                         type="submit"
                         disabled={loading}
@@ -105,6 +117,7 @@ function CheckoutPage() {
                     >
                         {loading ? "Processing..." : "Place Order"}
                     </button>
+
                     {message && (
                         <p className="text-center text-green-700 font-semibold mt-4">{message}</p>
                     )}
