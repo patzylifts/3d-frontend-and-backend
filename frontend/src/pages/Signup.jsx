@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 
 function Signup() {
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;
-    const [form, setForm] = useState({ username: "", email: "", password: "", password2: "" });
+    const [form, setForm] = useState({
+        username: "",
+        email: "",
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        password: "",
+        password2: ""
+    });
     const [msg, setMsg] = useState("");
     const nav = useNavigate();
 
@@ -23,7 +31,9 @@ function Signup() {
                 setMsg("Account created. Redirecting to login...");
                 setTimeout(() => nav("/login"), 1200);
             } else {
-                setMsg(data.username || data.password || JSON.stringify(data));
+                // Show first error from the API
+                const firstKey = Object.keys(data)[0];
+                setMsg(data[firstKey] || JSON.stringify(data));
             }
         } catch (err) {
             console.error(err);
@@ -38,6 +48,9 @@ function Signup() {
                 <form onSubmit={handleSubmit} className="space-y-3">
                     <input name="username" onChange={handleChange} value={form.username} placeholder="Username" required className="w-full p-2 border rounded" />
                     <input name="email" type="email" onChange={handleChange} value={form.email} placeholder="Email" className="w-full p-2 border rounded" />
+                    <input name="first_name" onChange={handleChange} value={form.first_name} placeholder="First Name" required className="w-full p-2 border rounded" />
+                    <input name="middle_name" onChange={handleChange} value={form.middle_name} placeholder="Middle Name / M.I." className="w-full p-2 border rounded" />
+                    <input name="last_name" onChange={handleChange} value={form.last_name} placeholder="Last Name" required className="w-full p-2 border rounded" />
                     <input name="password" type="password" onChange={handleChange} value={form.password} placeholder="Password" required className="w-full p-2 border rounded" />
                     <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="Confirm Password" required className="w-full p-2 border rounded" />
                     <button className="w-full bg-blue-600 text-white py-2 rounded">Create Account</button>

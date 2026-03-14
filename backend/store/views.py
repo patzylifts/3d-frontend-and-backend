@@ -7,9 +7,9 @@ from .token_serializers import MyTokenObtainPairSerializer
 
 from django.contrib.auth.models import BaseUserManager
 
-from .models import Product, Category, Cart, CartItem, Order, OrderItem
+from .models import Product, Category, Cart, CartItem, Order, OrderItem, UserProfile
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
-from .serializers import RegisterSerializer, UserSerializer
+from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -114,8 +114,10 @@ def create_order(request):
         else:
             payment_status = "paid"  # COD is considered "paid on delivery" for now
 
+        # Create Order
         order = Order.objects.create(user = request.user, total_amount = total, payment_status=payment_status)
         
+        # Create all order items
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
@@ -124,9 +126,10 @@ def create_order(request):
                 price=item.product.price
             )
             
-            # Clear the cart
-            cart.items.all().delete()
-            return Response({'message': 'Order created succesfully', 'order_id': order.id, 'payment_method': payment_method})
+        # Clear the cart
+        cart.items.all().delete()
+        return Response({'message': 'Order created succesfully', 'order_id': order.id, 'payment_method': payment_method})
+    
     except Exception as e:
         return Response({'error': str(e)}, status=500)
         
@@ -140,3 +143,24 @@ def register_view(request):
         return Response({"message":"User Created Successfully", "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# USER PROFILE
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            # Also update first/last name from request
+            request.user.first_name = request.data.get('first_name', request.user.first_name)
+            request.user.last_name = request.data.get('last_name', request.user.last_name)
+            request.user.email = request.data.get('email', request.user.email)
+            request.user.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -46,7 +46,7 @@ export default function AdminOrdersPage() {
           <thead className="bg-gray-200 text-left">
             <tr>
               <th className="p-3 border">Order ID</th>
-              <th className="p-3 border">Customer ID</th>
+              <th className="p-3 border">Customer Name</th>
               <th className="p-3 border">Total</th>
               <th className="p-3 border">Status</th>
               <th className="p-3 border">Payment</th>
@@ -64,7 +64,7 @@ export default function AdminOrdersPage() {
             {orders.map((order) => (
               <tr key={order.id} className="text-center border-t">
                 <td className="p-3 border">{order.id}</td>
-                <td className="p-3 border">{order.user}</td>
+                <td className="p-3 border">{order.user_name}</td>
                 <td className="p-3 border">${order.total_amount}</td>
                 <td className="p-3 border capitalize">{order.status}</td>
                 <td className="p-3 border capitalize">{order.payment_status}</td>

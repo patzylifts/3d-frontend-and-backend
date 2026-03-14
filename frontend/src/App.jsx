@@ -11,9 +11,13 @@ import PrivateRouter from './components/PrivateRouter';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 
-// Admin pages
+// Admin Page
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage';
+
+// Customer Page
+import CustomerProfile from "./pages/customer/CustomerProfile";
+import CustomerProfileUpdate from "./pages/customer/CustomerProfileUpdate";
 
 function App() {
   return (
@@ -28,6 +32,8 @@ function App() {
 
             <Route element={<PrivateRouter />}>
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/profile" element={<CustomerProfile />} />
+              <Route path="/profile/edit" element={<CustomerProfileUpdate />} />
             </Route>
 
             <Route element={<PrivateRouter adminOnly={true} />}>

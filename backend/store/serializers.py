@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Category, Cart, CartItem
+from .models import Product, Category, Cart, CartItem, UserProfile
 from django.contrib.auth.models import User
 
 # CATEGORY
@@ -36,29 +36,59 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 # USER
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
         
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
-    
+    first_name = serializers.CharField(required=True)
+    middle_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'password2']
-        
+        fields = ['id', 'username', 'email', 'password', 'password2', 'first_name', 'middle_name', 'last_name']
+
     def validate(self, data):
         if data['password'] != data['password2']:
             raise serializers.ValidationError("Passwords do not match.")
         return data
-    
-    def create(self, validate_data):
-        username = validate_data['username']
-        email = validate_data.get('email')
-        password = validate_data['password']
-        user = User.objects.create_user(username=username, email=email, password=password)
-        
+
+    def create(self, validated_data):
+        first_name = validated_data.pop('first_name')
+        middle_name = validated_data.pop('middle_name', '')
+        last_name = validated_data.pop('last_name')
+        username = validated_data['username']
+        email = validated_data.get('email')
+        password = validated_data['password']
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        # auto-create empty profile and store middle_name there
+        UserProfile.objects.create(
+            user=user,
+            middle_name=middle_name,
+            phone="",
+            street="",
+            city="",
+            province="",
+            postal_code="",
+            profile_picture=None
+        )
+
         return user
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)  # nested user info
+    class Meta:
+        model = UserProfile
+        fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']

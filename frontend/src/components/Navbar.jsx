@@ -33,9 +33,14 @@ function Navbar() {
                         </Link>
                     </>
                 ) : (
-                    <button onClick={handleLogout} className='text-gray-800 hover:text-gray-600 font-medium'>
-                        Logout
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <Link to="/profile" className='text-gray-800 hover:text-gray-600 font-medium cursor-pointer'>
+                            Profile
+                        </Link>
+                        <button onClick={handleLogout} className='text-gray-800 hover:text-gray-600 font-medium cursor-pointer'>
+                            Logout
+                        </button>
+                    </div>
                 )}
             </div>
 

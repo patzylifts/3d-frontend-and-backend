@@ -9,11 +9,13 @@ urlpatterns = [
     # Register
     path('register/', views.register_view),
     # Login
-    # path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     
     # Token Refresher
     path('token/refresh/', TokenRefreshView.as_view(), name='token_obtain_refresh'),
+    
+    # Customer Profile
+    path('profile/', views.profile_view, name='profile'),
     
     # Products
     path('products/', views.get_products, name='product_list'),
