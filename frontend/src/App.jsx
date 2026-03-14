@@ -30,7 +30,7 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
             </Route>
 
-            <Route element={<PrivateRouter />}>
+            <Route element={<PrivateRouter adminOnly={true} />}>
               <Route path="/admin/orders" element={<AdminOrdersPage />} />
               <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
             </Route>

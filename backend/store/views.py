@@ -1,12 +1,19 @@
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.contrib.auth.models import User
-from .serializers import RegisterSerializer, UserSerializer
-from rest_framework import status
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .token_serializers import MyTokenObtainPairSerializer
+
+from django.contrib.auth.models import BaseUserManager
+
 from .models import Product, Category, Cart, CartItem, Order, OrderItem
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
+from .serializers import RegisterSerializer, UserSerializer
 
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+    
 # Product
 @api_view(['GET'])
 def get_products(request):
