@@ -11,6 +11,10 @@ import PrivateRouter from './components/PrivateRouter';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 
+// Admin pages
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage';
+
 function App() {
   return (
     <CartProvider>
@@ -24,6 +28,11 @@ function App() {
 
             <Route element={<PrivateRouter />}>
               <Route path="/checkout" element={<CheckoutPage />} />
+            </Route>
+
+            <Route element={<PrivateRouter />}>
+              <Route path="/admin/orders" element={<AdminOrdersPage />} />
+              <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
             </Route>
 
             <Route path="/login" element={<Login />} />
