@@ -89,35 +89,48 @@ def remove_from_cart(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_order(request):
+
     try:
         data = request.data
-        name = data.get('name')
-        address = data.get('address')
-        phone = data.get('phone')
-        payment_method = data.get('payment_method', 'COD')
-        
-        # Validate Phone Number
-        if not phone.isdigit() or len(phone) < 10:
-            return Response({'error': 'Invalid phone number'}, status=400)
-        
-        # Get User's Cart
-        cart , created = Cart.objects.get_or_create(user=request.user)
-        if not cart.items.exists():
-            return Response({'error': 'Cart is empty'}, status=400)
-        
-        total = sum([item.product.price * item.quantity for item in cart.items.all()])
-        
-        # Placeholder logic for ONLINE payment
-        if payment_method == "ONLINE":
-            # Here we will later integrate PayMongo / GCash
-            payment_status = "pending"  # placeholder
-        else:
-            payment_status = "paid"  # COD is considered "paid on delivery" for now
 
-        # Create Order
-        order = Order.objects.create(user = request.user, total_amount = total, payment_status=payment_status)
-        
-        # Create all order items
+        profile = request.user.userprofile
+
+        street = data.get("street") or profile.street
+        city = data.get("city") or profile.city
+        province = data.get("province") or profile.province
+        postal_code = data.get("postal_code") or profile.postal_code
+        full_name = profile.user.first_name + " " + profile.user.last_name
+        phone = profile.phone
+        delivery_date = data.get("delivery_date")
+        delivery_time = data.get("delivery_time")
+        notes = data.get("notes")
+
+        if not full_name or not phone or not street:
+            return Response({"error": "Missing required fields"}, status=400)
+
+        cart, created = Cart.objects.get_or_create(user=request.user)
+
+        if not cart.items.exists():
+            return Response({"error": "Cart is empty"}, status=400)
+
+        total = sum(item.product.price * item.quantity for item in cart.items.all())
+
+        order = Order.objects.create(
+            user=request.user,
+            full_name=full_name,
+            phone=phone,
+            street=street,
+            city=city,
+            province=province,
+            postal_code=postal_code,
+            delivery_date=delivery_date,
+            delivery_time=delivery_time,
+            order_notes=notes,
+            total_amount=total,
+            status="pending_review",
+            payment_status="pending"
+        )
+
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
@@ -125,14 +138,17 @@ def create_order(request):
                 quantity=item.quantity,
                 price=item.product.price
             )
-            
-        # Clear the cart
+
         cart.items.all().delete()
-        return Response({'message': 'Order created succesfully', 'order_id': order.id, 'payment_method': payment_method})
-    
+
+        return Response({
+            "message": "Order submitted for review",
+            "order_id": order.id
+        })
+
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
-        
+        return Response({"error": str(e)}, status=500)
+            
 # REGISTER
 @api_view(['POST'])
 @permission_classes([AllowAny])

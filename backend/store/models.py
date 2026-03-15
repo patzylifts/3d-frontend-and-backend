@@ -44,31 +44,58 @@ class UserProfile(models.Model):
     newsletter_subscribed = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.user.username} Profile"
+        return f"{self.user} Profile"
 
 # ORDER
 class Order(models.Model):
+
     STATUS_CHOICES = [
-        ("pending", "Pending"),        # placeholder, admin will update
+        ("pending_review", "Pending Review"),
+        ("awaiting_downpayment", "Awaiting Downpayment"),
         ("processing", "Processing"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
+        ("rejected", "Rejected"),
     ]
+
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Pending"),
         ("paid", "Paid"),
         ("failed", "Failed"),
     ]
-    
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+
+    # delivery info
+    full_name = models.CharField(max_length=150, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+
+    street = models.CharField(max_length=200, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    province = models.CharField(max_length=100, blank=True, null=True)
+    postal_code = models.CharField(max_length=20, blank=True, null=True)
+    delivery_date = models.DateField()
+    delivery_time = models.TimeField(blank=True, null=True)
+    order_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    total_amount  = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")  # placeholder
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")  # placeholder
+
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default="pending_review"
+    )
+
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="pending"
+    )
 
     def __str__(self):
-        return f"Order {self.id} - {self.user.username if self.user else 'Guest'}"
-
+        return f"Order {self.id} - {self.user}"
+    
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
