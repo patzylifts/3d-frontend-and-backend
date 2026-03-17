@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { CartProvider } from "./context/CartContext";
 import { OrderProvider } from "./context/OrderContext";
 
+import LandingPage from "./pages/LandingPage";
+import BuildBentoPage from "./pages/BuildBentoPage";
 import ProductList from "./pages/ProductList";
 import ProductDetails from "./pages/ProductDetails";
 import Navbar from './components/Navbar';
@@ -24,25 +26,26 @@ function App() {
     <CartProvider>
       <OrderProvider>
         <Router>
-          <Navbar />
           <Routes>
-            <Route path="/" element={<ProductList />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-            <Route path="/cart" element={<CartPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/build" element={<BuildBentoPage />} />
+            <Route path="/products" element={<><Navbar /><ProductList /></>} />
+            <Route path="/product/:id" element={<><Navbar /><ProductDetails /></>} />
 
             <Route element={<PrivateRouter />}>
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/profile" element={<CustomerProfile />} />
-              <Route path="/profile/edit" element={<CustomerProfileUpdate />} />
+              <Route path="/checkout" element={<><Navbar /><CheckoutPage /></>} />
+              <Route path="/profile" element={<><Navbar /><CustomerProfile /></>} />
+              <Route path="/profile/edit" element={<><Navbar /><CustomerProfileUpdate /></>} />
             </Route>
 
             <Route element={<PrivateRouter adminOnly={true} />}>
-              <Route path="/admin/orders" element={<AdminOrdersPage />} />
-              <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
+              <Route path="/admin/orders" element={<><Navbar /><AdminOrdersPage /></>} />
+              <Route path="/admin/orders/:id" element={<><Navbar /><AdminOrderDetailPage /></>} />
             </Route>
 
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<><Navbar /><Login /></>} />
+            <Route path="/signup" element={<><Navbar /><Signup /></>} />
+            <Route path="/cart" element={<><Navbar /><CartPage /></>} />
           </Routes>
         </Router>
       </OrderProvider>

@@ -10,28 +10,28 @@ function ProductList() {
 
     useEffect(() => {
         fetch(`${BASEURL}/api/products/`)
-        .then((response) => {
-            if (!response) {
-                throw new Error("Failed to fetch products!");
-            }
-            return response.json();
-        })
-        .then((data)=> {
-            setProducts(data);
-            setLoading(false);
-        })
-        .catch((error)=>{
-            setError(error.message);
-            setLoading(false);
-        });
+            .then((response) => {
+                if (!response) {
+                    throw new Error("Failed to fetch products!");
+                }
+                return response.json();
+            })
+            .then((data) => {
+                setProducts(data);
+                setLoading(false);
+            })
+            .catch((error) => {
+                setError(error.message);
+                setLoading(false);
+            });
     }, [])
-    if(loading) {
+    if (loading) {
         return <div>Loading...</div>
     }
-    if(error) {
+    if (error) {
         return <div>Error: {error}</div>
     }
-    return(
+    return (
         <div className="min-h-screen bg-gray-100">
             <h1 className="text-3xl font-bold text-center py-6 bg-white shadow-md">Product List</h1>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">

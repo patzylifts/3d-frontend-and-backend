@@ -40,7 +40,7 @@ function ProductDetails() {
     }
 
     const handleAddToCart = () => {
-        if(!localStorage.getItem('access_token')){
+        if (!localStorage.getItem('access_token')) {
             window.location.href = "/login";
             return;
         }
@@ -61,14 +61,14 @@ function ProductDetails() {
                             {product.name}
                         </h1>
                         <p className="text-gray-600 mb-4">{product.description}</p>
-                        <p className="text-2xl font-semibold text-green-600 mb-6">${product.price}</p>
+                        <p className="text-2xl font-semibold text-green-600 mb-6">₱ {product.price}</p>
                         <button onClick={handleAddToCart} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                             ☘️Add to Cart
                         </button>
                         {/* Home Button */}
                         <div className="mt-4">
                             <a href="/" className="text-blue-600 hover:underline">
-                            &larr; Back to Home
+                                &larr; Back to Home
                             </a>
                         </div>
                     </div>

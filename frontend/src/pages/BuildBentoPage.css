@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+/* Page */
+.build-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f5f6f8;
+    font-family: 'Outfit', sans-serif;
+    color: #222;
+}
+
+/* Top nav */
+.build-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.build-back-btn {
+    background: #f1f3f5;
+    border: none;
+    color: #333;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.build-back-btn:hover {
+    background: #e2e6ea;
+}
+
+.build-brand {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+}
+
+/* Layout */
+.build-layout {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Canvas */
+.build-canvas-wrap {
+    flex: 1;
+    background: #ffffff;
+    position: relative;
+}
+
+.canvas-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: #999;
+}
+
+/* Panel */
+.cfg-panel {
+    width: 320px;
+    background: #ffffff;
+    border-left: 1px solid #e5e7eb;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Title */
+.cfg-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+/* Sections */
+.cfg-section {
+    margin-bottom: 20px;
+}
+
+.cfg-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #777;
+    margin-bottom: 8px;
+}
+
+/* Swatches */
+.cfg-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.swatch:hover {
+    transform: scale(1.1);
+}
+
+.swatch--active {
+    border-color: #333;
+}
+
+/* Chips */
+.cfg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: #444;
+}
+
+.chip:hover {
+    background: #eee;
+}
+
+.chip--active {
+    background: #28a745;
+    color: #fff;
+    border-color: #28a745;
+}
+
+/* Toggles */
+.cfg-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toggle-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.toggle-btn:hover {
+    background: #eee;
+}
+
+.toggle-btn--on {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.toggle-indicator {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Button */
+.cfg-random-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #28a745;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cfg-random-btn:hover {
+    opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .build-layout {
+        flex-direction: column;
+    }
+
+    .cfg-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .build-canvas-wrap {
+        height: 50vh;
+    }
+}

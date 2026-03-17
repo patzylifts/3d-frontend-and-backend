@@ -32,7 +32,7 @@ function CartPage() {
                                     {item.product_name}
                                 </h2>
                                 <p className="text-gray-600">
-                                    ${item.product_price}
+                                    ₱{item.product_price}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ function CartPage() {
 
                     <div className="border-t pt-4 mt-4 flex justify-between items-center">
                         <h2 className="text-xl font-bold">Total:</h2>
-                        <p className="text-xl font-semibold">${total.toFixed(2)}</p>
+                        <p className="text-xl font-semibold">₱{total.toFixed(2)}</p>
                         <Link to="/checkout" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
                             Proceed to Checkout
                         </Link>

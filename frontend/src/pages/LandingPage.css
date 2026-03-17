@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+/* Page */
+.landing-root {
+    min-height: 100vh;
+    background: #f5f6f8;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 100px;
+}
+
+/* Header */
+.landing-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 0 16px;
+}
+
+.landing-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0;
+}
+
+.landing-title span {
+    color: #28a745;
+}
+
+.landing-sub {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Cards */
+.landing-cards {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 16px;
+}
+
+/* Card */
+.choice-card {
+    width: 300px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.choice-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+/* Icon */
+.card-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+
+/* Text */
+.card-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #222;
+    margin: 0;
+}
+
+.card-desc {
+    font-size: 0.9rem;
+    color: #777;
+    margin: 10px 0 20px;
+}
+
+/* Buttons */
+.card-btn {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: #28a745;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.card-btn.secondary {
+    background: #007bff;
+}
+
+.card-btn:hover {
+    opacity: 0.9;
+}
+
+/* Footer */
+.landing-footer {
+    margin-top: 40px;
+    font-size: 0.8rem;
+    color: #999;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+    .choice-card {
+        width: 90%;
+    }
+}
