@@ -37,6 +37,12 @@ function Navbar() {
                         <Link to="/profile" className='text-gray-800 hover:text-gray-600 font-medium cursor-pointer'>
                             Profile
                         </Link>
+                        <Link
+                            to="/orders"
+                            className='text-gray-800 hover:text-gray-600 font-medium cursor-pointer'
+                        >
+                            My Orders
+                        </Link>
                         <button onClick={handleLogout} className='text-gray-800 hover:text-gray-600 font-medium cursor-pointer'>
                             Logout
                         </button>

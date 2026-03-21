@@ -26,3 +26,8 @@ class OrderSerializer(serializers.ModelSerializer):
             'status', 'payment_status',
             'items', 'rejection_reason',
         ]
+        
+class CustomerOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id", "user", "user_name", "status", "payment_status", "total_amount", "created_at", "items"]
