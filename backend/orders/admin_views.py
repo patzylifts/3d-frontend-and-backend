@@ -29,26 +29,33 @@ def admin_order_detail(request, order_id):
 # ADMIN: UPDATE ORDER
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
-def admin_update_order(request, order_id):
+def admin_review_order(request, order_id):
     try:
         order = Order.objects.get(id=order_id)
 
-        status = request.data.get('status')
-        payment_status = request.data.get('payment_status')
+        # 🚫 Only allow review if still pending
+        if order.status != "pending_review":
+            return Response({"error": "Order already reviewed"}, status=400)
 
-        if status:
-            order.status = status
+        new_status = request.data.get("status")
+        reason = request.data.get("rejection_reason")
 
-        if payment_status:
-            order.payment_status = payment_status
+        # 🚫 Restrict allowed transitions
+        if new_status not in ["awaiting_downpayment", "rejected"]:
+            return Response({"error": "Invalid status"}, status=400)
 
+        if new_status == "rejected":
+            if not reason:
+                return Response({"error": "Rejection reason required"}, status=400)
+            order.rejection_reason = reason
+
+        order.status = new_status
         order.save()
 
-        serializer = OrderSerializer(order)
         return Response({
-            'message': 'Order updated successfully',
-            'order': serializer.data
+            "message": "Order reviewed successfully",
+            "order": OrderSerializer(order).data
         })
 
     except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=404)
+        return Response({"error": "Order not found"}, status=404)

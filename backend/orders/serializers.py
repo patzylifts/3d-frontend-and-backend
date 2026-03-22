@@ -15,4 +15,19 @@ class OrderSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['id', 'user', 'user_name', 'created_at', 'total_amount', 'status', 'payment_status', 'items']
+        fields = [
+            'id', 'user', 'user_name',
+            'created_at',
+            'full_name', 'phone',
+            'street', 'city', 'province', 'postal_code',
+            'delivery_date', 'delivery_time',
+            'order_notes',
+            'total_amount',
+            'status', 'payment_status',
+            'items', 'rejection_reason',
+        ]
+        
+class CustomerOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id", "user", "user_name", "status", "payment_status", "total_amount", "created_at", "items"]

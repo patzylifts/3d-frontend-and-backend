@@ -66,7 +66,15 @@ export default function AdminOrdersPage() {
                 <td className="p-3 border">{order.id}</td>
                 <td className="p-3 border">{order.user_name}</td>
                 <td className="p-3 border">${order.total_amount}</td>
-                <td className="p-3 border capitalize">{order.status}</td>
+                <td className="p-3 border capitalize">
+                  <span className={
+                    order.status === "pending_review"
+                      ? "text-yellow-600 font-bold"
+                      : ""
+                  }>
+                    {order.status}
+                  </span>
+                </td>
                 <td className="p-3 border capitalize">{order.payment_status}</td>
                 <td className="p-3 border">
                   <button

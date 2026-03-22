@@ -20,6 +20,8 @@ import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage';
 // Customer Page
 import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerProfileUpdate from "./pages/customer/CustomerProfileUpdate";
+import CustomerOrdersPage from "./pages/customer/CustomerOrdersPage";
+import CustomerOrderDetailPage from "./pages/customer/CustomerOrderDetailPage";
 
 function App() {
   return (
@@ -36,6 +38,9 @@ function App() {
               <Route path="/checkout" element={<><Navbar /><CheckoutPage /></>} />
               <Route path="/profile" element={<><Navbar /><CustomerProfile /></>} />
               <Route path="/profile/edit" element={<><Navbar /><CustomerProfileUpdate /></>} />
+
+              <Route path="/orders" element={<><Navbar /><CustomerOrdersPage /></>} />
+              <Route path="/orders/:id" element={<><Navbar /><CustomerOrderDetailPage /></>} />
             </Route>
 
             <Route element={<PrivateRouter adminOnly={true} />}>
