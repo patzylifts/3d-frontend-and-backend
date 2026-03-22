@@ -71,6 +71,7 @@ function CheckoutPage() {
             } else {
                 setMessage(data.error || "Failed to place order.");
             }
+            // eslint-disable-next-line no-unused-vars
         } catch (err) {
             setMessage("Server error. Please try again.");
         } finally {

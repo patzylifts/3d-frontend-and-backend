@@ -9,7 +9,7 @@ import "./BuildBentoPage.css";
 /* ─────────────────────────────── 3D MODEL ─────────────────────────────── */
 
 function CakeModel() {
-    const { scene } = useGLTF("/models/cake.gltf");
+    const { scene } = useGLTF("/models/sus.gltf");
     const { cakeColor, creamColor, candle, chocolate, balls, nuts } = useCustomization();
     const groupRef = useRef();
 
@@ -39,9 +39,9 @@ function CakeModel() {
 
             // Decoration visibility via node name
             if (n === "chandel") obj.visible = candle;
-            if (n === "bar")     obj.visible = chocolate;
-            if (n === "balls")   obj.visible = balls;
-            if (n === "nuts")    obj.visible = nuts;
+            if (n === "bar") obj.visible = chocolate;
+            if (n === "balls") obj.visible = balls;
+            if (n === "nuts") obj.visible = nuts;
         });
     });
 
@@ -142,10 +142,10 @@ function Configurator() {
                 <h3 className="cfg-label">Decorations</h3>
                 <div className="cfg-toggles">
                     {[
-                        { label: "🕯️ Candle",    value: candle,    set: setCandle },
-                        { label: "🍫 Chocolate",  value: chocolate, set: setChocolate },
-                        { label: "🔮 Balls",      value: balls,     set: setBalls },
-                        { label: "🥜 Nuts",       value: nuts,      set: setNuts },
+                        { label: "🕯️ Candle", value: candle, set: setCandle },
+                        { label: "🍫 Chocolate", value: chocolate, set: setChocolate },
+                        { label: "🔮 Balls", value: balls, set: setBalls },
+                        { label: "🥜 Nuts", value: nuts, set: setNuts },
                     ].map(({ label, value, set }) => (
                         <button
                             key={label}
