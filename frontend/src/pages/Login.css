@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+
+:root {
+  --bg-creamy: #FFF6F4;      /* Matches landing page hero backdrop */
+  --cake-orange: #F14D14;    /* Premium logo orange */
+  --cake-text: #1F1F1F;
+  --cake-muted: #666666;
+  --white: #ffffff;
+}
+
+/* ─────────────────────────────── PAGE WRAPPER ─────────────────────────────── */
+.login-page-wrapper {
+  min-height: 100vh;
+  background-color: var(--bg-creamy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────── WHITE CONTAINER ─────────────────────────────── */
+.login-box {
+  width: 100%;
+  max-width: 450px;
+  background-color: var(--white);
+  border-radius: 24px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05); /* Soft premium shadow */
+  border: 1px solid rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────── LOGO & TEXT ─────────────────────────────── */
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.brand-emoji {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.login-brand h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--cake-text);
+  margin: 0 0 8px 0;
+}
+
+.login-brand p {
+  font-size: 0.9rem;
+  color: var(--cake-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─────────────────────────────── FORM INPUTS ─────────────────────────────── */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cake-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #EAEAEA;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-family: 'Outfit', sans-serif;
+  background-color: #FAFAFA;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--cake-orange);
+  background-color: var(--white);
+  box-shadow: 0 0 0 4px rgba(241, 77, 20, 0.1); /* Subtle orange ring */
+}
+
+/* ─────────────────────────────── BUTTON ─────────────────────────────── */
+.btn-login {
+  width: 100%;
+  background-color: var(--cake-orange);
+  color: var(--white);
+  border: none;
+  padding: 16px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(241, 77, 20, 0.25);
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(241, 77, 20, 0.35);
+}
+
+.btn-login.loading {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ─────────────────────────────── FEEDBACK ALERTS ─────────────────────────────── */
+.form-alert {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.form-alert.success {
+  background-color: #E6F6EC;
+  color: #2E7D32;
+}
+
+.form-alert.error {
+  background-color: #FEEBEB;
+  color: #D32F2F;
+}
+
+/* ─────────────────────────────── FOOTER LINK ─────────────────────────────── */
+.login-footer-redirect {
+  margin-top: 32px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--cake-muted);
+}
+
+.signup-link {
+  color: var(--cake-orange);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Mobile View */
+@media (max-width: 480px) {
+  .login-box {
+    padding: 36px 24px;
+  }
+}

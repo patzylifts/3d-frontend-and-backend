@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+
+:root {
+  --pink-bg: #FFF6F4;
+  --orange-accent: #F14D14;
+  --text-dark: #1F1F1F;
+}
+
+body {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--pink-bg);
+}
+
+/* Page Container */
+.min-h-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Card Box */
+.bg-white {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 500px;
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+h2 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+/* Form Layout */
+.space-y-3 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #f9fafb;
+  font-family: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--orange-accent);
+  background-color: #ffffff;
+}
+
+/* Primary Button */
+button {
+  width: 100%;
+  background-color: var(--orange-accent);
+  color: #ffffff;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(241, 77, 20, 0.15);
+  transition: transform 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+/* Alert Message */
+.mt-3 {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.mt-3:not(:empty) {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* Success State Override (if message contains success words) */
+.mt-3:not(:empty):has([class*="created"]),
+.mt-3:not(:empty):contains("created") {
+  background-color: #d1fae5;
+  color: #059669;
+}

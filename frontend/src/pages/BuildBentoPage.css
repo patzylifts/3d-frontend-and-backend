@@ -1,211 +1,344 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
 
-/* Page */
-.build-page {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: #f5f6f8;
-    font-family: 'Outfit', sans-serif;
-    color: #222;
+:root {
+  --bg-creamy: #FFFEF9;       /* Warm paper white from logo */
+  --logo-yellow: #FDE08B;     /* Pastel yellow from logo */
+  --logo-orange: #E18A27;     /* Retro orange from logo ring */
+  --logo-brown: #7C3E14;      /* Deep espresso outlines & text */
+  --text-muted: #8B6E5A;      /* Warm clay */
 }
 
-/* Top nav */
+/* Page Root */
+.build-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-creamy);
+  font-family: 'Outfit', sans-serif;
+  color: var(--logo-brown);
+}
+
+/* ─────────────────────────────── TOP NAV ─────────────────────────────── */
 .build-nav {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 24px;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background-color: var(--bg-creamy);
+  border-bottom: 4px solid var(--logo-brown);
+  z-index: 10;
+  height: 80px;
+  box-sizing: border-box;
 }
 
 .build-back-btn {
-    background: #f1f3f5;
-    border: none;
-    color: #333;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 8px;
-    cursor: pointer;
+  background: var(--bg-creamy);
+  border: 2px solid var(--logo-brown);
+  color: var(--logo-brown);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px var(--logo-brown);
+  transition: all 0.2s ease;
 }
 
 .build-back-btn:hover {
-    background: #e2e6ea;
+  background: var(--logo-yellow);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--logo-brown);
+}
+
+.build-back-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--logo-brown);
 }
 
 .build-brand {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #666;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--logo-brown);
 }
 
 /* Layout */
 .build-layout {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
+  flex: 1;
+  display: flex;
+  overflow: hidden;
 }
 
-/* Canvas */
+/* ─────────────────────────────── CANVAS OVERLAYS ─────────────────────────────── */
 .build-canvas-wrap {
-    flex: 1;
-    background: #ffffff;
-    position: relative;
+  flex: 1;
+  position: relative;
+  background-color: #FFFDF5; /* Slightly warm canvas background */
 }
 
 .canvas-hint {
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.75rem;
-    color: #999;
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--logo-brown);
+  background: var(--logo-yellow);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 2px solid var(--logo-brown);
+  box-shadow: 4px 4px 0px var(--logo-brown);
+  pointer-events: none;
 }
 
-/* Panel */
+/* 📍 Top-Left Menu Tools */
+.canvas-quick-actions {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.canvas-action-btn {
+  background-color: var(--bg-creamy);
+  border: 2px solid var(--logo-brown);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px var(--logo-brown);
+  transition: all 0.2s ease;
+}
+
+.canvas-action-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--logo-brown);
+  background-color: var(--logo-yellow);
+}
+
+.canvas-action-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--logo-brown);
+}
+
+/* 📍 Bottom-Center Viewport Menu Bar */
+.viewport-controls {
+  position: absolute;
+  bottom: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  background-color: var(--bg-creamy);
+  border: 3px solid var(--logo-brown);
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 6px 6px 0px var(--logo-brown);
+}
+
+.viewport-btn {
+  background: transparent;
+  border: none;
+  color: var(--logo-brown);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.viewport-btn:hover {
+  background-color: var(--logo-yellow);
+}
+
+/* ─────────────────────────────── CONFIG PANEL ─────────────────────────────── */
 .cfg-panel {
-    width: 320px;
-    background: #ffffff;
-    border-left: 1px solid #e5e7eb;
-    padding: 20px;
-    overflow-y: auto;
+  width: 360px;
+  background-color: var(--bg-creamy);
+  border-left: 4px solid var(--logo-brown);
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-/* Title */
 .cfg-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-bottom: 16px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--logo-brown);
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
 }
 
-/* Sections */
 .cfg-section {
-    margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .cfg-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #777;
-    margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
 }
 
-/* Swatches */
+/* Pop Swatches */
 .cfg-swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 2px solid var(--logo-brown);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 3px 3px 0px var(--logo-brown);
 }
 
 .swatch:hover {
-    transform: scale(1.1);
+  transform: scale(1.1) rotate(5deg);
 }
 
 .swatch--active {
-    border-color: #333;
+  transform: scale(1.1);
+  box-shadow: 0px 0px 0px 2px var(--bg-creamy), 0px 0px 0px 4px var(--logo-orange);
 }
 
-/* Chips */
+/* Chip Buttons */
 .cfg-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .chip {
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
-    font-size: 0.8rem;
-    cursor: pointer;
-    color: #444;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--logo-brown);
+  background: var(--bg-creamy);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--logo-brown);
+  box-shadow: 3px 3px 0px var(--logo-brown);
+  transition: all 0.2s ease;
 }
 
 .chip:hover {
-    background: #eee;
+  background: var(--logo-yellow);
+  transform: translateY(-2px);
 }
 
 .chip--active {
-    background: #28a745;
-    color: #fff;
-    border-color: #28a745;
+  background: var(--logo-orange);
+  color: #fff;
+  box-shadow: 4px 4px 0px var(--logo-brown);
 }
 
-/* Toggles */
+/* Toggle Buttons */
 .cfg-toggles {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .toggle-btn {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
-    font-size: 0.85rem;
-    cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 2px solid var(--logo-brown);
+  background: var(--bg-creamy);
+  color: var(--logo-brown);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px var(--logo-brown);
+  transition: all 0.2s ease;
 }
 
 .toggle-btn:hover {
-    background: #eee;
+  background: var(--logo-yellow);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--logo-brown);
 }
 
 .toggle-btn--on {
-    background: #007bff;
-    color: #fff;
-    border-color: #007bff;
+  background: var(--logo-yellow);
 }
 
 .toggle-indicator {
-    font-size: 0.7rem;
-    font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: var(--bg-creamy);
+  border: 2px solid var(--logo-brown);
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--logo-brown);
 }
 
-/* Button */
+/* 🎲 Flat Drop-Shadow Randomize Button */
 .cfg-random-btn {
-    margin-top: 10px;
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    background: #28a745;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
+  margin-top: auto;
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid var(--logo-brown);
+  background: var(--logo-orange);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px var(--logo-brown);
+  transition: all 0.2s ease;
 }
 
 .cfg-random-btn:hover {
-    opacity: 0.9;
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0px var(--logo-brown);
+}
+
+.cfg-random-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--logo-brown);
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .build-layout {
-        flex-direction: column;
-    }
-
-    .cfg-panel {
-        width: 100%;
-        border-left: none;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    .build-canvas-wrap {
-        height: 50vh;
-    }
+@media (max-width: 900px) {
+  .build-layout {
+    flex-direction: column;
+  }
+  .build-canvas-wrap {
+    height: 45vh;
+    flex: none;
+  }
+  .cfg-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 4px solid var(--logo-brown);
+  }
 }
