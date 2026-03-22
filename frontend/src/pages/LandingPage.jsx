@@ -14,7 +14,7 @@ const EXCLUSIVE_CAKES = [
         id: 2,
         title: "Pink Heart Retro Bento",
         price: "₱380",
-        // 🌟 I added a matching placeholder image here for consistency
+        
         image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=400&auto=format&fit=crop",
         desc: "Classic vanilla bento with detailed retro pink piping and white ribbons.",
     },
@@ -53,7 +53,7 @@ function LandingPage() {
 
                 <div className="hero-image-container">
                     <div className="curved-mask">
-                        {/* 🌟 🟢 IMAGE 1 (RIGHT): Your detailed close-up photo (image_8.png placeholder) */}
+                        {/* 🌟 🟢 IMAGE 1 (image_8.png placeholder) */}
                         <img 
                             src="https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=800&auto=format&fit=crop" 
                             alt="Detailed retro heart bento cake piping" 
@@ -61,7 +61,7 @@ function LandingPage() {
                         />
                     </div>
                     
-                    {/* 🌟 🟢 IMAGE 2 (LEFT): Your full stand photo (image_9.png placeholder) */}
+                    {/* 🌟 🟢 IMAGE 2 (image_9.png placeholder) */}
                     <div className="oval-mask-container">
                         <img 
                             src="https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=300&auto=format&fit=crop" 

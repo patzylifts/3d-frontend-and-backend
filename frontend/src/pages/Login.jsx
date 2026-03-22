@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { saveTokens } from "../utils/auth";
 import { useCart } from "../context/CartContext";
-import "./Login.css"; // 👈 Ensure this CSS file exists in the same folder!
+import "./Login.css"; 
 
 function Login() {
     const { fetchCart } = useCart();
