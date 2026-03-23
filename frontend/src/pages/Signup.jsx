@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Signup.css"; 
 
 function Signup() {
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;

@@ -34,7 +34,7 @@ function LandingPage() {
         <div className="page-wrapper">
             <Navbar />
 
-            {/* 🌟 1. UPDATED HERO SECTION (Showing your real Heart Bento!) */}
+        
             <section className="modern-hero">
                 <div className="hero-content">
                     <h1 className="hero-title">Sweetest Smiles In Every Box</h1>
