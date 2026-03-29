@@ -32,4 +32,7 @@ urlpatterns = [
     
     # Orders
     path('orders/create/', views.create_order),
+    
+    # Cake Customization
+    path('cake-customization/', views.create_cake_customization),
 ]

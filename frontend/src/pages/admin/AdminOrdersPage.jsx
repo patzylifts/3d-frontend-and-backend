@@ -65,7 +65,7 @@ export default function AdminOrdersPage() {
               <tr key={order.id} className="text-center border-t">
                 <td className="p-3 border">{order.id}</td>
                 <td className="p-3 border">{order.user_name}</td>
-                <td className="p-3 border">${order.total_amount}</td>
+                <td className="p-3 border">₱{order.total_amount}</td>
                 <td className="p-3 border capitalize">
                   <span className={
                     order.status === "pending_review"

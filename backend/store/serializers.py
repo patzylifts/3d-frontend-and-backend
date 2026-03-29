@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Category, Cart, CartItem, UserProfile
+from .models import Product, Category, Cart, CartItem, UserProfile, CakeCustomization
 from django.contrib.auth.models import User
 
 # CATEGORY
@@ -92,3 +92,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']
+
+
+# CAKE CUSTOMIZATION
+class CakeCustomizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CakeCustomization
+        fields = ['id', 'shape', 'cake_color', 'flavor', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'created_at']
+        read_only_fields = ['id', 'created_at']

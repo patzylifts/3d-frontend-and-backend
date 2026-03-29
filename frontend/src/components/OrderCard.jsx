@@ -18,7 +18,7 @@ export default function OrderCard({ order, onView }) {
         <div>
           <p className="text-sm text-gray-500">Order #{order.id}</p>
           <p className="text-lg font-semibold mt-1">
-            Total: ${isNaN(total) ? order.total_amount : total.toFixed(2)}
+            Total: ₱{isNaN(total) ? order.total_amount : total.toFixed(2)}
           </p>
           <p className="text-gray-600 text-sm mt-1">
             Placed: {new Date(order.created_at).toLocaleDateString()}

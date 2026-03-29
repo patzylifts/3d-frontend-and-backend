@@ -136,3 +136,29 @@ class CartItem(models.Model):
     def subtotal(self):
         return self.quantity * self.product.price
     
+
+# CAKE CUSTOMIZATION
+class CakeCustomization(models.Model):
+    SHAPE_CHOICES = [
+        ("round", "Round"),
+        ("rectangle", "Rectangle"),
+    ]
+
+    FLAVOR_CHOICES = [
+        ("Choco Moist", "Choco Moist"),
+        ("Vanilla Chiffon", "Vanilla Chiffon"),
+        ("Ube Chiffon", "Ube Chiffon"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    shape = models.CharField(max_length=20, choices=SHAPE_CHOICES, default="round")
+    cake_color = models.CharField(max_length=20, default="#683434")
+    flavor = models.CharField(max_length=50, choices=FLAVOR_CHOICES, default="Choco Moist")
+    has_candle = models.BooleanField(default=False)
+    has_chocolate = models.BooleanField(default=False)
+    has_balls = models.BooleanField(default=False)
+    has_nuts = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"CakeCustomization {self.id} - {self.shape} {self.flavor}"

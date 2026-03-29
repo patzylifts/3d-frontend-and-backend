@@ -7,9 +7,9 @@ from .token_serializers import MyTokenObtainPairSerializer
 
 from django.contrib.auth.models import BaseUserManager
 
-from .models import Product, Category, Cart, CartItem, Order, OrderItem, UserProfile
+from .models import Product, Category, Cart, CartItem, Order, OrderItem, UserProfile, CakeCustomization
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
-from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer
+from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer, CakeCustomizationSerializer
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -180,3 +180,16 @@ def profile_view(request):
             request.user.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# CAKE CUSTOMIZATION
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_cake_customization(request):
+    serializer = CakeCustomizationSerializer(data=request.data)
+    if serializer.is_valid():
+        # Link to user if authenticated
+        user = request.user if request.user.is_authenticated else None
+        serializer.save(user=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
