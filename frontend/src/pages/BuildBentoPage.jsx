@@ -84,7 +84,7 @@ function CakeModel() {
             {nodes.Cake_Rectangle?.geometry && (
                 <mesh
                     geometry={nodes.Cake_Rectangle.geometry}
-                    position={[0, 1.5, 0]}
+                    position={[0, 0.21, 0]}
                     scale={[0.95, 0.92, 0.95]}
                     visible={form === 2}
                     castShadow
