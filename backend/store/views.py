@@ -182,14 +182,30 @@ def profile_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# CAKE CUSTOMIZATION
+# CAKE CUSTOMIZATION → Add Custom Cake to Cart
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def create_cake_customization(request):
+@permission_classes([IsAuthenticated])
+def add_custom_cake_to_cart(request):
+    """
+    Saves a CakeCustomization and adds it to the user's cart as a CartItem.
+    """
     serializer = CakeCustomizationSerializer(data=request.data)
     if serializer.is_valid():
-        # Link to user if authenticated
-        user = request.user if request.user.is_authenticated else None
-        serializer.save(user=user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        customization = serializer.save(user=request.user)
+        
+        # Get or create the user's cart
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        
+        # Create a CartItem linked to this customization (no product)
+        CartItem.objects.create(
+            cart=cart,
+            customization=customization,
+            quantity=1,
+        )
+        
+        return Response({
+            "message": "Custom cake added to cart",
+            "cart": CartSerializer(cart).data,
+        }, status=status.HTTP_201_CREATED)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

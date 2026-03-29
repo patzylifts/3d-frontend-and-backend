@@ -4,6 +4,7 @@ import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from 
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CustomizationProvider, useCustomization } from "../contexts/Customization";
+import { useCart } from "../context/CartContext";
 import "./BuildBentoPage.css";
 
 
@@ -14,7 +15,7 @@ function CakeModel() {
     const { form, cakeColor, flavor, flavorTextureMap, candle, chocolate, balls, nuts } = useCustomization();
     const groupRef = useRef();
 
-    // ── Load all flavor textures up-front ──
+    // Load all flavor textures
     const coffeeTexture = useTexture({
         map: "/textures/coffee/Coffee_Grains_001_BaseColor.jpg",
         normalMap: "/textures/coffee/Coffee_Grains_001_Normal.jpg",
@@ -48,11 +49,10 @@ function CakeModel() {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
-    // ── Stand materials (cloned, dark) ──
     const standColor = new THREE.Color("#2a2424");
 
     return (
-        <group ref={groupRef} dispose={null}>
+        <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
             {/* Stand */}
             <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
                 <group position={[0, 0, -27.2]} scale={1.01}>
@@ -60,10 +60,7 @@ function CakeModel() {
                         (name) =>
                             nodes[name]?.geometry && (
                                 <mesh key={name} geometry={nodes[name].geometry} castShadow>
-                                    <meshStandardMaterial
-                                        color={standColor}
-                                        roughness={0.55}
-                                    />
+                                    <meshStandardMaterial color={standColor} roughness={0.55} />
                                 </mesh>
                             )
                     )}
@@ -87,7 +84,7 @@ function CakeModel() {
             {nodes.Cake_Rectangle?.geometry && (
                 <mesh
                     geometry={nodes.Cake_Rectangle.geometry}
-                    position={[0, 0.2, 0]}
+                    position={[0, 1.5, 0]}
                     scale={[0.95, 0.92, 0.95]}
                     visible={form === 2}
                     castShadow
@@ -163,9 +160,15 @@ function Configurator() {
         generateRandomCake,
     } = useCustomization();
 
+    const { addCustomCakeToCart } = useCart();
+    const navigate = useNavigate();
     const [orderStatus, setOrderStatus] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleOrder = async () => {
+    const handleAddToCart = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         const payload = {
             shape: form === 1 ? "round" : "rectangle",
             cake_color: cakeColor.color,
@@ -176,37 +179,29 @@ function Configurator() {
             has_nuts: nuts,
         };
 
-        try {
-            const token = localStorage.getItem("access");
-            const headers = { "Content-Type": "application/json" };
-            if (token) headers["Authorization"] = `Bearer ${token}`;
+        const result = await addCustomCakeToCart(payload);
 
-            const res = await fetch("http://127.0.0.1:8000/api/cake-customization/", {
-                method: "POST",
-                headers,
-                body: JSON.stringify(payload),
-            });
-
-            if (res.ok) {
-                setOrderStatus("success");
-                setTimeout(() => setOrderStatus(null), 3000);
-            } else {
-                setOrderStatus("error");
-                setTimeout(() => setOrderStatus(null), 3000);
-            }
-        } catch {
+        if (result.success) {
+            setOrderStatus("success");
+            setTimeout(() => {
+                setOrderStatus(null);
+                navigate("/cart");
+            }, 1500);
+        } else {
             setOrderStatus("error");
             setTimeout(() => setOrderStatus(null), 3000);
         }
+
+        setIsSubmitting(false);
     };
 
     const flavorEmoji = { "Choco Moist": "🍫", "Vanilla Chiffon": "🍦", "Ube Chiffon": "🟣" };
 
     return (
         <aside className="cfg-panel">
-            <h2 className="cfg-title"> Design Your Cake</h2>
+            <h2 className="cfg-title">Design Your Cake</h2>
 
-            {/* ── Shape ── */}
+            {/* Shape */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Shape</h3>
                 <div className="cfg-chips">
@@ -225,7 +220,7 @@ function Configurator() {
                 </div>
             </section>
 
-            {/* ── Cake Color ── */}
+            {/* Cake Color */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Cake Color</h3>
                 <div className="cfg-swatches">
@@ -242,7 +237,7 @@ function Configurator() {
                 </div>
             </section>
 
-            {/* ── Flavor ── */}
+            {/* Flavor */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Flavor</h3>
                 <div className="cfg-chips">
@@ -258,7 +253,7 @@ function Configurator() {
                 </div>
             </section>
 
-            {/* ── Decorations ── */}
+            {/* Decorations */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Decorations</h3>
                 <div className="cfg-toggles">
@@ -280,21 +275,25 @@ function Configurator() {
                 </div>
             </section>
 
-            {/* ── Randomize ── */}
+            {/* Randomize */}
             <button className="cfg-random-btn" onClick={generateRandomCake}>
                 🎲 Randomize My Cake!
             </button>
 
-            {/* ── Order ── */}
-            <button className="cfg-order-btn" onClick={handleOrder}>
-                🛒 ORDER
+            {/* Add to Cart */}
+            <button
+                className="cfg-order-btn"
+                onClick={handleAddToCart}
+                disabled={isSubmitting}
+            >
+                {isSubmitting ? "Adding..." : "🛒 Add to Cart"}
             </button>
 
             {orderStatus === "success" && (
-                <div className="cfg-toast cfg-toast--success">✅ Cake customization saved!</div>
+                <div className="cfg-toast cfg-toast--success">✅ Added to cart! Redirecting...</div>
             )}
             {orderStatus === "error" && (
-                <div className="cfg-toast cfg-toast--error">❌ Failed to save. Try again.</div>
+                <div className="cfg-toast cfg-toast--error">❌ Please log in to add to cart.</div>
             )}
         </aside>
     );
@@ -308,7 +307,6 @@ function BuildBentoContent() {
 
     return (
         <div className="build-page">
-            {/* Top nav */}
             <header className="build-nav">
                 <button className="build-back-btn" onClick={() => navigate("/")}>
                     ← Back
@@ -317,11 +315,10 @@ function BuildBentoContent() {
             </header>
 
             <div className="build-layout">
-                {/* 3D Canvas */}
                 <div className="build-canvas-wrap">
                     <Canvas
                         dpr={[1, 2]}
-                        camera={{ fov: 45, position: [0, 2, 7] }}
+                        camera={{ fov: 40, position: [0, 4, 5] }}
                         shadows
                     >
                         <color attach="background" args={["#120020"]} />
@@ -340,7 +337,7 @@ function BuildBentoContent() {
                         <Suspense fallback={null}>
                             <CakeModel />
                             <ContactShadows
-                                position={[0, -1.5, 0]}
+                                position={[0, -2.3, 0]}
                                 opacity={0.5}
                                 scale={6}
                                 blur={2}
@@ -354,13 +351,13 @@ function BuildBentoContent() {
                             maxDistance={12}
                             minPolarAngle={Math.PI / 6}
                             maxPolarAngle={Math.PI / 2}
+                            target={[0, 1.2, 0]}
                         />
                     </Canvas>
 
                     <div className="canvas-hint">🖱️ Drag to rotate · Scroll to zoom</div>
                 </div>
 
-                {/* Configurator side panel */}
                 <Configurator />
             </div>
         </div>

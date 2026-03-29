@@ -17,14 +17,43 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 # CART
+class CakeCustomizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CakeCustomization
+        fields = ['id', 'shape', 'cake_color', 'flavor', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
 class CartItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
-    product_image = serializers.ImageField(source='product.image', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True, default=None)
+    product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True, default=None)
+    product_image = serializers.ImageField(source='product.image', read_only=True, default=None)
+    customization_detail = CakeCustomizationSerializer(source='customization', read_only=True)
+    item_name = serializers.SerializerMethodField()
+    item_unit_price = serializers.SerializerMethodField()
+    is_custom_cake = serializers.SerializerMethodField()
     
     class Meta:
         model = CartItem
-        fields = '__all__'
+        fields = ['id', 'cart', 'product', 'customization', 'quantity',
+                  'product_name', 'product_price', 'product_image',
+                  'customization_detail', 'item_name', 'item_unit_price', 'is_custom_cake']
+    
+    def get_item_name(self, obj):
+        if obj.product:
+            return obj.product.name
+        elif obj.customization:
+            return f"Custom {obj.customization.get_shape_display()} {obj.customization.flavor} Cake"
+        return "Unknown Item"
+    
+    def get_item_unit_price(self, obj):
+        if obj.product:
+            return str(obj.product.price)
+        elif obj.customization:
+            return str(obj.customization.price)
+        return "0.00"
+    
+    def get_is_custom_cake(self, obj):
+        return obj.customization is not None
         
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
@@ -73,7 +102,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=last_name
         )
 
-        # auto-create empty profile and store middle_name there
         UserProfile.objects.create(
             user=user,
             middle_name=middle_name,
@@ -88,15 +116,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)  # nested user info
+    user = UserSerializer(read_only=True)
     class Meta:
         model = UserProfile
         fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']
-
-
-# CAKE CUSTOMIZATION
-class CakeCustomizationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CakeCustomization
-        fields = ['id', 'shape', 'cake_color', 'flavor', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'created_at']
-        read_only_fields = ['id', 'created_at']

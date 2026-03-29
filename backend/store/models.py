@@ -126,15 +126,28 @@ class Cart(models.Model):
     
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    customization = models.ForeignKey('CakeCustomization', on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        if self.product:
+            return f"{self.quantity} x {self.product.name}"
+        elif self.customization:
+            return f"{self.quantity} x Custom {self.customization.shape} {self.customization.flavor} Cake"
+        return f"CartItem {self.id}"
+    
+    @property
+    def item_price(self):
+        if self.product:
+            return self.product.price
+        elif self.customization:
+            return self.customization.price
+        return 0
     
     @property
     def subtotal(self):
-        return self.quantity * self.product.price
+        return self.quantity * self.item_price
     
 
 # CAKE CUSTOMIZATION
@@ -158,6 +171,7 @@ class CakeCustomization(models.Model):
     has_chocolate = models.BooleanField(default=False)
     has_balls = models.BooleanField(default=False)
     has_nuts = models.BooleanField(default=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=500.00)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

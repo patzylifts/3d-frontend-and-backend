@@ -33,6 +33,6 @@ urlpatterns = [
     # Orders
     path('orders/create/', views.create_order),
     
-    # Cake Customization
-    path('cake-customization/', views.create_cake_customization),
+    # Cake Customization → Add to Cart
+    path('cake-customization/', views.add_custom_cake_to_cart),
 ]
