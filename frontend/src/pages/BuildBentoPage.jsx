@@ -106,16 +106,15 @@ function CakeModel() {
             )}
 
             {/* Nuts */}
-            {nodes.Mesh021?.geometry && nodes.Mesh021_1?.geometry && (
-                <group
+            {nodes.nuts?.geometry && (
+                <mesh
+                    geometry={nodes.nuts.geometry}
+                    material={materials.Default}
                     position={[0.08, 2.31, 0.42]}
                     rotation={[Math.PI / 2, 0, -2.81]}
                     scale={0.18}
                     visible={nuts}
-                >
-                    <mesh geometry={nodes.Mesh021.geometry} material={materials.Default} />
-                    <mesh geometry={nodes.Mesh021_1.geometry} material={materials.Default} />
-                </group>
+                />
             )}
 
             {/* Chocolate Bar */}
