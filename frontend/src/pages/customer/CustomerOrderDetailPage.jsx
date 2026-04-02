@@ -1,3 +1,4 @@
+// src/pages/customer/CustomerOrderDetailPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
@@ -11,10 +12,14 @@ export default function CustomerOrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [payAmount, setPayAmount] = useState(Math.round(order?.total_amount * 0.2) || 0);
+    
+    // FETCH ORDER
     const fetchOrder = async () => {
         try {
             const res = await authFetch(`${BASEURL}/api/orders/customer/orders/${id}/`);
             if (!res.ok) throw new Error("Failed to fetch order");
+
             const data = await res.json();
             setOrder(data);
         } catch (err) {
@@ -28,20 +33,50 @@ export default function CustomerOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
+    // 🔥 PAY NOW (simulate redirect to payment gateway)
+    const handlePayNow = async () => {
+        try {
+            const res = await authFetch(`${BASEURL}/api/orders/${id}/pay/`, {
+                method: "POST",
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Payment initiation failed:", errorText);
+                return;
+            }
+
+            const data = await res.json();
+
+            // Instead of redirecting to external site, go to internal PaymentCheckoutPage
+            navigate(`/orders/${id}/checkout`);
+
+        } catch (err) {
+            console.error("Error in handlePayNow:", err);
+        }
+    };
+
     if (loading) return <p className="text-center mt-10">Loading order...</p>;
     if (error) return <p className="text-center mt-10 text-red-600">{error}</p>;
     if (!order) return null;
 
     return (
         <div className="min-h-screen p-6 bg-gray-100">
-            <h1 className="text-3xl font-bold mb-6 text-center">Order #{order.id}</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center">
+                Order #{order.id}
+            </h1>
 
             <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
                 <p><strong>Status:</strong> {order.status}</p>
                 <p><strong>Payment Status:</strong> {order.payment_status}</p>
                 <p><strong>Total Amount:</strong> ${order.total_amount}</p>
                 <p><strong>Placed At:</strong> {new Date(order.created_at).toLocaleString()}</p>
-
+                <p>
+                    <strong>Delivery Schedule:</strong>{" "}
+                    {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : "N/A"}{" "}
+                    {order.delivery_time ? new Date(`1970-01-01T${order.delivery_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                </p>
+                {/* ❌ REJECTED */}
                 {order.status === "rejected" && order.rejection_reason && (
                     <div className="mt-4 p-4 bg-red-100 border-l-4 border-red-500">
                         <strong>Reason for rejection:</strong>
@@ -49,24 +84,56 @@ export default function CustomerOrderDetailPage() {
                     </div>
                 )}
 
+                {/* 💳 PAYMENT SECTION */}
+                // 💳 PAYMENT SECTION
                 {order.status === "awaiting_downpayment" && (
-                    <button
-                        onClick={() => alert("Redirect to payment gateway here")}
-                        className="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                    >
-                        Pay Now
-                    </button>
+                    <div className="mt-4">
+                        <p className="mb-2 text-gray-700">
+                            Enter amount to pay (Minimum ₱{Math.round(order.total_amount * 0.2)}):
+                        </p>
+
+                        <input
+                            type="number"
+                            min={Math.round(order.total_amount * 0.2)}
+                            max={order.total_amount}
+                            value={payAmount}
+                            onChange={(e) => setPayAmount(Number(e.target.value))}
+                            className="border px-3 py-2 rounded w-1/3"
+                        />
+
+                        {payAmount < Math.round(order.total_amount * 0.2) && (
+                            <p className="text-red-600 mt-1 text-sm">Amount must be at least 20% of total</p>
+                        )}
+
+                        {payAmount > order.total_amount && (
+                            <p className="text-red-600 mt-1 text-sm">Amount cannot exceed total price</p>
+                        )}
+
+                        <button
+                            onClick={handlePayNow}
+                            disabled={
+                                payAmount < Math.round(order.total_amount * 0.2) || payAmount > order.total_amount
+                            }
+                            className={`mt-2 px-4 py-2 rounded text-white ${payAmount < Math.round(order.total_amount * 0.2) || payAmount > order.total_amount
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-green-500 hover:bg-green-600"
+                                }`}
+                        >
+                            Pay Now
+                        </button>
+                    </div>
                 )}
 
+                {/* BACK BUTTON */}
                 <button
                     onClick={() => navigate("/orders")}
-                    className="mt-4 ml-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                    className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                 >
                     Back to My Orders
                 </button>
             </div>
 
-            {/* Order Items */}
+            {/* 🧾 ORDER ITEMS */}
             <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h2 className="text-2xl font-bold mb-4">Items</h2>
                 <table className="min-w-full border">

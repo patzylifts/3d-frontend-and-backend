@@ -22,6 +22,7 @@ import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerProfileUpdate from "./pages/customer/CustomerProfileUpdate";
 import CustomerOrdersPage from "./pages/customer/CustomerOrdersPage";
 import CustomerOrderDetailPage from "./pages/customer/CustomerOrderDetailPage";
+import PaymentCheckoutPage from './pages/customer/PaymentCheckoutPage';
 
 function App() {
   return (
@@ -41,6 +42,8 @@ function App() {
 
               <Route path="/orders" element={<><Navbar /><CustomerOrdersPage /></>} />
               <Route path="/orders/:id" element={<><Navbar /><CustomerOrderDetailPage /></>} />
+              <Route path="/payment/checkout/:id" element={<><Navbar /><PaymentCheckoutPage /></>} />
+              <Route path="/orders/:id/checkout" element={<><Navbar /><PaymentCheckoutPage /></>} />
             </Route>
 
             <Route element={<PrivateRouter adminOnly={true} />}>

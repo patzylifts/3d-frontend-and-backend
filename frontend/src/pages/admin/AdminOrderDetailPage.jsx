@@ -44,7 +44,12 @@ export default function AdminOrderDetailPage() {
         <p><strong>Customer:</strong> {order.user_name}</p>
         <p><strong>Total:</strong> ${order.total_amount}</p>
         <p><strong>Status:</strong> {order.status}</p>
-
+        <p><strong>Placed At:</strong> {new Date(order.created_at).toLocaleString()}</p>
+        <p>
+          <strong>Delivery Schedule:</strong>{" "}
+          {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : "N/A"}{" "}
+          {order.delivery_time ? new Date(`1970-01-01T${order.delivery_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+        </p>
         {/* ✅ REVIEW ACTIONS ONLY */}
         {order.status === "pending_review" && (
           <div className="flex gap-4 mt-4">
