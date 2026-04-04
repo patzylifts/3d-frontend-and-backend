@@ -25,7 +25,10 @@ export default function CustomerOrderDetailPage() {
             setOrder(data);
 
             // ✅ AUTO SET 20% AFTER FETCH
-            const min = Math.round(data.total_amount * 0.2);
+            const min = Math.max(
+                Math.round(data.total_amount * 0.2) - Number(data.total_paid),
+                0
+            );
             setPayAmount(min);
 
         } catch (err) {
@@ -39,15 +42,37 @@ export default function CustomerOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPaid = urlParams.get("payment");
+
+        if (isPaid === "success") {
+            authFetch(`${BASEURL}/api/payments/${id}/confirm/`, {
+                method: "POST",
+                body: JSON.stringify({
+                    amount: localStorage.getItem("last_payment_amount"),
+                    tip: localStorage.getItem("last_tip_amount") || 0
+                })
+            }).then(() => {
+                // clean URL so it doesn't trigger again on refresh
+                window.history.replaceState({}, document.title, `/orders/${id}`);
+                fetchOrder(); // refresh data
+            });
+        }
+    }, [id]);
+
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
     // REMAINING BALANCE
-    const remainingBalance = order
-        ? Math.max(0, Number(order.total_amount) - parsedPay)
-        : 0;
+    const remainingBalance = order ? Number(order.remaining_balance) : 0;
     // VALIDATIONS
-    const minAmount = order ? Math.round(order.total_amount * 0.2) : 0;
+    const minAmount = order
+        ? Math.max(
+            Math.round(order.total_amount * 0.2) - Number(order.total_paid),
+            0
+        )
+        : 0;
     const maxAmount = order ? Number(order.total_amount) : 0;
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
     const isInvalid =
@@ -77,6 +102,7 @@ export default function CustomerOrderDetailPage() {
 
             // 🔥 REDIRECT TO PAYMONGO CHECKOUT
             localStorage.setItem("last_payment_amount", payAmount);
+            localStorage.setItem("last_tip_amount", tipAmount);
             window.location.href = data.checkout_url;
 
         } catch (err) {
@@ -98,9 +124,11 @@ export default function CustomerOrderDetailPage() {
                 <p><strong>Status:</strong> {order.status}</p>
                 <p><strong>Payment Status:</strong> {order.payment_status}</p>
                 <p><strong>Total Amount:</strong> ₱{order.total_amount}</p>
-                <p className="mt-2 font-semibold text-blue-600">
-                    Remaining Balance: ₱{remainingBalance.toFixed(2)}
-                </p>
+                {order.status !== "rejected" && order.status !== "pending_review" && (
+                    <p className="mt-2 font-semibold text-blue-600">
+                        Remaining Balance: ₱{remainingBalance.toFixed(2)}
+                    </p>
+                )}
                 <p><strong>Placed At:</strong> {new Date(order.created_at).toLocaleString()}</p>
 
                 <p>

@@ -61,7 +61,7 @@ def create_checkout_session(request, order_id):
                         }
                     ],
                     "payment_method_types": ["gcash"],
-                    "success_url": f"http://localhost:5173/orders/{order.id}/checkout",
+                    "success_url": f"http://localhost:5173/orders/{order.id}?payment=success",
                     "cancel_url": f"http://localhost:5173/orders/{order.id}"
                 }
             }
