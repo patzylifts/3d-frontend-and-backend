@@ -1,3 +1,4 @@
+// src/pages/customer/PaymentCheckoutPage.jsx
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
@@ -9,26 +10,27 @@ export default function PaymentCheckoutPage() {
     useEffect(() => {
         const simulatePayment = async () => {
             try {
-                // wait 2 seconds to simulate processing
+                // simulate a short delay for processing
                 await new Promise(res => setTimeout(res, 2000));
 
-                // call backend to confirm payment
-                const res = await authFetch(`${import.meta.env.VITE_DJANGO_BASE_URL}/api/orders/${id}/confirm-payment/`,
-                    {
-                        method: "POST"
-                    });
+                // confirm payment on backend
+                const response = await authFetch(`${import.meta.env.VITE_DJANGO_BASE_URL}/api/payments/${id}/confirm/`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        amount: localStorage.getItem("last_payment_amount")
+                    })
+                });
 
-                if (!res.ok) {
-                    const text = await res.text();
+                if (!response.ok) {
+                    const text = await response.text();
                     console.error("Payment confirmation failed:", text);
                     return;
                 }
 
                 // redirect back to order detail
                 navigate(`/orders/${id}`);
-
             } catch (err) {
-                console.error("Error in simulatePayment:", err);
+                console.error("Error during payment confirmation:", err);
             }
         };
 

@@ -60,6 +60,7 @@ class Order(models.Model):
 
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Pending"),
+        ("partial", "Partial"),
         ("paid", "Paid"),
         ("failed", "Failed"),
     ]

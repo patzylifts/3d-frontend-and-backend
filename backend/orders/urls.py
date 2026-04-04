@@ -13,8 +13,4 @@ urlpatterns = [
     path('admin/orders/', admin_views.admin_orders),
     path('admin/orders/<int:order_id>/', admin_views.admin_order_detail),
     path('admin/orders/<int:order_id>/review/', admin_views.admin_review_order),
-    
-    # Payment
-    path('<int:order_id>/pay/', views.pay_order),
-    path('<int:order_id>/confirm-payment/', views.confirm_payment),
 ]
