@@ -1,6 +1,6 @@
+# store/models.py
 from django.db import models
 from django.contrib.auth.models import User
-
 
 # CATEGORY
 class Category(models.Model):

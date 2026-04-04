@@ -1,3 +1,4 @@
+# orders/serializers.py
 from rest_framework import serializers
 from store.models import Order, OrderItem, Product
 
@@ -16,15 +17,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'user_name',
-            'created_at',
-            'full_name', 'phone',
-            'street', 'city', 'province', 'postal_code',
-            'delivery_date', 'delivery_time',
-            'order_notes',
-            'total_amount',
-            'status', 'payment_status',
-            'items', 'rejection_reason',
+            'id', 'user', 'user_name', 'created_at', 'full_name', 'phone', 'street', 'city', 'province', 'postal_code', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'items', 'rejection_reason',
         ]
         
 class CustomerOrderSerializer(serializers.ModelSerializer):

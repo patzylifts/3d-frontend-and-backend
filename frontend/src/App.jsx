@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { CartProvider } from "./context/CartContext";
 import { OrderProvider } from "./context/OrderContext";
