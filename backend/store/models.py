@@ -1,6 +1,6 @@
+# store/models.py
 from django.db import models
 from django.contrib.auth.models import User
-
 
 # CATEGORY
 class Category(models.Model):
@@ -60,6 +60,7 @@ class Order(models.Model):
 
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Pending"),
+        ("partial", "Partial"),
         ("paid", "Paid"),
         ("failed", "Failed"),
     ]

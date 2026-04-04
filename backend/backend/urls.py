@@ -6,7 +6,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('store.urls')),  # Include URLs from the store app
-    path('api/orders/', include('orders.urls')),  # new orders app
+    path('api/orders/', include('orders.urls')),  # Orders
+    path('api/payments/', include('payments.urls')), # Payments
 ] 
 
 if settings.DEBUG:

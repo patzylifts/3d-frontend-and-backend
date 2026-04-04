@@ -2,7 +2,10 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+
 load_dotenv()  # Load environment variables from .env file
+
+PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
