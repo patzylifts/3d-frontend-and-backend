@@ -19,9 +19,9 @@ const cakeColors = [
 const flavors = ["Choco Moist", "Vanilla Chiffon", "Ube Chiffon"];
 
 const flavorTextureMap = {
-    "Choco Moist": "coffee",
+    "Choco Moist": "abstract",
     "Vanilla Chiffon": "milkshake",
-    "Ube Chiffon": "abstract",
+    "Ube Chiffon": "coffee",
 };
 
 const CustomizationContext = createContext({});

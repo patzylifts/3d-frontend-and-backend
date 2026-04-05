@@ -11,7 +11,7 @@ import "./BuildBentoPage.css";
 /* ─────────────────────────────── 3D MODEL ─────────────────────────────── */
 
 function CakeModel() {
-    const { nodes, materials } = useGLTF("/models/sus.gltf");
+    const { nodes, materials } = useGLTF("https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf");
     const { form, cakeColor, flavor, flavorTextureMap, candle, chocolate, balls, nuts } = useCustomization();
     const groupRef = useRef();
 

@@ -12,7 +12,7 @@ import * as THREE from "three";
 
 export function Cake(props) {
     const { nodes, materials } = useGLTF('/models/sus.gltf');
-    const plate = useGLTF('/models/scene.gltf');
+    const plate = useGLTF('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/scene.gltf');
     const { material, form, cakeColor, creamColor, nuts, chocolate, balls, candle } = useCustomization();
     const { gl } = useThree();
 
@@ -244,5 +244,5 @@ export function Cake(props) {
     );
 }
 
-useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/sus.gltf');
+useGLTF.preload('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/scene.gltf');
+useGLTF.preload('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf');
