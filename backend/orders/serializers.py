@@ -24,12 +24,15 @@ class OrderSerializer(serializers.ModelSerializer):
         
     def get_total_paid(self, obj):
         return sum(
-            p.amount + p.tip
+            p.amount
             for p in obj.payments.filter(status__in=["partial", "paid"])
         )
         
     def get_remaining_balance(self, obj):
-        total_paid = sum(p.amount + p.tip for p in obj.payments.all())
+        total_paid = sum(
+            p.amount
+            for p in obj.payments.filter(status__in=["partial", "paid"])
+        )
         return max(0, obj.total_amount - total_paid)
 
 class CustomerOrderSerializer(serializers.ModelSerializer):

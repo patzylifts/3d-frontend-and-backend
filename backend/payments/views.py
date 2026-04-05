@@ -107,7 +107,7 @@ def confirm_payment(request, order_id):
         tip = float(request.data.get("tip", 0))
 
         # 🔥 BUSINESS LOGIC
-        if amount + tip < float(order.total_amount):
+        if amount < float(order.total_amount):
             last_payment.status = "partial"
             order.payment_status = "partial"
         else:
