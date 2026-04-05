@@ -1,15 +1,19 @@
 # payments/views.py
+import hmac
+import hashlib
+import json
+import requests
+import base64
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from store.models import Order
 from .serializers import PaymentSerializer
+from store.models import Order
 from .models import Payment
-
-import requests
-import base64
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -129,3 +133,58 @@ def confirm_payment(request, order_id):
         return Response({"error": "Order not found"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
+@csrf_exempt
+def paymongo_webhook(request):
+    try:
+        payload = request.body
+        data = json.loads(payload)
+
+        print("Webhook hit! Raw payload:", json.dumps(data, indent=2))
+
+        # Look for the actual type anywhere inside
+        event_type = None
+        if "data" in data and "attributes" in data["data"]:
+            event_type = data["data"]["attributes"].get("type")
+
+        if not event_type:
+            print("No event type found, ignoring")
+            return JsonResponse({"message": "Ignored: no type"}, status=200)
+
+        print("Event type detected:", event_type)
+
+        if event_type != "checkout_session.payment.paid":
+            return JsonResponse({"message": "Ignored event"}, status=200)
+
+        # Grab the checkout session ID safely
+        checkout_id = data["data"]["attributes"].get("data", {}).get("id")
+        if not checkout_id:
+            return JsonResponse({"error": "No checkout ID found"}, status=400)
+
+        payment = Payment.objects.filter(transaction_id=checkout_id).first()
+        if not payment:
+            print("Payment not found in DB for", checkout_id)
+            return JsonResponse({"error": "Payment not found"}, status=404)
+
+        order = payment.order
+
+        # Update statuses
+        if payment.amount < float(order.total_amount):
+            payment.status = "partial"
+            order.payment_status = "partial"
+        else:
+            payment.status = "paid"
+            order.payment_status = "paid"
+
+        order.status = "processing"
+
+        payment.save()
+        order.save()
+
+        print(f"[Webhook] Payment {payment.id} for Order {order.id} updated.")
+
+        return JsonResponse({"message": "Webhook processed"}, status=200)
+
+    except Exception as e:
+        print("Webhook error:", str(e))
+        return JsonResponse({"error": str(e)}, status=500)
