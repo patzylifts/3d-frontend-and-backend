@@ -1,151 +1,146 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-:root {
-  --nav-bg: #FFF6F4;         /* Soft warm-tint banner background */
-  --nav-text: #1F1F1F;       /* Deep modern dark text */
-  --nav-orange: #F14D14;     /* Matching primary modern orange */
-  --nav-muted: #666666;      /* Muted subtitles */
-}
-
-.modern-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 80px;
-  background-color: var(--nav-bg); /* Matches the hero background seamless view */
-  font-family: 'Outfit', sans-serif;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  /* Soft, clean drop shadow without thick lines */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); 
+.minimal-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 90px; /* Slightly taller for elegance */
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
 }
 
 .nav-container {
-  width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 8%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* Perfect centering for the logo */
+    align-items: center;
 }
 
-/* ─────────────────────────────── NAVIGATION LEFT ─────────────────────────────── */
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 48px;
+/* --- GROUPS --- */
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 30px;
 }
 
-.nav-logo {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--nav-text);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.nav-group.right {
+    justify-content: flex-end;
 }
 
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 32px;
+/* --- LOGO --- */
+.nav-logo-centered {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
 }
 
-/* ─────────────────────────────── NAVIGATION ITEMS ─────────────────────────────── */
-.nav-item {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--nav-text);
-  text-decoration: none;
-  transition: color 0.2s ease;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
+.logo-top {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    color: #1a1a1a;
 }
 
-.nav-item:hover {
-  color: var(--nav-orange);
+.logo-bottom {
+    font-weight: 500;
+    font-size: 0.75rem;
+    letter-spacing: 5px;
+    color: #FF4D8D;
+    margin-top: 4px;
 }
 
-.logout-btn {
-  font-family: 'Outfit', sans-serif;
+/* --- LINKS --- */
+.nav-link {
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #444;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
 }
 
-/* ─────────────────────────────── NAVIGATION RIGHT ─────────────────────────────── */
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+.nav-link:hover {
+    color: #FF4D8D;
 }
 
-.nav-btn-solid {
-  background-color: var(--nav-orange);
-  color: #ffffff;
-  text-decoration: none;
-  padding: 12px 24px;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: 0 8px 16px rgba(241, 77, 20, 0.2);
-  transition: transform 0.2s ease;
+/* --- CART --- */
+/* --- MINIMALIST CART ICON --- */
+.nav-cart-minimal {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    margin-left: 10px;
+    transition: opacity 0.2s ease;
 }
 
-.nav-btn-solid:hover {
-  transform: translateY(-2px);
+.nav-cart-minimal:hover {
+    opacity: 0.7;
 }
 
-.nav-cart {
-  position: relative;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease;
+.cart-icon-container {
+    position: relative; /* Essential for the badge positioning */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.nav-cart:hover {
-  transform: translateY(-2px);
+.cart-svg {
+    color: #1a1a1a; /* Matches your logo text color */
 }
 
-.cart-icon {
-  font-size: 1.25rem;
+.cart-badge-minimal {
+    position: absolute;
+    top: -5px;      /* Pulls it slightly above the icon */
+    right: -8px;    /* Pushes it slightly to the right */
+    background: #FF4D8D; /* Your signature pink */
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ffffff; /* Gives it a clean 'cutout' look against the icon */
 }
 
-.modern-cart-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background-color: var(--nav-orange);
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border-radius: 50%;
-  height: 20px;
-  width: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(241, 77, 20, 0.4);
+/* Auth group spacing tweak */
+.auth-group {
+    display: flex;
+    gap: 20px;
+    border-right: 1px solid #f0f0f0;
+    padding-right: 25px;
+    margin-right: 5px;
 }
 
-/* Responsive constraints */
-@media (max-width: 768px) {
-  .nav-links {
-    display: none; /* Hide standard page links on mobile unless you attach a mobile hamburger */
-  }
-  
-  .nav-container {
-    padding: 0 24px;
-  }
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    .nav-group.left, .auth-group {
+        display: none;
+    }
+    .nav-container {
+        grid-template-columns: 1fr 1fr;
+    }
+    .nav-group.right {
+        justify-content: flex-end;
+    }
 }
