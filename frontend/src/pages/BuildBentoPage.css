@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-  --bg-color: #0f021b; /* Matches your Three.js canvas background */
-  --panel-bg: #18052c;
+  --bg-color: #ffffff; /* Matches your Three.js canvas background */
+  --panel-bg: #ffffff;
   --panel-glass: rgba(255, 255, 255, 0.03);
   --border-color: rgba(255, 255, 255, 0.08);
-  --text-primary: #ffffff;
-  --text-secondary: #a19ba8;
+  --text-primary: #030202;
+  --text-secondary: #ffffff;
   --accent-pink: #ff5ec4;
   --accent-purple: #c77dff;
   --accent-success: #2ec4b6;
@@ -81,7 +81,7 @@
   transform: translateX(-50%);
   font-size: 0.8rem;
   color: var(--text-secondary);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(250, 248, 248, 0.4);
   padding: 8px 16px;
   border-radius: 20px;
   backdrop-filter: blur(4px);
@@ -131,7 +131,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* Color Swatches */

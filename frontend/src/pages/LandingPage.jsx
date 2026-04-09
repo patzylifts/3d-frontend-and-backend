@@ -42,7 +42,7 @@ const LandingPage = () => {
     {/* Your existing Hero Content */}
     <div className="container hero-grid relative-z">
         <div className="hero-text" data-aos="fade-right">
-            <span className="mini-badge" style={{color: 'white', borderColor: 'white'}}>🎂 Handmade in Cavite</span>
+            <span className="mini-badge" style={{color: 'white', borderColor: 'white'}}>Handmade in Cavite</span>
             <h1 style={{color: 'white'}}>Sweetest <span className="pink-text">Smiles</span> In Every Box</h1>
             <p style={{color: 'white'}}>Artisanal bento cakes handcrafted daily with love. Experience the fun of designing your dream bento in 3D!</p>
             <div className="cta-row">
