@@ -92,48 +92,6 @@ def create_checkout_session(request, order_id):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
     
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def confirm_payment(request, order_id):
-    try:
-        order = Order.objects.get(id=order_id, user=request.user)
-
-        # get last payment attempted
-        last_payment = order.payments.last()
-        if not last_payment:
-            return Response({"error": "No payment found for this order"}, status=400)
-
-        if last_payment.status == "paid":
-            return Response({"message": "Already paid"})
-
-        # Confirm payment
-        amount = float(request.data.get("amount", 0))
-        tip = float(request.data.get("tip", 0))
-
-        # 🔥 BUSINESS LOGIC
-        if amount < float(order.total_amount):
-            last_payment.status = "partial"
-            order.payment_status = "partial"
-        else:
-            last_payment.status = "paid"
-            order.payment_status = "paid"
-
-        # Always update order status
-        order.status = "processing"
-        order.save()
-        last_payment.save()
-
-        return Response({
-            "message": "Payment confirmed",
-            "status": order.status,
-            "payment_status": order.payment_status
-        })
-
-    except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
-    
 @csrf_exempt
 def paymongo_webhook(request):
     if request.method != "POST":

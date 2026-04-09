@@ -42,21 +42,6 @@ export default function CustomerOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const isPaid = urlParams.get("payment");
-
-        if (isPaid === "success") {
-            // just clean URL and refresh
-            window.history.replaceState({}, document.title, `/orders/${id}`);
-
-            // 🔁 give webhook time to process
-            setTimeout(() => {
-                fetchOrder();
-            }, 2000);
-        }
-    }, [id]);
-
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
