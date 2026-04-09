@@ -42,25 +42,6 @@ export default function CustomerOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const isPaid = urlParams.get("payment");
-
-        if (isPaid === "success") {
-            authFetch(`${BASEURL}/api/payments/${id}/confirm/`, {
-                method: "POST",
-                body: JSON.stringify({
-                    amount: localStorage.getItem("last_payment_amount"),
-                    tip: localStorage.getItem("last_tip_amount") || 0
-                })
-            }).then(() => {
-                // clean URL so it doesn't trigger again on refresh
-                window.history.replaceState({}, document.title, `/orders/${id}`);
-                fetchOrder(); // refresh data
-            });
-        }
-    }, [id]);
-
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
