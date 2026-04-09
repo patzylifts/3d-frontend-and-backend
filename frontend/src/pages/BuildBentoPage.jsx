@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CustomizationProvider, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
+import Navbar from "../components/Navbar";
 import "./BuildBentoPage.css";
 
 
@@ -35,9 +36,15 @@ function CakeModel() {
         aoMap: "/textures/abstract/Abstract_Organic_006_ambientOcclusion.jpg",
     });
 
+
+
+
     const texturesByKey = {
+        //Choco Moist
         coffee: coffeeTexture,
+        //Vanilla Chiffon
         milkshake: milkshakeTexture,
+        //ube Chiffon
         abstract: abstractTexture,
     };
 
@@ -306,12 +313,7 @@ function BuildBentoContent() {
 
     return (
         <div className="build-page">
-            <header className="build-nav">
-                <button className="build-back-btn" onClick={() => navigate("/")}>
-                    ← Back
-                </button>
-                <span className="build-brand">🍰 Smiley Page Corner · Cake Builder</span>
-            </header>
+            <Navbar />
 
             <div className="build-layout">
                 <div className="build-canvas-wrap">

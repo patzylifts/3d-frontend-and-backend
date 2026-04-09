@@ -21,43 +21,8 @@
   font-family: 'Outfit', sans-serif;
   color: var(--text-primary);
   overflow: hidden;
-}
-
-/* ─────────────────────────────── TOP NAV ─────────────────────────────── */
-.build-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 10;
-}
-
-.build-back-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.build-back-btn:hover {
-  background: var(--accent-purple);
-  transform: translateX(-3px);
-  border-color: transparent;
-}
-
-.build-brand {
-  font-size: 1rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  padding-top: 90px; /* Height of fixed Navbar */
+  box-sizing: border-box;
 }
 
 /* Layout */
