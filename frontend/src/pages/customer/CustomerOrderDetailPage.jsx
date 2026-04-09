@@ -47,17 +47,13 @@ export default function CustomerOrderDetailPage() {
         const isPaid = urlParams.get("payment");
 
         if (isPaid === "success") {
-            authFetch(`${BASEURL}/api/payments/${id}/confirm/`, {
-                method: "POST",
-                body: JSON.stringify({
-                    amount: localStorage.getItem("last_payment_amount"),
-                    tip: localStorage.getItem("last_tip_amount") || 0
-                })
-            }).then(() => {
-                // clean URL so it doesn't trigger again on refresh
-                window.history.replaceState({}, document.title, `/orders/${id}`);
-                fetchOrder(); // refresh data
-            });
+            // just clean URL and refresh
+            window.history.replaceState({}, document.title, `/orders/${id}`);
+
+            // 🔁 give webhook time to process
+            setTimeout(() => {
+                fetchOrder();
+            }, 2000);
         }
     }, [id]);
 
