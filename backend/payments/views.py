@@ -98,62 +98,68 @@ def paymongo_webhook(request):
         return JsonResponse({"message": "Method not allowed"}, status=405)
 
     try:
-        try:
-            payload = request.body.decode("utf-8")
-            data = json.loads(payload)
-        except Exception:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        payload = request.body
+        sig_header = request.headers.get("Paymongo-Signature", "")
+        secret = settings.PAYMONGO_WEBHOOK_SECRET.encode()
 
+        # Essential debug
         print("🔥 Webhook hit!")
-        print(json.dumps(data, indent=2))
+        print(f"Signature header: {sig_header}")
 
+        # Parse header
+        try:
+            sig_parts = dict(part.split("=") for part in sig_header.split(","))
+            timestamp = sig_parts.get("t", "")
+            received_sig = sig_parts.get("v1") or sig_parts.get("te")
+        except Exception as ex:
+            print("❌ Invalid signature header format:", str(ex))
+            return JsonResponse({"error": "Invalid signature header"}, status=400)
+
+        # Compute expected HMAC
+        signed_payload = f"{timestamp}.{payload.decode('utf-8')}".encode()
+        expected_sig = hmac.new(secret, signed_payload, hashlib.sha256).hexdigest()
+
+        # Signature debug
+        print(f"Timestamp: {timestamp}")
+        print(f"Received signature: {received_sig}")
+        print(f"Expected signature: {expected_sig}")
+
+        if not hmac.compare_digest(received_sig, expected_sig):
+            print("❌ Signature mismatch! Possible fraud attempt.")
+            return JsonResponse({"error": "Invalid signature"}, status=400)
+
+        # JSON parsing
+        data = json.loads(payload)
+
+        # Only handle payment.paid events
         event_type = data.get("data", {}).get("attributes", {}).get("type")
-
         if event_type != "checkout_session.payment.paid":
-            print("⚠️ Ignored:", event_type)
             return JsonResponse({"message": "Ignored"}, status=200)
 
-        # ✅ FIXED ID EXTRACTION
-        checkout_id = (
-            data.get("data", {})
-                .get("attributes", {})
-                .get("data", {})
-                .get("id")
-        )
-
+        checkout_id = data.get("data", {}).get("attributes", {}).get("data", {}).get("id")
         if not checkout_id:
-            print("❌ No checkout ID")
             return JsonResponse({"error": "No checkout ID"}, status=400)
 
-        print("✅ Checkout ID:", checkout_id)
-
         payment = Payment.objects.filter(transaction_id=checkout_id).first()
-
         if not payment:
-            print("❌ Payment not found for:", checkout_id)
             return JsonResponse({"error": "Payment not found"}, status=404)
 
         order = payment.order
 
-        # ✅ prevent double execution
-        if payment.status == "paid":
-            print("⚠️ Already processed")
-            return JsonResponse({"message": "Already processed"}, status=200)
+        if payment.status != "paid":
+            if payment.amount < float(order.total_amount):
+                payment.status = "partial"
+                order.payment_status = "partial"
+            else:
+                payment.status = "paid"
+                order.payment_status = "paid"
 
-        # 🔥 logic
-        if payment.amount < float(order.total_amount):
-            payment.status = "partial"
-            order.payment_status = "partial"
+            order.status = "processing"
+            payment.save()
+            order.save()
+            print(f"✅ Payment {payment.id} updated successfully via webhook")
         else:
-            payment.status = "paid"
-            order.payment_status = "paid"
-
-        order.status = "processing"
-
-        payment.save()
-        order.save()
-
-        print(f"✅ Payment {payment.id} updated via webhook")
+            print(f"⚠️ Payment {payment.id} already processed")
 
         return JsonResponse({"message": "Success"}, status=200)
 
