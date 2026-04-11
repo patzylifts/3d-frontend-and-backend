@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
+import AddPaymentModal from "../../components/customer/AddPaymentModal";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -14,6 +15,7 @@ export default function CustomerOrderDetailPage() {
 
     const [payAmount, setPayAmount] = useState(0);
     const [tipAmount, setTipAmount] = useState(0);
+    const [showAddPayment, setShowAddPayment] = useState(false);
 
     // FETCH ORDER
     const fetchOrder = async () => {
@@ -193,7 +195,15 @@ export default function CustomerOrderDetailPage() {
                         </button>
                     </div>
                 )}
-
+                {/* 🔥 ADDITIONAL PAYMENT BUTTON */}
+                {order.payment_status === "partial" && order.status === "processing" && (
+                    <button
+                        onClick={() => setShowAddPayment(true)}
+                        className="mt-4 mr-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                        Add Payment
+                    </button>
+                )}
                 {/* BACK BUTTON */}
                 <button
                     onClick={() => navigate("/orders")}
@@ -227,6 +237,14 @@ export default function CustomerOrderDetailPage() {
                     </tbody>
                 </table>
             </div>
+            {/* 🔥 ADD PAYMENT MODAL */}
+            {showAddPayment && (
+                <AddPaymentModal
+                    order={order}
+                    onClose={() => setShowAddPayment(false)}
+                    onSuccess={fetchOrder}
+                />
+            )}
         </div>
     );
 }

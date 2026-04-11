@@ -12,8 +12,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PaymentSerializer
-from store.models import Order
 from .models import Payment
+from store.models import Order
+from decimal import Decimal
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -21,7 +22,7 @@ def create_checkout_session(request, order_id):
     try:
         order = Order.objects.get(id=order_id, user=request.user)
 
-        if order.status != "awaiting_downpayment":
+        if order.status not in ["awaiting_downpayment", "processing"]:
             return Response({"error": "Order not ready for payment"}, status=400)
 
         amount = request.data.get("amount")
@@ -30,12 +31,23 @@ def create_checkout_session(request, order_id):
         if amount is None:
             return Response({"error": "Amount is required"}, status=400)
 
-        amount = float(amount)
-        tip = float(tip)
+        amount = Decimal(str(amount))
+        tip = Decimal(str(tip))
 
-        min_amount = float(order.total_amount) * 0.2
-        if amount < min_amount:
-            return Response({"error": "Minimum is 20% of total"}, status=400)
+        total_paid = sum(p.amount for p in order.payments.all())
+
+        total_amount = order.total_amount  # already Decimal
+
+        remaining_balance = total_amount - total_paid
+
+        # FIRST PAYMENT → enforce 20%
+        if total_paid == 0:
+            min_amount = order.total_amount * Decimal("0.2")
+            if amount < min_amount:
+                return Response({"error": "Minimum is 20% of total"}, status=400)
+
+        if amount > remaining_balance:
+            return Response({"error": "Amount exceeds remaining balance"}, status=400)
 
         # ✅ Record payment attempt in backend
         payment = Payment.objects.create(
@@ -147,7 +159,15 @@ def paymongo_webhook(request):
         order = payment.order
 
         if payment.status != "paid":
-            if payment.amount < float(order.total_amount):
+            # 🔥 TOTAL PAID INCLUDING THIS PAYMENT
+            total_paid = sum(p.amount for p in order.payments.all())
+
+            # (optional but safer if webhook fires before DB refresh)
+            # total_paid += payment.amount
+
+            total_amount = float(order.total_amount)
+
+            if total_paid < total_amount:
                 payment.status = "partial"
                 order.payment_status = "partial"
             else:
@@ -155,8 +175,10 @@ def paymongo_webhook(request):
                 order.payment_status = "paid"
 
             order.status = "processing"
+
             payment.save()
             order.save()
+
             print(f"✅ Payment {payment.id} updated successfully via webhook")
         else:
             print(f"⚠️ Payment {payment.id} already processed")
