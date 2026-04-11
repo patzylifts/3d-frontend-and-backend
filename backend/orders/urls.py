@@ -1,6 +1,8 @@
+# orders/urls.py
 from django.urls import path
 from . import views
 from . import admin_views
+from orders.views import cancel_order
 
 urlpatterns = [
     # Customer
@@ -8,6 +10,7 @@ urlpatterns = [
     path('<int:order_id>/', views.order_detail, name='order_detail'),
     path('customer/orders/', views.customer_orders),
     path('customer/orders/<int:order_id>/', views.customer_order_detail, name='customer_order_detail'),
+    path('<int:order_id>/cancel/', cancel_order, name='cancel_order'),
     
     # Admin Orders
     path('admin/orders/', admin_views.admin_orders),

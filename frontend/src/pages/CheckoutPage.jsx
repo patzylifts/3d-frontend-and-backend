@@ -1,13 +1,14 @@
+// src/pages/CheckoutPage.jsx
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { authFetch } from "../utils/auth";
+import { useNavigate } from "react-router-dom";
 
 function CheckoutPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
+    const navigate = useNavigate();
     const { clearCart } = useCart();
-
     const [useProfileAddress, setUseProfileAddress] = useState(true);
-
     const [profileAddress, setProfileAddress] = useState({
         street: "",
         city: "",
@@ -68,6 +69,13 @@ function CheckoutPage() {
             if (res.ok) {
                 setMessage("Order submitted for review!");
                 clearCart();
+
+                // redirect to order detail page
+                const orderId = data.order_id;
+
+                setTimeout(() => {
+                    navigate(`/orders/${orderId}`);
+                }, 2000);
             } else {
                 setMessage(data.error || "Failed to place order.");
             }

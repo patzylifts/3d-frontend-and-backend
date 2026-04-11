@@ -1,5 +1,6 @@
 # orders/serializers.py
 from rest_framework import serializers
+from payments.serializers import PaymentSerializer
 from store.models import Order, OrderItem, Product
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -15,11 +16,12 @@ class OrderSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
     total_paid = serializers.SerializerMethodField()
     remaining_balance = serializers.SerializerMethodField()
+    payments = PaymentSerializer(many=True, read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'user_name', 'created_at', 'full_name', 'phone', 'street', 'city', 'province', 'postal_code', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason',
+            'id', 'user', 'user_name', 'created_at', 'full_name', 'phone', 'street', 'city', 'province', 'postal_code', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'payments',
         ]
         
     def get_total_paid(self, obj):
