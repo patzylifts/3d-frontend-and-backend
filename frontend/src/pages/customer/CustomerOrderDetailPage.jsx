@@ -204,6 +204,36 @@ export default function CustomerOrderDetailPage() {
                         Add Payment
                     </button>
                 )}
+                {/* 🚫 CANCEL ORDER BUTTON */}
+                {(order.status === "pending_review" ||
+                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
+                ) && (
+                        <button
+                            onClick={async () => {
+                                if (!confirm("Cancel this order?")) return;
+
+                                const res = await authFetch(
+                                    `${BASEURL}/api/orders/${id}/cancel/`,
+                                    {
+                                        method: "POST",
+                                    }
+                                );
+
+                                const data = await res.json();
+
+                                if (!res.ok) {
+                                    alert(data.error);
+                                    return;
+                                }
+
+                                alert("Order cancelled");
+                                fetchOrder();
+                            }}
+                            className="mt-4 mr-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                        >
+                            Cancel Order
+                        </button>
+                    )}
                 {/* BACK BUTTON */}
                 <button
                     onClick={() => navigate("/orders")}

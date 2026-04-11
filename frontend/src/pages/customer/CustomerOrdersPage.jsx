@@ -1,3 +1,4 @@
+// src/pages/customer/CustomerOrdersPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";

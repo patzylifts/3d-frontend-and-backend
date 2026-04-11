@@ -1,3 +1,4 @@
+// src/pages/admin/AdminOrderDetailPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
