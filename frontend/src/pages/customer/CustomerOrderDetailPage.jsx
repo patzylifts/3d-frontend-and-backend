@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
+import Logistics from "../../components/Logistics";
 import AddPaymentModal from "../../components/customer/AddPaymentModal";
 
 export default function CustomerOrderDetailPage() {
@@ -267,6 +268,8 @@ export default function CustomerOrderDetailPage() {
                     </tbody>
                 </table>
             </div>
+            {/* 🧭 ORDER TIMELINE / LOGISTICS */}
+            <Logistics order={order} />
             {/* 🔥 ADD PAYMENT MODAL */}
             {showAddPayment && (
                 <AddPaymentModal

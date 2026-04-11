@@ -17,7 +17,6 @@ def order_history(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
-
 # CUSTOMER: ORDER DETAIL
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
