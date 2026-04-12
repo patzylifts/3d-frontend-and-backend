@@ -1,7 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-  --bg-color: #ffffff; /* Matches your Three.js canvas background */
+  --bg-color: #ffffff;
+  /* Matches your Three.js canvas background */
   --panel-bg: #ffffff;
   --panel-glass: rgba(255, 255, 255, 0.03);
   --border-color: rgba(255, 255, 255, 0.08);
@@ -21,7 +22,8 @@
   font-family: 'Outfit', sans-serif;
   color: var(--text-primary);
   overflow: hidden;
-  padding-top: 90px; /* Height of fixed Navbar */
+  padding-top: 90px;
+  /* Height of fixed Navbar */
   box-sizing: border-box;
 }
 
@@ -70,9 +72,11 @@
 .cfg-panel::-webkit-scrollbar {
   width: 6px;
 }
+
 .cfg-panel::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .cfg-panel::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 3px;
@@ -207,7 +211,8 @@
 
 /* Randomize Button */
 .cfg-random-btn {
-  margin-top: auto; /* Pushes button to the bottom of the flex sidebar */
+  margin-top: auto;
+  /* Pushes button to the bottom of the flex sidebar */
   width: 100%;
   padding: 14px;
   border-radius: 14px;
@@ -279,8 +284,15 @@
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─────────────────────────────── RESPONSIVE ─────────────────────────────── */

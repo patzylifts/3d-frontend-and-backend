@@ -24,10 +24,10 @@ function CakeModel() {
         aoMap: "/textures/coffee/Coffee_Grains_001_AmbientOcclusion.jpg",
     });
     const milkshakeTexture = useTexture({
-        map: "/textures/milkshake/Strawberry_milkshake_foam_001_COLOR.jpg",
-        normalMap: "/textures/milkshake/Strawberry_milkshake_foam_001_NORM.jpg",
-        roughnessMap: "/textures/milkshake/Strawberry_milkshake_foam_001_ROUGH.jpg",
-        aoMap: "/textures/milkshake/Strawberry_milkshake_foam_001_OCC.jpg",
+    map: "/textures/milkshake/vanilla_chiffon_diffuse.jpg",
+    normalMap: "/textures/milkshake/vanilla_chiffon_normal.jpg",
+    aoMap: "/textures/milkshake/vanilla_chiffon_ao.jpg",
+    displacementMap: "/textures/milkshake/vanilla_chiffon_height.jpg",
     });
     const abstractTexture = useTexture({
         map: "/textures/abstract/Abstract_Organic_007_basecolor.jpg",
@@ -59,6 +59,7 @@ function CakeModel() {
     const standColor = new THREE.Color("#2a2424");
 
     return (
+        
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
             {/* Stand */}
             <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
@@ -67,6 +68,7 @@ function CakeModel() {
                         (name) =>
                             nodes[name]?.geometry && (
                                 <mesh key={name} geometry={nodes[name].geometry} castShadow>
+                                    
                                     <meshStandardMaterial color={standColor} roughness={0.55} />
                                 </mesh>
                             )
