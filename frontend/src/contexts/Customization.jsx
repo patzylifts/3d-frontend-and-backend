@@ -13,6 +13,7 @@ const cakeColors = [
     { color: "#32cd32", name: "lime green" },
     { color: "#ffe4b5", name: "peach" },
     { color: "#ff69b4", name: "hot pink" },
+    { color: "#f3e5ab", name: "vanilla" },
 ];
 
 // Flavor options — each maps to a texture folder in /textures/

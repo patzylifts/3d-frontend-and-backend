@@ -85,7 +85,7 @@ function CakeModel() {
                     visible={form === 1}
                     castShadow
                 >
-                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} />
+                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
                 </mesh>
             )}
 
@@ -98,7 +98,7 @@ function CakeModel() {
                     visible={form === 2}
                     castShadow
                 >
-                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} />
+                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
                 </mesh>
             )}
 
@@ -253,7 +253,12 @@ function Configurator() {
                         <button
                             key={f}
                             className={`chip ${flavor === f ? "chip--active" : ""}`}
-                            onClick={() => setFlavor(f)}
+                            onClick={() => {
+                                setFlavor(f);
+                                if (f === "Choco Moist") setCakeColor(cakeColors.find(c => c.name === "brown") || cakeColors[0]);
+                                else if (f === "Vanilla Chiffon") setCakeColor(cakeColors.find(c => c.name === "vanilla") || cakeColors[0]);
+                                else if (f === "Ube Chiffon") setCakeColor(cakeColors.find(c => c.name === "lavender") || cakeColors[0]);
+                            }}
                         >
                             {flavorEmoji[f] || "🍰"} {f}
                         </button>
