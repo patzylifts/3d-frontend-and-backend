@@ -17,35 +17,44 @@ function CakeModel() {
     const groupRef = useRef();
 
     // Load all flavor textures
-    const coffeeTexture = useTexture({
-        map: "/textures/coffee/Coffee_Grains_001_BaseColor.jpg",
-        normalMap: "/textures/coffee/Coffee_Grains_001_Normal.jpg",
-        roughnessMap: "/textures/coffee/Coffee_Grains_001_Roughness.jpg",
-        aoMap: "/textures/coffee/Coffee_Grains_001_AmbientOcclusion.jpg",
+
+    //Choco
+    const chocoTexture = useTexture({
+        map: "/textures/choco/Abstract_Organic_007_basecolor.jpg",
+        normalMap: "/textures/choco/Abstract_Organic_006_normal.jpg",
+        roughnessMap: "/textures/choco/Abstract_Organic_006_roughness.jpg",
+        aoMap: "/textures/choco/Abstract_Organic_006_ambientOcclusion.jpg",
     });
+
+    //Vanilla
     const milkshakeTexture = useTexture({
-    map: "/textures/milkshake/vanilla_chiffon_diffuse.jpg",
-    normalMap: "/textures/milkshake/vanilla_chiffon_normal.jpg",
-    aoMap: "/textures/milkshake/vanilla_chiffon_ao.jpg",
-    displacementMap: "/textures/milkshake/vanilla_chiffon_height.jpg",
+        map: "/textures/milkshake/vanilla_chiffon_diffuse.jpg",
+        normalMap: "/textures/milkshake/vanilla_chiffon_normal.jpg",
+        aoMap: "/textures/milkshake/vanilla_chiffon_ao.jpg",
+        //displacementMap: "/textures/milkshake/vanilla_chiffon_height.jpg",
     });
+
+    //Ube
     const abstractTexture = useTexture({
-        map: "/textures/abstract/Abstract_Organic_007_basecolor.jpg",
-        normalMap: "/textures/abstract/Abstract_Organic_006_normal.jpg",
-        roughnessMap: "/textures/abstract/Abstract_Organic_006_roughness.jpg",
-        aoMap: "/textures/abstract/Abstract_Organic_006_ambientOcclusion.jpg",
+        map: "/textures/abstract/ube_chiffon_diffuse.jpg",
+        normalMap: "/textures/abstract/ube_chiffon_normal.jpg",
+        // displacementMap: "/textures/abstract/ube_chiffon_height.jpg",
+        aoMap: "/textures/abstract/ube_chiffon_ao.jpg",
     });
+
+  
 
 
 
 
     const texturesByKey = {
         //Choco Moist
-        coffee: coffeeTexture,
+        abstract: chocoTexture,
+        
         //Vanilla Chiffon
         milkshake: milkshakeTexture,
         //ube Chiffon
-        abstract: abstractTexture,
+        coffee: abstractTexture,
     };
 
     const activeTextureKey = flavorTextureMap[flavor] || "coffee";
@@ -59,7 +68,7 @@ function CakeModel() {
     const standColor = new THREE.Color("#2a2424");
 
     return (
-        
+
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
             {/* Stand */}
             <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
@@ -68,7 +77,7 @@ function CakeModel() {
                         (name) =>
                             nodes[name]?.geometry && (
                                 <mesh key={name} geometry={nodes[name].geometry} castShadow>
-                                    
+
                                     <meshStandardMaterial color={standColor} roughness={0.55} />
                                 </mesh>
                             )
@@ -85,7 +94,7 @@ function CakeModel() {
                     visible={form === 1}
                     castShadow
                 >
-                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
+                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} />
                 </mesh>
             )}
 
