@@ -20,9 +20,9 @@ const cakeColors = [
 const flavors = ["Choco Moist", "Vanilla Chiffon", "Ube Chiffon"];
 
 const flavorTextureMap = {
-    "Choco Moist": "abstract",
-    "Vanilla Chiffon": "milkshake",
-    "Ube Chiffon": "coffee",
+    "Choco Moist": "choco",
+    "Vanilla Chiffon": "vanilla",
+    "Ube Chiffon": "ube",
 };
 
 const CustomizationContext = createContext({});
@@ -53,10 +53,10 @@ export const CustomizationProvider = (props) => {
         setBalls(false);
         setNuts(false);
         switch (randomDecoration) {
-            case "candle":    setCandle(true);    break;
+            case "candle": setCandle(true); break;
             case "chocolate": setChocolate(true); break;
-            case "balls":     setBalls(true);     break;
-            case "nuts":      setNuts(true);      break;
+            case "balls": setBalls(true); break;
+            case "nuts": setNuts(true); break;
             default: break;
         }
     };

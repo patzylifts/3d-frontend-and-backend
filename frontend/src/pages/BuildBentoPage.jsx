@@ -28,36 +28,36 @@ function CakeModel() {
 
     //Vanilla
     const milkshakeTexture = useTexture({
-        map: "/textures/milkshake/vanilla_chiffon_diffuse.jpg",
-        normalMap: "/textures/milkshake/vanilla_chiffon_normal.jpg",
-        aoMap: "/textures/milkshake/vanilla_chiffon_ao.jpg",
-        //displacementMap: "/textures/milkshake/vanilla_chiffon_height.jpg",
+        map: "/textures/vanilla/vanilla_chiffon_diffuse.jpg",
+        normalMap: "/textures/vanilla/vanilla_chiffon_normal.jpg",
+        aoMap: "/textures/vanilla/vanilla_chiffon_ao.jpg",
+        //displacementMap: "/textures/vanilla/vanilla_chiffon_height.jpg",
     });
 
     //Ube
     const abstractTexture = useTexture({
-        map: "/textures/abstract/ube_chiffon_diffuse.jpg",
-        normalMap: "/textures/abstract/ube_chiffon_normal.jpg",
-        // displacementMap: "/textures/abstract/ube_chiffon_height.jpg",
-        aoMap: "/textures/abstract/ube_chiffon_ao.jpg",
+        map: "/textures/ube/ube_chiffon_diffuse.jpg",
+        normalMap: "/textures/ube/ube_chiffon_normal.jpg",
+        // displacementMap: "/textures/ube/ube_chiffon_height.jpg",
+        aoMap: "/textures/ube/ube_chiffon_ao.jpg",
     });
 
-  
+
 
 
 
 
     const texturesByKey = {
         //Choco Moist
-        abstract: chocoTexture,
-        
+        choco: chocoTexture,
+
         //Vanilla Chiffon
-        milkshake: milkshakeTexture,
+        vanilla: milkshakeTexture,
         //ube Chiffon
-        coffee: abstractTexture,
+        ube: abstractTexture,
     };
 
-    const activeTextureKey = flavorTextureMap[flavor] || "coffee";
+    const activeTextureKey = flavorTextureMap[flavor] || "choco";
     const activeTexture = texturesByKey[activeTextureKey];
 
     // Slow auto-rotation
