@@ -6,6 +6,7 @@ const CartContext = createContext({
     total: 0,
     fetchCart: () => { },
     addToCart: () => { },
+    addCustomCakeToCart: () => { },
     removeFromCart: () => { },
     updateQuantity: () => { },
     clearCart: () => { },
@@ -91,12 +92,36 @@ export const CartProvider = ({ children }) => {
         setTotal(0);
     }
 
+    // Add Custom Cake to Cart (via Django backend)
+    const addCustomCakeToCart = async (payload) => {
+        try {
+            const res = await authFetch(`${BASEURL}/api/cake-customization/`, {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                console.error("Failed to add custom cake:", err);
+                return { success: false, error: err };
+            }
+
+            const data = await res.json();
+            await fetchCart();
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error adding custom cake to cart:", error);
+            return { success: false, error };
+        }
+    };
+
     return (
         <CartContext.Provider value={{
             cartItems,
             total,
             fetchCart,
             addToCart,
+            addCustomCakeToCart,
             removeFromCart,
             updateQuantity,
             clearCart

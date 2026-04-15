@@ -41,78 +41,36 @@ export function Cake(props) {
         return null;
     }, [nodes, creamColor]);
 
-    const candyTextureProps = useTexture({
-        map: "/textures/candy/Candy_basecolor.jpg",
-        normalMap: "/textures/candy/Candy_normal.jpg",
-        roughnessMap: "/textures/candy/Candy_roughness.jpg",
-        aoMap: "/textures/candy/Candy_ambientOcclusion.jpg",
-    });
-    const stylizedFurTextureProps = useTexture({
-        map: "/textures/stylized_fur/Stylized_Fur_002_basecolor.jpg",
-        normalMap: "/textures/stylized_fur/Stylized_Fur_002_normal.jpg",
-        roughnessMap: "/textures/stylized_fur/Stylized_Fur_002_roughness.jpg",
-        aoMap: "/textures/stylized_fur/Stylized_Fur_002_ambientOcclusion.jpg",
-    });
-    const surfaceTextureProps = useTexture({
-        map: "/textures/surface/Surface_Imperfection_001_basecolor.jpg",
-        normalMap: "/textures/surface/Surface_Imperfection_001_normal.jpg",
-        roughnessMap: "/textures/surface/Surface_Imperfection_001_roughness.jpg",
-        aoMap: "/textures/surface/Surface_Imperfection_001_ambientOcclusion.jpg",
-    });
-    const abstractTextureProps = useTexture({
-        map: "/textures/abstract/Abstract_Organic_007_basecolor.jpg",
-        normalMap: "/textures/abstract/Abstract_Organic_006_normal.jpg",
-        roughnessMap: "/textures/abstract/Abstract_Organic_006_roughness.jpg",
-        aoMap: "/textures/abstract/Abstract_Organic_006_ambientOcclusion.jpg",
-    });
-    const barkPineTextureProps = useTexture({
-        map: "/textures/bark_pine/Bark_Pine_003_BaseColor.jpg",
-        normalMap: "/textures/bark_pine/Bark_Pine_003_Normal.jpg",
-        roughnessMap: "/textures/bark_pine/Bark_Pine_003_Roughness.jpg",
-        aoMap: "/textures/bark_pine/Bark_Pine_003_AmbientOcclusion.jpg",
-    });
-    const lavaTextureProps = useTexture({
-        map: "/textures/lava/Lava_006_basecolor.jpg",
-        normalMap: "/textures/lava/Lava_006_normal.jpg",
-        roughnessMap: "/textures/lava/Lava_006_roughness.jpg",
-        aoMap: "/textures/lava/Lava_006_ambientOcclusion.jpg",
-    });
-    const woodTextureProps = useTexture({
-        map: "/textures/wood/Wood_023_basecolor.jpg",
-        normalMap: "/textures/wood/Wood_023_normal.jpg",
-        roughnessMap: "/textures/wood/Wood_023_roughness.jpg",
-        aoMap: "/textures/wood/Wood_023_ambientOcclusion.jpg",
-    });
+    //Choco
     const coffeeTextureProps = useTexture({
-        map: "/textures/coffee/Coffee_Grains_001_BaseColor.jpg",
-        normalMap: "/textures/coffee/Coffee_Grains_001_Normal.jpg",
-        roughnessMap: "/textures/coffee/Coffee_Grains_001_Roughness.jpg",
-        aoMap: "/textures/coffee/Coffee_Grains_001_AmbientOcclusion.jpg",
+        map: "/textures/choco/Abstract_Organic_007_basecolor.jpg",
+        normalMap: "/textures/choco/Abstract_Organic_006_normal.jpg",
+        roughnessMap: "/textures/choco/Abstract_Organic_006_roughness.jpg",
+        aoMap: "/textures/choco/Abstract_Organic_006_ambientOcclusion.jpg",
     });
-    const absTwoTextureProps = useTexture({
-        map: "/textures/abstract2/Abstract_001_COLOR.jpg",
-        normalMap: "/textures/abstract2/Abstract_001_NRM.jpg",
-        roughnessMap: "/textures/abstract2/Abstract_001_DISP.png",
-        aoMap: "/textures/abstract2/Abstract_001_OCC.jpg",
-    });
+   
+    //Vanilla
     const milkshakeTextureProps = useTexture({
-        map: "/textures/milkshake/Strawberry_milkshake_foam_001_COLOR.jpg",
-        normalMap: "/textures/milkshake/Strawberry_milkshake_foam_001_NORM.jpg",
-        roughnessMap: "/textures/milkshake/Strawberry_milkshake_foam_001_ROUGH.jpg",
-        aoMap: "/textures/milkshake/Strawberry_milkshake_foam_001_OCC.jpg",
+        map: "/textures/vanilla/vanilla_chiffon_diffuse.jpg",
+        normalMap: "/textures/vanilla/vanilla_chiffon_normal.jpg",
+        aoMap: "/textures/vanilla/vanilla_chiffon_ao.jpg",
+        //displacementMap: "/textures/vanilla/vanilla_chiffon_height.jpg",
     });
 
+    //Ube
+     const abstractTextureProps = useTexture({
+        map: "/textures/ube/ube_chiffon_diffuse.jpg",
+        normalMap: "/textures/ube/ube_chiffon_normal.jpg",
+        // displacementMap: "/textures/ube/ube_chiffon_height.jpg",
+        aoMap: "/textures/ube/ube_chiffon_ao.jpg",
+    });
+   ;
+   
+
     const textures = {
-        'abstract': abstractTextureProps,
-        'abstractT': absTwoTextureProps,
-        'surface': surfaceTextureProps,
-        'wood': woodTextureProps,
-        'bark_pine': barkPineTextureProps,
-        'candy': candyTextureProps,
-        'coffee': coffeeTextureProps,
-        'stylized_fur': stylizedFurTextureProps,
-        'lava': lavaTextureProps,
-        'milkshake': milkshakeTextureProps
+        'choco': abstractTextureProps,       
+        'vanilla': coffeeTextureProps,
+        'ube': milkshakeTextureProps
     };
 
     useEffect(() => {

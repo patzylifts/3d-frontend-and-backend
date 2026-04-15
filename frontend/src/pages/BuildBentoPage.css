@@ -1,12 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-  --bg-color: #0f021b; /* Matches your Three.js canvas background */
-  --panel-bg: #18052c;
+  --bg-color: #ffffff;
+  /* Matches your Three.js canvas background */
+  --panel-bg: #ffffff;
   --panel-glass: rgba(255, 255, 255, 0.03);
   --border-color: rgba(255, 255, 255, 0.08);
-  --text-primary: #ffffff;
-  --text-secondary: #a19ba8;
+  --text-primary: #030202;
+  --text-secondary: #ffffff;
   --accent-pink: #ff5ec4;
   --accent-purple: #c77dff;
   --accent-success: #2ec4b6;
@@ -21,43 +22,9 @@
   font-family: 'Outfit', sans-serif;
   color: var(--text-primary);
   overflow: hidden;
-}
-
-/* ─────────────────────────────── TOP NAV ─────────────────────────────── */
-.build-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 10;
-}
-
-.build-back-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.build-back-btn:hover {
-  background: var(--accent-purple);
-  transform: translateX(-3px);
-  border-color: transparent;
-}
-
-.build-brand {
-  font-size: 1rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  padding-top: 90px;
+  /* Height of fixed Navbar */
+  box-sizing: border-box;
 }
 
 /* Layout */
@@ -81,7 +48,7 @@
   transform: translateX(-50%);
   font-size: 0.8rem;
   color: var(--text-secondary);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(250, 248, 248, 0.4);
   padding: 8px 16px;
   border-radius: 20px;
   backdrop-filter: blur(4px);
@@ -105,9 +72,11 @@
 .cfg-panel::-webkit-scrollbar {
   width: 6px;
 }
+
 .cfg-panel::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .cfg-panel::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 3px;
@@ -131,7 +100,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* Color Swatches */
@@ -242,7 +211,8 @@
 
 /* Randomize Button */
 .cfg-random-btn {
-  margin-top: auto; /* Pushes button to the bottom of the flex sidebar */
+  margin-top: auto;
+  /* Pushes button to the bottom of the flex sidebar */
   width: 100%;
   padding: 14px;
   border-radius: 14px;
@@ -314,8 +284,15 @@
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─────────────────────────────── RESPONSIVE ─────────────────────────────── */

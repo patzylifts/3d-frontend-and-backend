@@ -12,8 +12,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PaymentSerializer
-from store.models import Order
 from .models import Payment
+from store.models import Order
+from decimal import Decimal
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -21,7 +22,7 @@ def create_checkout_session(request, order_id):
     try:
         order = Order.objects.get(id=order_id, user=request.user)
 
-        if order.status != "awaiting_downpayment":
+        if order.status not in ["awaiting_downpayment", "processing"]:
             return Response({"error": "Order not ready for payment"}, status=400)
 
         amount = request.data.get("amount")
@@ -30,12 +31,23 @@ def create_checkout_session(request, order_id):
         if amount is None:
             return Response({"error": "Amount is required"}, status=400)
 
-        amount = float(amount)
-        tip = float(tip)
+        amount = Decimal(str(amount))
+        tip = Decimal(str(tip))
 
-        min_amount = float(order.total_amount) * 0.2
-        if amount < min_amount:
-            return Response({"error": "Minimum is 20% of total"}, status=400)
+        total_paid = sum(p.amount for p in order.payments.all())
+
+        total_amount = order.total_amount  # already Decimal
+
+        remaining_balance = total_amount - total_paid
+
+        # FIRST PAYMENT → enforce 20%
+        if total_paid == 0:
+            min_amount = order.total_amount * Decimal("0.2")
+            if amount < min_amount:
+                return Response({"error": "Minimum is 20% of total"}, status=400)
+
+        if amount > remaining_balance:
+            return Response({"error": "Amount exceeds remaining balance"}, status=400)
 
         # ✅ Record payment attempt in backend
         payment = Payment.objects.create(
@@ -92,99 +104,87 @@ def create_checkout_session(request, order_id):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
     
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def confirm_payment(request, order_id):
-    try:
-        order = Order.objects.get(id=order_id, user=request.user)
-
-        # get last payment attempted
-        last_payment = order.payments.last()
-        if not last_payment:
-            return Response({"error": "No payment found for this order"}, status=400)
-
-        if last_payment.status == "paid":
-            return Response({"message": "Already paid"})
-
-        # Confirm payment
-        amount = float(request.data.get("amount", 0))
-        tip = float(request.data.get("tip", 0))
-
-        # 🔥 BUSINESS LOGIC
-        if amount < float(order.total_amount):
-            last_payment.status = "partial"
-            order.payment_status = "partial"
-        else:
-            last_payment.status = "paid"
-            order.payment_status = "paid"
-
-        # Always update order status
-        order.status = "processing"
-        order.save()
-        last_payment.save()
-
-        return Response({
-            "message": "Payment confirmed",
-            "status": order.status,
-            "payment_status": order.payment_status
-        })
-
-    except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
-    
 @csrf_exempt
 def paymongo_webhook(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not allowed"}, status=405)
+
     try:
         payload = request.body
+        sig_header = request.headers.get("Paymongo-Signature", "")
+        secret = settings.PAYMONGO_WEBHOOK_SECRET.encode()
+
+        # Essential debug
+        print("🔥 Webhook hit!")
+        print(f"Signature header: {sig_header}")
+
+        # Parse header
+        try:
+            sig_parts = dict(part.split("=") for part in sig_header.split(","))
+            timestamp = sig_parts.get("t", "")
+            received_sig = sig_parts.get("v1") or sig_parts.get("te")
+        except Exception as ex:
+            print("❌ Invalid signature header format:", str(ex))
+            return JsonResponse({"error": "Invalid signature header"}, status=400)
+
+        # Compute expected HMAC
+        signed_payload = f"{timestamp}.{payload.decode('utf-8')}".encode()
+        expected_sig = hmac.new(secret, signed_payload, hashlib.sha256).hexdigest()
+
+        # Signature debug
+        print(f"Timestamp: {timestamp}")
+        print(f"Received signature: {received_sig}")
+        print(f"Expected signature: {expected_sig}")
+
+        if not hmac.compare_digest(received_sig, expected_sig):
+            print("❌ Signature mismatch! Possible fraud attempt.")
+            return JsonResponse({"error": "Invalid signature"}, status=400)
+
+        # JSON parsing
         data = json.loads(payload)
 
-        print("Webhook hit! Raw payload:", json.dumps(data, indent=2))
-
-        # Look for the actual type anywhere inside
-        event_type = None
-        if "data" in data and "attributes" in data["data"]:
-            event_type = data["data"]["attributes"].get("type")
-
-        if not event_type:
-            print("No event type found, ignoring")
-            return JsonResponse({"message": "Ignored: no type"}, status=200)
-
-        print("Event type detected:", event_type)
-
+        # Only handle payment.paid events
+        event_type = data.get("data", {}).get("attributes", {}).get("type")
         if event_type != "checkout_session.payment.paid":
-            return JsonResponse({"message": "Ignored event"}, status=200)
+            return JsonResponse({"message": "Ignored"}, status=200)
 
-        # Grab the checkout session ID safely
-        checkout_id = data["data"]["attributes"].get("data", {}).get("id")
+        checkout_id = data.get("data", {}).get("attributes", {}).get("data", {}).get("id")
         if not checkout_id:
-            return JsonResponse({"error": "No checkout ID found"}, status=400)
+            return JsonResponse({"error": "No checkout ID"}, status=400)
 
         payment = Payment.objects.filter(transaction_id=checkout_id).first()
         if not payment:
-            print("Payment not found in DB for", checkout_id)
             return JsonResponse({"error": "Payment not found"}, status=404)
 
         order = payment.order
 
-        # Update statuses
-        if payment.amount < float(order.total_amount):
-            payment.status = "partial"
-            order.payment_status = "partial"
+        if payment.status != "paid":
+            # 🔥 TOTAL PAID INCLUDING THIS PAYMENT
+            total_paid = sum(p.amount for p in order.payments.all())
+
+            # (optional but safer if webhook fires before DB refresh)
+            # total_paid += payment.amount
+
+            total_amount = float(order.total_amount)
+
+            if total_paid < total_amount:
+                payment.status = "partial"
+                order.payment_status = "partial"
+            else:
+                payment.status = "paid"
+                order.payment_status = "paid"
+
+            order.status = "processing"
+
+            payment.save()
+            order.save()
+
+            print(f"✅ Payment {payment.id} updated successfully via webhook")
         else:
-            payment.status = "paid"
-            order.payment_status = "paid"
+            print(f"⚠️ Payment {payment.id} already processed")
 
-        order.status = "processing"
-
-        payment.save()
-        order.save()
-
-        print(f"[Webhook] Payment {payment.id} for Order {order.id} updated.")
-
-        return JsonResponse({"message": "Webhook processed"}, status=200)
+        return JsonResponse({"message": "Success"}, status=200)
 
     except Exception as e:
-        print("Webhook error:", str(e))
+        print("💥 Webhook error:", str(e))
         return JsonResponse({"error": str(e)}, status=500)

@@ -1,3 +1,4 @@
+# orders/views.py
 import uuid
 
 from rest_framework.decorators import api_view, permission_classes
@@ -15,7 +16,6 @@ def order_history(request):
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
-
 
 # CUSTOMER: ORDER DETAIL
 @api_view(['GET'])
@@ -43,5 +43,36 @@ def customer_order_detail(request, order_id):
         order = Order.objects.get(id=order_id, user=request.user)
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_order(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+
+        # check payments
+        total_paid = sum(p.amount for p in order.payments.all())
+
+        # RULE 1: still under admin review
+        if order.status == "pending_review":
+            order.status = "cancelled"
+            order.payment_status = "cancelled"
+            order.save()
+            return Response({"message": "Order cancelled successfully"})
+
+        # RULE 2: accepted but no payment yet
+        if order.status == "awaiting_downpayment" and total_paid == 0:
+            order.status = "cancelled"
+            order.payment_status = "cancelled"
+            order.save()
+            return Response({"message": "Order cancelled successfully"})
+
+        return Response(
+            {"error": "This order can no longer be cancelled"},
+            status=400
+        )
+
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)

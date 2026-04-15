@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
+import Logistics from "../../components/Logistics";
+import AddPaymentModal from "../../components/customer/AddPaymentModal";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -14,6 +16,7 @@ export default function CustomerOrderDetailPage() {
 
     const [payAmount, setPayAmount] = useState(0);
     const [tipAmount, setTipAmount] = useState(0);
+    const [showAddPayment, setShowAddPayment] = useState(false);
 
     // FETCH ORDER
     const fetchOrder = async () => {
@@ -40,25 +43,6 @@ export default function CustomerOrderDetailPage() {
 
     useEffect(() => {
         fetchOrder();
-    }, [id]);
-
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const isPaid = urlParams.get("payment");
-
-        if (isPaid === "success") {
-            authFetch(`${BASEURL}/api/payments/${id}/confirm/`, {
-                method: "POST",
-                body: JSON.stringify({
-                    amount: localStorage.getItem("last_payment_amount"),
-                    tip: localStorage.getItem("last_tip_amount") || 0
-                })
-            }).then(() => {
-                // clean URL so it doesn't trigger again on refresh
-                window.history.replaceState({}, document.title, `/orders/${id}`);
-                fetchOrder(); // refresh data
-            });
-        }
     }, [id]);
 
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
@@ -212,7 +196,45 @@ export default function CustomerOrderDetailPage() {
                         </button>
                     </div>
                 )}
+                {/* 🔥 ADDITIONAL PAYMENT BUTTON */}
+                {order.payment_status === "partial" && order.status === "processing" && (
+                    <button
+                        onClick={() => setShowAddPayment(true)}
+                        className="mt-4 mr-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                        Add Payment
+                    </button>
+                )}
+                {/* 🚫 CANCEL ORDER BUTTON */}
+                {(order.status === "pending_review" ||
+                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
+                ) && (
+                        <button
+                            onClick={async () => {
+                                if (!confirm("Cancel this order?")) return;
 
+                                const res = await authFetch(
+                                    `${BASEURL}/api/orders/${id}/cancel/`,
+                                    {
+                                        method: "POST",
+                                    }
+                                );
+
+                                const data = await res.json();
+
+                                if (!res.ok) {
+                                    alert(data.error);
+                                    return;
+                                }
+
+                                alert("Order cancelled");
+                                fetchOrder();
+                            }}
+                            className="mt-4 mr-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                        >
+                            Cancel Order
+                        </button>
+                    )}
                 {/* BACK BUTTON */}
                 <button
                     onClick={() => navigate("/orders")}
@@ -246,6 +268,16 @@ export default function CustomerOrderDetailPage() {
                     </tbody>
                 </table>
             </div>
+            {/* 🧭 ORDER TIMELINE / LOGISTICS */}
+            <Logistics order={order} />
+            {/* 🔥 ADD PAYMENT MODAL */}
+            {showAddPayment && (
+                <AddPaymentModal
+                    order={order}
+                    onClose={() => setShowAddPayment(false)}
+                    onSuccess={fetchOrder}
+                />
+            )}
         </div>
     );
 }

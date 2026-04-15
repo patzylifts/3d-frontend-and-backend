@@ -32,11 +32,11 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/build" element={<BuildBentoPage />} />
             <Route path="/products" element={<><Navbar /><ProductList /></>} />
             <Route path="/product/:id" element={<><Navbar /><ProductDetails /></>} />
 
             <Route element={<PrivateRouter />}>
+              <Route path="/build" element={<BuildBentoPage />} />
               <Route path="/checkout" element={<><Navbar /><CheckoutPage /></>} />
               <Route path="/profile" element={<><Navbar /><CustomerProfile /></>} />
               <Route path="/profile/edit" element={<><Navbar /><CustomerProfileUpdate /></>} />
