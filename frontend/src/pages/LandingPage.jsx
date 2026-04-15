@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import heroVideo from '../assets/hero-cake-video1.mp4';
+
 import Navbar from '../components/Navbar';
 import './LandingPage.css';
 
@@ -26,7 +26,7 @@ const LandingPage = () => {
             {/* --- HERO SECTION --- */}
             <section className="hero-video-wrapper">
                 <video autoPlay loop muted playsInline className="hero-video-bg">
-                    <source src={heroVideo} type="video/mp4" />
+                    <source src="https://res.cloudinary.com/dybbeqxrm/video/upload/q_auto/f_auto/v1776255867/hero-cake-video1_kkddin.mp4" type="video/mp4" />
                 </video>
                 <div className="video-overlay"></div>
                 <div className="container hero-text">
