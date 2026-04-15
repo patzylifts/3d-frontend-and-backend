@@ -20,26 +20,26 @@ function CakeModel() {
 
     //Choco
     const chocoTexture = useTexture({
-        map: "/textures/choco/Abstract_Organic_007_basecolor.jpg",
-        normalMap: "/textures/choco/Abstract_Organic_006_normal.jpg",
-        roughnessMap: "/textures/choco/Abstract_Organic_006_roughness.jpg",
-        aoMap: "/textures/choco/Abstract_Organic_006_ambientOcclusion.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_normal.jpg",
+        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
     });
 
     //Vanilla
     const milkshakeTexture = useTexture({
-        map: "/textures/vanilla/vanilla_chiffon_diffuse.jpg",
-        normalMap: "/textures/vanilla/vanilla_chiffon_normal.jpg",
-        aoMap: "/textures/vanilla/vanilla_chiffon_ao.jpg",
-        //displacementMap: "/textures/vanilla/vanilla_chiffon_height.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla_chiffon_diffuse.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla_chiffon_normal.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla_chiffon_ao.jpg",
+        //displacementMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla_chiffon_height.jpg",
     });
 
     //Ube
     const abstractTexture = useTexture({
-        map: "/textures/ube/ube_chiffon_diffuse.jpg",
-        normalMap: "/textures/ube/ube_chiffon_normal.jpg",
-        // displacementMap: "/textures/ube/ube_chiffon_height.jpg",
-        aoMap: "/textures/ube/ube_chiffon_ao.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_diffuseOriginal.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_normal.jpg",
+        // displacementMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_height.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_ao.jpg",
     });
 
 
