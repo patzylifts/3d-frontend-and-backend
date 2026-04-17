@@ -17,6 +17,7 @@ import Signup from './pages/Signup';
 // Admin Page
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage';
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 // Customer Page
 import CustomerProfile from "./pages/customer/CustomerProfile";
@@ -45,6 +46,7 @@ function App() {
             </Route>
 
             <Route element={<PrivateRouter adminOnly={true} />}>
+              <Route path="/admin" element={<><Navbar /><AdminDashboard /></>} />
               <Route path="/admin/orders" element={<><Navbar /><AdminOrdersPage /></>} />
               <Route path="/admin/orders/:id" element={<><Navbar /><AdminOrderDetailPage /></>} />
             </Route>

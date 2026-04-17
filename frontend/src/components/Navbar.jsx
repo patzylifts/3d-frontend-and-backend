@@ -35,9 +35,18 @@ function Navbar() {
 
                 {/* Left: Navigation Links */}
                 <div className="nav-group left">
-                    <Link to="/" className="nav-link">Home</Link>
-                    <Link to="/products" className="nav-link">Menu</Link>
-                    <Link to="/build" className="nav-link">Builder</Link>
+                    {!isAdmin ? (
+                        <>
+                            <Link to="/" className="nav-link">Home</Link>
+                            <Link to="/products" className="nav-link">Menu</Link>
+                            <Link to="/build" className="nav-link">Builder</Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/admin" className="nav-link">Dashboard</Link>
+                            <Link to="/admin/orders" className="nav-link">Orders</Link>
+                        </>
+                    )}
                 </div>
 
                 <Link to="/" className="nav-logo-centered" style={{ textDecoration: 'none', textAlign: 'center' }}>
@@ -51,7 +60,6 @@ function Navbar() {
                     ) : isAdmin ? (
                         // 📍 ADMIN NAVBAR
                         <div style={{ display: 'flex', gap: '20px' }}>
-                            <Link to="/admin/orders" className="nav-link">Orders</Link>
                             <button onClick={handleLogout} className="nav-link logout-btn">Logout</button>
                         </div>
                     ) : (
