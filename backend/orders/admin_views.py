@@ -1,9 +1,11 @@
+# orders/admin_views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from store.models import Order
 from .serializers import OrderSerializer
-
+from django.db.models import Count, Sum
+from datetime import date
 
 # ADMIN: LIST ALL ORDERS
 @api_view(['GET'])
@@ -59,3 +61,23 @@ def admin_review_order(request, order_id):
 
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)
+    
+# DASHBOARD
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_dashboard(request):
+    orders = Order.objects.all()
+
+    data = {
+        "total_orders": orders.count(),
+        "pending_review": orders.filter(status="pending_review").count(),
+        "awaiting_downpayment": orders.filter(status="awaiting_downpayment").count(),
+        "completed": orders.filter(status="completed").count(),
+
+        # optional but useful
+        "total_revenue": orders.filter(payment_status="paid").aggregate(
+            total=Sum("total_amount")
+        )["total"] or 0,
+    }
+
+    return Response(data)
