@@ -1,8 +1,8 @@
 # store/urls.py
 from django.urls import path
-from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from . import views
+from . import admin_views
 from .views import MyTokenObtainPairView
 
 urlpatterns = [
@@ -21,6 +21,12 @@ urlpatterns = [
     # Products
     path('products/', views.get_products, name='product_list'),
     path('products/<int:pk>/', views.get_product),
+    
+    # Admin Products CRUD
+    path('admin/products/', admin_views.admin_get_products),
+    path('admin/products/create/', admin_views.admin_create_product),
+    path('admin/products/<int:pk>/update/', admin_views.admin_update_product),
+    path('admin/products/<int:pk>/delete/', admin_views.admin_delete_product),
     
     #Categories
     path('categories/', views.get_categories, name='category_list'),
