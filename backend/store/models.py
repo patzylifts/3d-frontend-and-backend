@@ -23,22 +23,15 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-
 # USER
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    
-    # Identity
     middle_name = models.CharField(max_length=30, blank=True, null=True)
     phone = models.CharField(max_length=15)
-    
-    # Address
     street = models.CharField(max_length=150, blank=True, null=True)
     city = models.CharField(max_length=50, blank=True, null=True)
     province = models.CharField(max_length=50, blank=True, null=True)
     postal_code = models.CharField(max_length=10, blank=True, null=True)
-
-    # Optional
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
     newsletter_subscribed = models.BooleanField(default=True)
@@ -66,11 +59,8 @@ class Order(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-
-    # delivery info
     full_name = models.CharField(max_length=150, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
-
     street = models.CharField(max_length=200, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     province = models.CharField(max_length=100, blank=True, null=True)
@@ -79,21 +69,9 @@ class Order(models.Model):
     delivery_time = models.TimeField(blank=True, null=True)
     order_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-    status = models.CharField(
-        max_length=30,
-        choices=STATUS_CHOICES,
-        default="pending_review"
-    )
-
-    payment_status = models.CharField(
-        max_length=20,
-        choices=PAYMENT_STATUS_CHOICES,
-        default="pending"
-    )
-
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending_review")
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
     rejection_reason = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"Order {self.id} - {self.user}"
@@ -150,7 +128,6 @@ class CartItem(models.Model):
     def subtotal(self):
         return self.quantity * self.item_price
     
-
 # CAKE CUSTOMIZATION
 class CakeCustomization(models.Model):
     SHAPE_CHOICES = [

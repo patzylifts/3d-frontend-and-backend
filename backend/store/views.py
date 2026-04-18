@@ -93,9 +93,7 @@ def create_order(request):
 
     try:
         data = request.data
-
         profile = request.user.userprofile
-
         street = data.get("street") or profile.street
         city = data.get("city") or profile.city
         province = data.get("province") or profile.province
@@ -116,29 +114,10 @@ def create_order(request):
 
         total = sum(item.product.price * item.quantity for item in cart.items.all())
 
-        order = Order.objects.create(
-            user=request.user,
-            full_name=full_name,
-            phone=phone,
-            street=street,
-            city=city,
-            province=province,
-            postal_code=postal_code,
-            delivery_date=delivery_date,
-            delivery_time=delivery_time,
-            order_notes=notes,
-            total_amount=total,
-            status="pending_review",
-            payment_status="pending"
-        )
+        order = Order.objects.create(user=request.user, full_name=full_name, phone=phone, street=street, city=city, province=province, postal_code=postal_code, delivery_date=delivery_date, delivery_time=delivery_time, order_notes=notes, total_amount=total, status="pending_review", payment_status="pending")
 
         for item in cart.items.all():
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity,
-                price=item.product.price
-            )
+            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
 
         cart.items.all().delete()
 
@@ -174,14 +153,12 @@ def profile_view(request):
         serializer = UserProfileSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            # Also update first/last name from request
             request.user.first_name = request.data.get('first_name', request.user.first_name)
             request.user.last_name = request.data.get('last_name', request.user.last_name)
             request.user.email = request.data.get('email', request.user.email)
             request.user.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # CAKE CUSTOMIZATION → Add Custom Cake to Cart
 @api_view(['POST'])

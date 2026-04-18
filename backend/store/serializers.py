@@ -11,8 +11,10 @@ class CategorySerializer(serializers.ModelSerializer):
 
 # PRODUCT
 class ProductSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
-    
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all()
+    )
+
     class Meta:
         model = Product
         fields = '__all__'
@@ -64,7 +66,6 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = '__all__'
 
-
 # USER
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -95,24 +96,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         email = validated_data.get('email')
         password = validated_data['password']
 
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name
-        )
+        user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
 
-        UserProfile.objects.create(
-            user=user,
-            middle_name=middle_name,
-            phone="",
-            street="",
-            city="",
-            province="",
-            postal_code="",
-            profile_picture=None
-        )
+        UserProfile.objects.create(user=user, middle_name=middle_name, phone="", street="", city="", province="", postal_code="", profile_picture=None)
 
         return user
 

@@ -45,6 +45,7 @@ function Navbar() {
                         <>
                             <Link to="/admin" className="nav-link">Dashboard</Link>
                             <Link to="/admin/orders" className="nav-link">Orders</Link>
+                            <Link to="/admin/products" className="nav-link">Products</Link>
                         </>
                     )}
                 </div>
@@ -74,7 +75,6 @@ function Navbar() {
                     {!isAdmin && (
                         <Link to="/cart" className="nav-cart-minimal" title="View Cart">
                             <div className="cart-icon-container">
-                                {/* Modern Minimalist Shopping Bag Icon */}
                                 <svg
                                     width="24"
                                     height="24"

@@ -1,3 +1,4 @@
+// src/components/ProductCard.jsx
 import { Link } from "react-router-dom";
 
 function ProductCard({ product }) {

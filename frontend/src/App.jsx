@@ -18,6 +18,9 @@ import Signup from './pages/Signup';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage';
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProductList from "./pages/admin/AdminProductList";
+import AdminProductCreate from "./pages/admin/AdminProductCreate";
+import AdminProductEdit from "./pages/admin/AdminProductEdit";
 
 // Customer Page
 import CustomerProfile from "./pages/customer/CustomerProfile";
@@ -34,21 +37,23 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/products" element={<><Navbar /><ProductList /></>} />
             <Route path="/product/:id" element={<><Navbar /><ProductDetails /></>} />
-
+            {/* CUSTOMER */}
             <Route element={<PrivateRouter />}>
               <Route path="/build" element={<BuildBentoPage />} />
               <Route path="/checkout" element={<><Navbar /><CheckoutPage /></>} />
               <Route path="/profile" element={<><Navbar /><CustomerProfile /></>} />
               <Route path="/profile/edit" element={<><Navbar /><CustomerProfileUpdate /></>} />
-
               <Route path="/orders" element={<><Navbar /><CustomerOrdersPage /></>} />
               <Route path="/orders/:id" element={<><Navbar /><CustomerOrderDetailPage /></>} />
             </Route>
-
+            {/* ADMIN */}
             <Route element={<PrivateRouter adminOnly={true} />}>
               <Route path="/admin" element={<><Navbar /><AdminDashboard /></>} />
               <Route path="/admin/orders" element={<><Navbar /><AdminOrdersPage /></>} />
               <Route path="/admin/orders/:id" element={<><Navbar /><AdminOrderDetailPage /></>} />
+              <Route path="/admin/products" element={<><Navbar /><AdminProductList /></>} />
+              <Route path="/admin/products/create" element={<><Navbar /><AdminProductCreate /></>} />
+              <Route path="/admin/products/:id/edit" element={<><Navbar /><AdminProductEdit /></>} />
             </Route>
 
             <Route path="/login" element={<><Navbar /><Login /></>} />
