@@ -1,0 +1,88 @@
+.admin-products-page {
+    min-height: 100vh;
+    padding: 120px 24px 60px;
+    background-color: #fdfaf5; /* Cream background */
+}
+
+.admin-products-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.admin-products-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.admin-products-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #2d1b14;
+    margin: 0;
+}
+
+/* Add Product Button */
+.btn-add-product {
+    background-color: #2d1b14;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 15px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(45, 27, 20, 0.1);
+}
+
+.btn-add-product:hover {
+    background-color: #d85c7b; /* Berry hover */
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(216, 92, 123, 0.2);
+}
+
+/* The Grid */
+.products-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.no-products-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 100px 0;
+    background: white;
+    border-radius: 30px;
+    border: 2px dashed #eee;
+    color: #aaa;
+    font-weight: 600;
+}
+
+/* Loading/Error states */
+.admin-status-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    font-weight: 700;
+    color: #888;
+}
+
+@media (max-width: 640px) {
+    .admin-products-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    
+    .btn-add-product {
+        width: 100%;
+        justify-content: center;
+    }
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./Signup.css"; 
 
 function Signup() {
@@ -14,6 +14,7 @@ function Signup() {
         password2: ""
     });
     const [msg, setMsg] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     const nav = useNavigate();
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
@@ -21,6 +22,7 @@ function Signup() {
     const handleSubmit = async e => {
         e.preventDefault();
         setMsg("");
+        setIsLoading(true);
         try {
             const res = await fetch(`${BASE}/api/register/`, {
                 method: "POST",
@@ -29,34 +31,79 @@ function Signup() {
             });
             const data = await res.json();
             if (res.ok) {
-                setMsg("Account created. Redirecting to login...");
-                setTimeout(() => nav("/login"), 1200);
+                setMsg("✅ Account created! Redirecting to login...");
+                setTimeout(() => nav("/login"), 1500);
             } else {
-                // Show first error from the API
                 const firstKey = Object.keys(data)[0];
-                setMsg(data[firstKey] || JSON.stringify(data));
+                setMsg(data[firstKey] || "Registration failed.");
             }
         } catch (err) {
-            console.error(err);
-            setMsg("Signup failed");
+            setMsg("⚠️ Signup failed. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6">
-            <div className="max-w-md w-full bg-white p-6 rounded shadow">
-                <h2 className="text-2xl font-bold mb-4">Signup</h2>
-                <form onSubmit={handleSubmit} className="space-y-3">
-                    <input name="username" onChange={handleChange} value={form.username} placeholder="Username" required className="w-full p-2 border rounded" />
-                    <input name="email" type="email" onChange={handleChange} value={form.email} placeholder="Email" className="w-full p-2 border rounded" />
-                    <input name="first_name" onChange={handleChange} value={form.first_name} placeholder="First Name" required className="w-full p-2 border rounded" />
-                    <input name="middle_name" onChange={handleChange} value={form.middle_name} placeholder="Middle Name / M.I." className="w-full p-2 border rounded" />
-                    <input name="last_name" onChange={handleChange} value={form.last_name} placeholder="Last Name" required className="w-full p-2 border rounded" />
-                    <input name="password" type="password" onChange={handleChange} value={form.password} placeholder="Password" required className="w-full p-2 border rounded" />
-                    <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="Confirm Password" required className="w-full p-2 border rounded" />
-                    <button className="w-full bg-blue-600 text-white py-2 rounded">Create Account</button>
+        <div className="signup-page-wrapper">
+            <div className="signup-box">
+                <div className="signup-header">
+                    <span className="brand-emoji">✨</span>
+                    <h2>Join the Bakery</h2>
+                    <p>Create an account to start designing your own cakes.</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="signup-form">
+                    <div className="input-group">
+                        <label>Username</label>
+                        <input name="username" onChange={handleChange} value={form.username} placeholder="Username" required />
+                    </div>
+
+                    <div className="input-group">
+                        <label>Email</label>
+                        <input name="email" type="email" onChange={handleChange} value={form.email} placeholder="you@example.com" required />
+                    </div>
+
+                    {/* Name Grid */}
+                    <div className="name-grid">
+                        <div className="input-group">
+                            <label>First Name</label>
+                            <input name="first_name" onChange={handleChange} value={form.first_name} placeholder="First" required />
+                        </div>
+                        <div className="input-group">
+                            <label>M.I.</label>
+                            <input name="middle_name" onChange={handleChange} value={form.middle_name} placeholder="N/A" />
+                        </div>
+                        <div className="input-group">
+                            <label>Last Name</label>
+                            <input name="last_name" onChange={handleChange} value={form.last_name} placeholder="Last" required />
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label>Password</label>
+                        <input name="password" type="password" onChange={handleChange} value={form.password} placeholder="••••••••" required />
+                    </div>
+
+                    <div className="input-group">
+                        <label>Confirm Password</label>
+                        <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="••••••••" required />
+                    </div>
+
+                    <button type="submit" disabled={isLoading} className="btn-signup">
+                        {isLoading ? "Creating..." : "Create My Account"}
+                    </button>
                 </form>
-                {msg && <p className="mt-3 text-sm">{msg}</p>}
+
+                {msg && (
+                    <div className={`form-alert ${msg.includes('✅') ? 'success' : 'error'}`}>
+                        {msg}
+                    </div>
+                )}
+
+                <div className="signup-footer">
+                    Already have an account? <Link to="/login" className="login-link">Log in</Link>
+                </div>
             </div>
         </div>
     );

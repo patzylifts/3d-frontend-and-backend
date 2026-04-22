@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 :root {
-  --primary-berry: #D85C7B;    /* Refined Pink */
-  --bg-cream: #FDFBF7;         /* Soft Bakery Background */
-  --bg-warm: #F9F3E5;          /* Muted Gold/Mango Section */
-  --espresso: #2D1B14;         /* Premium Dark Text */
+  --primary-berry: #D85C7B;
+  --bg-cream: #FDFBF7;
+  --bg-warm: #F9F3E5;
+  --espresso: #2D1B14;
   --white: #ffffff;
 }
 
@@ -34,10 +34,10 @@ body {
     position: relative;
     width: 100%;
     min-height: 85vh;
-    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .hero-video-bg {
@@ -54,7 +54,7 @@ body {
 .video-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
 
@@ -65,108 +65,114 @@ body {
 }
 
 .hero-text h1 { 
-    font-size: clamp(2.5rem, 6vw, 4.5rem); 
+    font-size: clamp(2.5rem, 8vw, 4.5rem); 
     line-height: 1.1; 
     margin: 20px 0; 
     color: white;
 }
 
-.cta-row { display: flex; gap: 15px; margin-top: 30px; justify-content: center; }
+.hero-description {
+    color: rgba(255,255,255,0.9);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    max-width: 600px;
+    margin: 0 auto;
+}
 
-/* GRIDS */
-.steps-flex, .grid-3 { 
+.cta-row { 
+    display: flex; 
+    gap: 15px; 
+    margin-top: 35px; 
+    justify-content: center; 
+}
+
+/* BUTTONS */
+.btn-main { background: var(--primary-berry); color: white; border: none; padding: 16px 32px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 15px rgba(216, 92, 123, 0.3); }
+.btn-ghost { background: transparent; border: 2px solid white; color: white; padding: 15px 35px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; }
+.btn-ghost:hover { background: white; color: var(--espresso); }
+.btn-buy { width: 100%; background: var(--espresso); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+.btn-buy:hover { background: var(--primary-berry); }
+
+/* GRIDS (RESPONSIVE) */
+.grid-3, .steps-flex { 
     display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
     gap: 30px; 
 }
 
-.review-grid, .faq-container { 
+.review-grid { 
     display: grid; 
-    grid-template-columns: 1fr 1fr; 
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
     gap: 30px; 
 }
 
 /* CARDS */
-.step-card, .item-card, .review-pill, .faq-item {
+.item-card, .step-card, .review-pill {
     background: var(--white);
     border-radius: 20px;
-    padding: 30px;
+    padding: 25px;
     box-shadow: 0 10px 30px rgba(45, 27, 20, 0.05);
     transition: transform 0.3s ease;
-    position: relative;
 }
 
-.step-card:hover, .item-card:hover { transform: translateY(-10px); }
+.item-card:hover { transform: translateY(-10px); }
 
+.cake-thumb {
+    height: 250px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+}
+
+.price { font-weight: 800; }
+
+/* STEPS */
+.step-card { position: relative; padding-top: 50px; text-align: center; }
 .step-icon-wrapper {
     position: absolute;
-    top: -25px;
-    left: 50%;
+    top: -25px; left: 50%;
     transform: translateX(-50%);
     background: var(--primary-berry);
     width: 50px; height: 50px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 15px rgba(216, 92, 123, 0.3);
+    color: white; font-weight: 800;
 }
 
-.step-number { color: white; font-weight: 800; font-size: 1.2rem; }
+/* TESTIMONIALS */
+.review-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+.profile-img { width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--primary-berry); }
+
+/* FOOTER */
+.footer-wrap { background-color: var(--espresso); color: white; padding: 60px 0 30px 0; }
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+}
+.footer-logo { font-size: 1.4rem; font-weight: 800; margin-bottom: 15px; }
+.footer-links { list-style: none; line-height: 2.2; color: #999; cursor: pointer; }
+.newsletter-form { display: flex; margin-top: 15px; }
+.newsletter-form input { padding: 12px; border-radius: 8px 0 0 8px; border: none; background: #2a2a2a; color: white; flex: 1; }
+.btn-subscribe { background: var(--primary-berry); color: white; border: none; padding: 0 15px; border-radius: 0 8px 8px 0; cursor: pointer; }
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+    .container { padding: 50px 20px; }
+    .hero-video-wrapper { min-height: 100vh; }
+    .cta-row { flex-direction: column; align-items: center; }
+    .btn-main, .btn-ghost { width: 100%; max-width: 300px; }
+    .hero-text h1 { font-size: 2.8rem; }
+    .text-center { margin-bottom: 30px; }
+}
 
 /* UTILS */
 .pink-text { color: var(--primary-berry); }
 .mini-badge { border: 1.5px solid white; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; color: white; }
 .label { color: var(--primary-berry); font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 10px; }
 .text-center { text-align: center; margin-bottom: 50px; }
-
-/* BUTTONS */
-.btn-main { background: var(--primary-berry); color: white; border: none; padding: 16px 32px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; }
-.btn-ghost { background: transparent; border: 2px solid white; color: white; padding: 15px 35px; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.3s; }
-.btn-ghost:hover { background: white; color: var(--espresso); }
-.btn-buy { width: 100%; background: var(--espresso); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-.btn-buy:hover { background: var(--primary-berry); }
-
-/* PROFILE IMAGE STYLES */
-.review-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.profile-img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid var(--primary-berry); /* Our new Berry Pink */
-    padding: 2px;
-    background: white;
-}
-
-.reviewer-info h4 {
-    margin: 0;
-    color: var(--espresso);
-    font-size: 1.1rem;
-}
-
-.reviewer-info span {
-    color: var(--primary-berry);
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.review-pill p {
-    line-height: 1.6;
-    font-style: italic;
-    color: #555;
-}
-
-/* FOOTER */
-.footer-wrap { background-color: var(--espresso); color: white; padding: 10px 0 30px 0; }
-.btn-subscribe { background: var(--primary-berry); border: none; color: white; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: bold; width: 50px; }
-
-/* RESPONSIVE */
-@media (max-width: 968px) {
-    .hero-grid, .steps-flex, .grid-3, .review-grid, .faq-container { grid-template-columns: 1fr; }
-}

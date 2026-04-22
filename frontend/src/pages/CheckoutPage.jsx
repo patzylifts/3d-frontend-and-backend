@@ -1,8 +1,8 @@
-// src/pages/CheckoutPage.jsx
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { authFetch } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import "./CheckoutPage.css"; // Ensure this import is here
 
 function CheckoutPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -45,7 +45,7 @@ function CheckoutPage() {
             });
         }
         fetchProfile();
-    }, []);
+    }, [BASEURL]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -67,19 +67,15 @@ function CheckoutPage() {
             const data = await res.json();
 
             if (res.ok) {
-                setMessage("Order submitted for review!");
+                setMessage("Sweet! Order submitted for review! 🎂");
                 clearCart();
-
-                // redirect to order detail page
                 const orderId = data.order_id;
-
                 setTimeout(() => {
                     navigate(`/orders/${orderId}`);
                 }, 2000);
             } else {
                 setMessage(data.error || "Failed to place order.");
             }
-            // eslint-disable-next-line no-unused-vars
         } catch (err) {
             setMessage("Server error. Please try again.");
         } finally {
@@ -88,135 +84,125 @@ function CheckoutPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex justify-center items-start pt-16 px-4 md:px-0">
-            <form
-                onSubmit={handleSubmit}
-                className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg space-y-6"
-            >
-                <h1 className="text-3xl font-bold text-center mb-4">Checkout</h1>
+        <div className="checkout-page-wrapper">
+            <div className="container">
+                <form onSubmit={handleSubmit} className="checkout-form-card">
+                    <h1 className="checkout-title">Finalize Your Order</h1>
 
-                {/* Delivery Address */}
-                <div className="space-y-2">
-                    <h2 className="text-xl font-semibold">Delivery Address</h2>
+                    {/* Delivery Address Section */}
+                    <div className="checkout-section">
+                        <h2 className="section-heading">📍 Delivery Address</h2>
+                        
+                        <div className="radio-group">
+                            <label className={`radio-label ${useProfileAddress ? "active" : ""}`}>
+                                <input
+                                    type="radio"
+                                    checked={useProfileAddress}
+                                    onChange={() => setUseProfileAddress(true)}
+                                />
+                                <span>Use Saved Profile Address</span>
+                            </label>
 
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            checked={useProfileAddress}
-                            onChange={() => setUseProfileAddress(true)}
-                            className="w-4 h-4"
-                        />
-                        Use Profile Address
-                    </label>
+                            <div className={`address-preview ${useProfileAddress ? "visible" : "hidden"}`}>
+                                <strong>{profileAddress.full_name}</strong>
+                                <p>{profileAddress.street}, {profileAddress.city}, {profileAddress.province}</p>
+                                <p>{profileAddress.postal_code}</p>
+                                <p className="phone-text">📞 {profileAddress.phone}</p>
+                            </div>
 
-                    <div
-                        className={`border rounded p-3 text-gray-700 ${useProfileAddress ? "block" : "hidden"
-                            }`}
-                    >
-                        <p className="font-medium">{profileAddress.full_name}</p>
-                        <p>
-                            {profileAddress.street}, {profileAddress.city},{" "}
-                            {profileAddress.province}
-                        </p>
-                        <p>{profileAddress.postal_code}</p>
-                        <p>{profileAddress.phone}</p>
-                    </div>
-
-                    <label className="flex items-center gap-2 mt-2">
-                        <input
-                            type="radio"
-                            checked={!useProfileAddress}
-                            onChange={() => setUseProfileAddress(false)}
-                            className="w-4 h-4"
-                        />
-                        Use Custom Address
-                    </label>
-
-                    <div
-                        className={`border rounded p-3 space-y-2 ${!useProfileAddress ? "block" : "hidden"
-                            }`}
-                    >
-                        <input
-                            type="text"
-                            placeholder="Street"
-                            value={customAddress.street}
-                            onChange={(e) =>
-                                setCustomAddress({ ...customAddress, street: e.target.value })
-                            }
-                            className="w-full p-2 border rounded"
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                            <input
-                                type="text"
-                                placeholder="City"
-                                value={customAddress.city}
-                                onChange={(e) =>
-                                    setCustomAddress({ ...customAddress, city: e.target.value })
-                                }
-                                className="w-full p-2 border rounded"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Province"
-                                value={customAddress.province}
-                                onChange={(e) =>
-                                    setCustomAddress({ ...customAddress, province: e.target.value })
-                                }
-                                className="w-full p-2 border rounded"
-                            />
+                            <label className={`radio-label ${!useProfileAddress ? "active" : ""}`}>
+                                <input
+                                    type="radio"
+                                    checked={!useProfileAddress}
+                                    onChange={() => setUseProfileAddress(false)}
+                                />
+                                <span>Deliver to a New Address</span>
+                            </label>
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Postal Code"
-                            value={customAddress.postal_code}
-                            onChange={(e) =>
-                                setCustomAddress({ ...customAddress, postal_code: e.target.value })
-                            }
-                            className="w-full p-2 border rounded"
+
+                        {!useProfileAddress && (
+                            <div className="custom-address-inputs">
+                                <input
+                                    type="text"
+                                    placeholder="Street Address"
+                                    value={customAddress.street}
+                                    onChange={(e) => setCustomAddress({ ...customAddress, street: e.target.value })}
+                                    required={!useProfileAddress}
+                                />
+                                <div className="input-grid">
+                                    <input
+                                        type="text"
+                                        placeholder="City"
+                                        value={customAddress.city}
+                                        onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
+                                        required={!useProfileAddress}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Province"
+                                        value={customAddress.province}
+                                        onChange={(e) => setCustomAddress({ ...customAddress, province: e.target.value })}
+                                        required={!useProfileAddress}
+                                    />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Postal Code"
+                                    value={customAddress.postal_code}
+                                    onChange={(e) => setCustomAddress({ ...customAddress, postal_code: e.target.value })}
+                                    required={!useProfileAddress}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Schedule Section */}
+                    <div className="checkout-section">
+                        <h2 className="section-heading">⏰ Schedule Delivery</h2>
+                        <div className="input-grid">
+                            <div className="field-group">
+                                <label>Date</label>
+                                <input
+                                    type="date"
+                                    value={deliveryDate}
+                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="field-group">
+                                <label>Preferred Time</label>
+                                <input
+                                    type="time"
+                                    value={deliveryTime}
+                                    onChange={(e) => setDeliveryTime(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notes Section */}
+                    <div className="checkout-section">
+                        <h2 className="section-heading">📝 Special Instructions</h2>
+                        <textarea
+                            placeholder="Add a message for the baker or delivery rider..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            rows={3}
                         />
                     </div>
-                </div>
 
-                {/* Delivery Date & Time */}
-                <div className="space-y-2">
-                    <h2 className="text-xl font-semibold">Delivery Date & Time</h2>
-                    <input
-                        type="date"
-                        value={deliveryDate}
-                        onChange={(e) => setDeliveryDate(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        required
-                    />
-                    <input
-                        type="time"
-                        value={deliveryTime}
-                        onChange={(e) => setDeliveryTime(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        required
-                    />
-                </div>
+                    <button type="submit" disabled={loading} className="btn-main checkout-submit-btn">
+                        {loading ? "Sending Order..." : "Confirm & Place Order"}
+                    </button>
 
-                {/* Notes */}
-                <div className="space-y-2">
-                    <h2 className="text-xl font-semibold">Order Notes (Optional)</h2>
-                    <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        rows={3}
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300"
-                >
-                    {loading ? "Processing..." : "Place Order"}
-                </button>
-
-                {message && <p className="text-center text-green-700 font-semibold">{message}</p>}
-            </form>
+                    {message && (
+                        <div className={`status-msg ${message.includes("Sweet") ? "success" : "error"}`}>
+                            {message}
+                        </div>
+                    )}
+                </form>
+            </div>
         </div>
     );
 }

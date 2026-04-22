@@ -1,0 +1,178 @@
+/* --- Base Layout --- */
+.orders-page {
+    min-height: 100vh;
+    background-color: #fdfaf5;
+    padding: 120px 24px 60px;
+}
+
+.orders-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.orders-header {
+    margin-bottom: 40px;
+    padding-left: 10px;
+}
+
+.orders-header h1 {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #2d1b14;
+    margin: 0;
+}
+
+.orders-header p {
+    color: #a3948e;
+    margin-top: 8px;
+    font-size: 1rem;
+}
+
+/* --- Table & Empty State Wrapper --- */
+.table-wrapper {
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 10px 40px rgba(45, 27, 20, 0.05);
+    border: 1px solid rgba(45, 27, 20, 0.03);
+    overflow: hidden;
+}
+
+/* --- Empty State Card Styling --- */
+.empty-state-card {
+    padding: 80px 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.empty-state-card h3 {
+    color: #2d1b14;
+    font-weight: 800;
+    margin: 0;
+}
+
+.empty-state-card p {
+    color: #a3948e;
+    font-size: 0.9rem;
+    max-width: 300px;
+}
+
+/* --- Table Desktop --- */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #fcf9f6;
+    padding: 20px;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #bbb;
+}
+
+.admin-table td {
+    padding: 22px 20px;
+    font-size: 0.95rem;
+    color: #2d1b14;
+    border-bottom: 1px solid #fafafa;
+}
+
+.font-bold { font-weight: 800; }
+
+/* --- Status Badges --- */
+.badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: capitalize;
+}
+
+.badge-pending { background: #fff9db; color: #f08c00; }
+.badge-completed { background: #ebfbee; color: #2b8a3e; }
+.badge-default { background: #f1f3f5; color: #495057; }
+
+/* --- Action Button --- */
+.btn-view {
+    background: #2d1b14;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-view:hover {
+    background: #d85c7b;
+    transform: translateY(-2px);
+}
+
+/* --- MOBILE RESPONSIVE --- */
+@media (max-width: 768px) {
+    .orders-page {
+        padding-top: 110px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .table-wrapper {
+        background: transparent;
+        box-shadow: none;
+        border: none;
+    }
+
+    /* Keep the empty state looking like a card on mobile */
+    .empty-state-card {
+        background: white;
+        border-radius: 30px;
+        box-shadow: 0 10px 40px rgba(45, 27, 20, 0.05);
+    }
+
+    .admin-table thead { display: none; }
+
+    .admin-table tr {
+        display: block;
+        background: white;
+        margin-bottom: 20px;
+        padding: 20px;
+        border-radius: 25px;
+        box-shadow: 0 5px 20px rgba(45, 27, 20, 0.05);
+    }
+
+    .admin-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #fcf9f6;
+        width: 100% !important;
+    }
+
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: 800;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: #bbb;
+    }
+
+    .admin-table td:last-child {
+        border-bottom: none;
+        padding-top: 20px;
+    }
+
+    .btn-view { width: 100%; }
+}

@@ -1,0 +1,158 @@
+.checkout-page-wrapper {
+    padding-top: 100px;
+    padding-bottom: 60px;
+    background-color: var(--bg-cream);
+    min-height: 100vh;
+}
+
+.checkout-form-card {
+    background: white;
+    max-width: 650px;
+    margin: 0 auto;
+    padding: 40px;
+    border-radius: 24px;
+    box-shadow: 0 15px 40px rgba(45, 27, 20, 0.06);
+}
+
+.checkout-title {
+    text-align: center;
+    color: var(--espresso);
+    margin-bottom: 35px;
+    font-size: 2.2rem;
+    font-weight: 800;
+}
+
+.checkout-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.checkout-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-heading {
+    font-size: 1.1rem;
+    color: var(--espresso);
+    margin-bottom: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Radio Buttons Styling */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #666;
+    transition: 0.2s;
+}
+
+.radio-label.active {
+    color: var(--primary-berry);
+}
+
+.radio-label input[type="radio"] {
+    accent-color: var(--primary-berry);
+    width: 18px;
+    height: 18px;
+}
+
+/* Address Preview Box */
+.address-preview {
+    background: var(--bg-warm);
+    padding: 15px;
+    border-radius: 12px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    color: var(--espresso);
+    line-height: 1.5;
+}
+
+.phone-text {
+    margin-top: 5px;
+    font-weight: 700;
+    color: var(--primary-berry);
+}
+
+/* Input Styles */
+.checkout-form-card input, 
+.checkout-form-card textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid #eee;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: 0.3s;
+    background: #fafafa;
+}
+
+.checkout-form-card input:focus, 
+.checkout-form-card textarea:focus {
+    outline: none;
+    border-color: var(--primary-berry);
+    background: white;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.field-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #888;
+}
+
+/* Button & Messages */
+.checkout-submit-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.1rem;
+    margin-top: 10px;
+    box-shadow: 0 8px 20px rgba(216, 92, 123, 0.25);
+}
+
+.status-msg {
+    margin-top: 20px;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.status-msg.success { background: #e6fffa; color: #234e52; }
+.status-msg.error { background: #fff5f5; color: #9b2c2c; }
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .checkout-form-card {
+        padding: 25px 20px;
+        border-radius: 0;
+    }
+    
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .checkout-title {
+        font-size: 1.8rem;
+    }
+}

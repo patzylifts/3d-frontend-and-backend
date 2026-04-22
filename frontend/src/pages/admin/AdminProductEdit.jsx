@@ -1,7 +1,8 @@
-// src/pages/admin/AdminProductEdit.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAccessToken } from "../../utils/auth";
+import Navbar from "../../components/Navbar";
+import "./AdminProductEdit.css";
 
 function AdminProductEdit() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -10,7 +11,7 @@ function AdminProductEdit() {
 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const [preview, setPreview] = useState(null);
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -19,180 +20,132 @@ function AdminProductEdit() {
         image: null,
     });
 
-    const [preview, setPreview] = useState(null);
-
-    // 📌 Fetch product + categories
     useEffect(() => {
         const token = getAccessToken();
 
-        // fetch product
-        fetch(`${BASEURL}/api/products/${id}/`)
-            .then(res => res.json())
-            .then(data => {
-                setFormData({
-                    name: data.name,
-                    description: data.description,
-                    price: data.price,
-                    category: data.category,
-                    image: null,
-                });
-
-                setPreview(`${BASEURL}${data.image}`);
-                setLoading(false);
+        // Fetching both in parallel for speed
+        Promise.all([
+            fetch(`${BASEURL}/api/products/${id}/`).then(res => res.json()),
+            fetch(`${BASEURL}/api/categories/`).then(res => res.json())
+        ])
+        .then(([productData, catData]) => {
+            setFormData({
+                name: productData.name,
+                description: productData.description,
+                price: productData.price,
+                category: productData.category,
+                image: null,
             });
+            setCategories(catData);
+            setPreview(`${BASEURL}${productData.image}`);
+            setLoading(false);
+        })
+        .catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, [id, BASEURL]);
 
-        // fetch categories
-        fetch(`${BASEURL}/api/categories/`)
-            .then(res => res.json())
-            .then(data => setCategories(data));
-    }, [id]);
-
-    // 📌 Handle input
     const handleChange = (e) => {
         const { name, value, files } = e.target;
-
         if (name === "image") {
             const file = files[0];
-
-            setFormData(prev => ({
-                ...prev,
-                image: file,
-            }));
-
-            if (file) {
-                setPreview(URL.createObjectURL(file));
-            }
+            setFormData(prev => ({ ...prev, image: file }));
+            if (file) setPreview(URL.createObjectURL(file));
         } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value,
-            }));
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
-    // 📌 Submit update
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         try {
             const token = getAccessToken();
-
             const data = new FormData();
             data.append("name", formData.name);
             data.append("description", formData.description);
             data.append("price", formData.price);
             data.append("category", formData.category);
+            if (formData.image) data.append("image", formData.image);
 
-            if (formData.image) {
-                data.append("image", formData.image);
-            }
+            const res = await fetch(`${BASEURL}/api/admin/products/${id}/update/`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` },
+                body: data,
+            });
 
-            const res = await fetch(
-                `${BASEURL}/api/admin/products/${id}/update/`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: data,
-                }
-            );
-
-            if (!res.ok) {
-                throw new Error("Update failed");
-            }
-
+            if (!res.ok) throw new Error("Update failed");
             navigate("/admin/products");
         } catch (err) {
             alert(err.message);
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div className="edit-status-loading">Loading cake profile...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-            <form
-                onSubmit={handleSubmit}
-                className="bg-white p-6 rounded shadow-md w-full max-w-lg"
-            >
-                <h2 className="text-2xl font-bold mb-4">Edit Product</h2>
+        <div className="edit-product-page">
+            <Navbar />
+            <div className="edit-card">
+                <form onSubmit={handleSubmit}>
+                    <div className="edit-grid">
+                        
+                        {/* Left Side: Visuals */}
+                        <div className="edit-visual-pane">
+                            <div className="edit-image-container">
+                                <img src={preview} alt="Product" className="edit-preview" />
+                                <label className="change-img-overlay">
+                                    <span>Replace Image</span>
+                                    <input type="file" name="image" onChange={handleChange} hidden />
+                                </label>
+                            </div>
+                            <div className="edit-badge">Editing Mode</div>
+                        </div>
 
-                <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full mb-3 p-2 border rounded"
-                    required
-                />
+                        {/* Right Side: Inputs */}
+                        <div className="edit-info-pane">
+                            <header className="edit-header">
+                                <h1>Update Product</h1>
+                                <p>Modifying ID: <strong>#{id}</strong></p>
+                            </header>
 
-                <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="w-full mb-3 p-2 border rounded"
-                    required
-                />
+                            <div className="edit-form-group">
+                                <label>Product Name</label>
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+                            </div>
 
-                <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    className="w-full mb-3 p-2 border rounded"
-                    required
-                />
+                            <div className="edit-row">
+                                <div className="edit-form-group">
+                                    <label>Price (₱)</label>
+                                    <input type="number" name="price" value={formData.price} onChange={handleChange} required />
+                                </div>
+                                <div className="edit-form-group">
+                                    <label>Category</label>
+                                    <select name="category" value={formData.category} onChange={handleChange} required>
+                                        {categories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
 
-                <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="w-full mb-3 p-2 border rounded"
-                    required
-                >
-                    <option value="">Select Category</option>
-                    {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                        </option>
-                    ))}
-                </select>
+                            <div className="edit-form-group">
+                                <label>Description</label>
+                                <textarea name="description" value={formData.description} onChange={handleChange} required />
+                            </div>
 
-                {/* Preview */}
-                {preview && (
-                    <img
-                        src={preview}
-                        alt="Preview"
-                        className="w-full h-48 object-cover mb-3 rounded"
-                    />
-                )}
-
-                <input
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    onChange={handleChange}
-                    className="w-full mb-3"
-                />
-
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        className="flex-1 bg-blue-500 text-white py-2 rounded"
-                    >
-                        Save Changes
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => navigate("/admin/products")}
-                        className="flex-1 bg-gray-300 py-2 rounded"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </form>
+                            <div className="edit-actions">
+                                <button type="button" className="btn-edit-cancel" onClick={() => navigate("/admin/products")}>
+                                    Discard
+                                </button>
+                                <button type="submit" className="btn-edit-save">
+                                    Update Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

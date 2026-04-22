@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/auth";
+import Navbar from "../../components/Navbar";
+import "./AdminDashboard.css";
 
 export default function AdminDashboard() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
-
     const [data, setData] = useState(null);
 
     useEffect(() => {
@@ -20,28 +21,43 @@ export default function AdminDashboard() {
         }
     };
 
-    if (!data) return <p className="text-center mt-10">Loading dashboard...</p>;
+    if (!data) return (
+        <div className="admin-page">
+            <p className="loading-text">Loading management console...</p>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen p-6 bg-gray-100">
-            <h1 className="text-3xl font-bold mb-6 text-center">Admin Dashboard</h1>
+        <div className="admin-page">
+            <Navbar />
+            
+            <div className="admin-container">
+                <header className="admin-header">
+                    <h1>Business Overview</h1>
+                    <p>Welcome back, Chef! Here's what's happening today.</p>
+                </header>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <Card title="Total Orders" value={data.total_orders} />
-                <Card title="Pending Review" value={data.pending_review} />
-                <Card title="Awaiting Payment" value={data.awaiting_downpayment} />
-                <Card title="Completed" value={data.completed} />
-                <Card title="Revenue" value={`₱${data.total_revenue}`} />
+                <div className="stats-grid">
+                    <Card title="Total Orders" value={data.total_orders} />
+                    <Card title="Pending Review" value={data.pending_review} />
+                    <Card title="Awaiting Payment" value={data.awaiting_downpayment} />
+                    <Card title="Completed" value={data.completed} />
+                    <Card 
+                        title="Total Revenue" 
+                        value={`₱${Number(data.total_revenue).toLocaleString()}`} 
+                        isHighlight={true}
+                    />
+                </div>
             </div>
         </div>
     );
 }
 
-function Card({ title, value }) {
+function Card({ title, value, isHighlight }) {
     return (
-        <div className="bg-white p-6 rounded-lg shadow text-center">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-2xl font-bold mt-2">{value}</p>
+        <div className={`stat-card ${isHighlight ? "highlight" : ""}`}>
+            <h2 className="stat-title">{title}</h2>
+            <p className="stat-value">{value}</p>
         </div>
     );
 }

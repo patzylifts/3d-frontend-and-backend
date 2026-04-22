@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
+import Navbar from "../../components/Navbar";
+import "./AdminOrdersPage.css";
 
 export default function AdminOrdersPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -9,13 +11,10 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch all orders (admin)
   const fetchOrders = async () => {
     try {
       const res = await authFetch(`${BASEURL}/api/orders/admin/orders/`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch orders");
-      }
+      if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
       setOrders(data);
     } catch (err) {
@@ -29,65 +28,76 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  if (loading) {
-    return <p className="text-center mt-10">Loading orders...</p>;
-  }
+  const getStatusClass = (status) => {
+    if (status === "pending_review") return "badge-pending";
+    if (status === "completed") return "badge-completed";
+    return "badge-default";
+  };
 
-  if (error) {
-    return <p className="text-center mt-10 text-red-600">{error}</p>;
-  }
+  if (loading) return (
+    <div className="orders-page-status">
+      <p>Loading order vault...</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6 text-center">Admin Orders</h1>
+    <div className="orders-page">
+      <Navbar />
+      <div className="orders-container">
+        <header className="orders-header">
+          <h1>Customer Orders</h1>
+          <p>Manage incoming requests and cake statuses.</p>
+        </header>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 bg-white rounded-lg overflow-hidden">
-          <thead className="bg-gray-200 text-left">
-            <tr>
-              <th className="p-3 border">Order ID</th>
-              <th className="p-3 border">Customer Name</th>
-              <th className="p-3 border">Total</th>
-              <th className="p-3 border">Status</th>
-              <th className="p-3 border">Payment</th>
-              <th className="p-3 border">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center p-4">
-                  No orders found.
-                </td>
-              </tr>
-            )}
-            {orders.map((order) => (
-              <tr key={order.id} className="text-center border-t">
-                <td className="p-3 border">{order.id}</td>
-                <td className="p-3 border">{order.user_name}</td>
-                <td className="p-3 border">₱{order.total_amount}</td>
-                <td className="p-3 border capitalize">
-                  <span className={
-                    order.status === "pending_review"
-                      ? "text-yellow-600 font-bold"
-                      : ""
-                  }>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="p-3 border capitalize">{order.payment_status}</td>
-                <td className="p-3 border">
-                  <button
-                    onClick={() => navigate(`/admin/orders/${order.id}`)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition duration-200"
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrapper">
+          {orders.length === 0 ? (
+            <div className="empty-state-card">
+              <span className="empty-icon">📦</span>
+              <h3>No orders found</h3>
+              <p>When customers start ordering, they will appear here.</p>
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td data-label="Order ID" className="font-bold">#{order.id}</td>
+                    <td data-label="Customer">{order.user_name}</td>
+                    <td data-label="Total" className="font-bold">₱{Number(order.total_amount).toLocaleString()}</td>
+                    <td data-label="Status">
+                      <span className={`badge ${getStatusClass(order.status)}`}>
+                        {order.status.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td data-label="Payment">
+                      <span className="badge badge-default">
+                        {order.payment_status}
+                      </span>
+                    </td>
+                    <td data-label="Action">
+                      <button
+                        onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        className="btn-view"
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

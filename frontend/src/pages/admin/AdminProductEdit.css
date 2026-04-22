@@ -1,0 +1,176 @@
+.edit-product-page {
+    min-height: 100vh;
+    padding: 120px 20px 60px;
+    background-color: #fdfaf5;
+    display: flex;
+    justify-content: center;
+}
+
+.edit-card {
+    background: white;
+    width: 100%;
+    max-width: 950px;
+    border-radius: 35px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(45, 27, 20, 0.08);
+    border: 1px solid rgba(45, 27, 20, 0.03);
+}
+
+.edit-grid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+}
+
+/* Left Pane */
+.edit-visual-pane {
+    background: #fcf9f6;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #f0f0f0;
+}
+
+.edit-image-container {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 25px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.edit-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.change-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(45, 27, 20, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    cursor: pointer;
+    transition: 0.3s;
+    color: white;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    backdrop-filter: blur(4px);
+}
+
+.edit-image-container:hover .change-img-overlay {
+    opacity: 1;
+}
+
+.edit-badge {
+    margin-top: 20px;
+    background: #fff;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #d85c7b;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* Right Pane */
+.edit-info-pane {
+    padding: 50px;
+}
+
+.edit-header { margin-bottom: 30px; }
+.edit-header h1 { font-size: 2rem; color: #2d1b14; font-weight: 800; margin: 0; }
+.edit-header p { color: #aaa; margin-top: 5px; }
+
+.edit-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.edit-form-group label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #bbb;
+    letter-spacing: 1px;
+}
+
+.edit-form-group input, 
+.edit-form-group select, 
+.edit-form-group textarea {
+    padding: 14px;
+    border: 2px solid #f5f5f5;
+    border-radius: 15px;
+    background: #fafafa;
+    font-size: 1rem;
+    transition: 0.3s;
+}
+
+.edit-form-group input:focus, 
+.edit-form-group textarea:focus {
+    border-color: #d85c7b;
+    background: white;
+    outline: none;
+}
+
+.edit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.edit-form-group textarea {
+    min-height: 100px;
+    resize: none;
+}
+
+/* Footer Actions */
+.edit-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-edit-save {
+    flex: 2;
+    background: #2d1b14;
+    color: white;
+    padding: 16px;
+    border-radius: 15px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-edit-save:hover {
+    background: #d85c7b;
+    transform: translateY(-2px);
+}
+
+.btn-edit-cancel {
+    flex: 1;
+    background: #f5f5f5;
+    color: #888;
+    border: none;
+    padding: 16px;
+    border-radius: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .edit-grid { grid-template-columns: 1fr; }
+    .edit-visual-pane { border-right: none; border-bottom: 1px solid #eee; }
+}

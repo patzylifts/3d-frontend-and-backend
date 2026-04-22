@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/auth";
 import { Link } from "react-router-dom";
+import "./CustomerProfile.css"; // Create this file
 
 function CustomerProfile() {
     const [profile, setProfile] = useState(null);
@@ -23,49 +24,66 @@ function CustomerProfile() {
             }
         };
         fetchProfile();
-    }, []);
+    }, [BASE]);
 
     if (!profile) {
-        return <div className="min-h-screen flex items-center justify-center mt-20">Loading...</div>;
+        return (
+            <div className="profile-loading">
+                <div className="spinner"></div>
+                <p>Opening your profile...</p>
+            </div>
+        );
     }
 
     return (
-        <div className="min-h-screen flex justify-center p-6 mt-20">
-            <div className="max-w-2xl w-full bg-white rounded shadow p-6">
-                <div className="flex items-center gap-6 mb-6">
-                    {/* Profile picture */}
-                    <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-                        {profile.profile_picture ? (
-                            <img src={`${BASE}${profile.profile_picture}`} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-gray-600 text-xl font-bold">{profile.user.username[0].toUpperCase()}</span>
-                        )}
+        <div className="profile-page-wrapper">
+            <div className="container">
+                <div className="profile-header-card">
+                    <div className="profile-avatar-section">
+                        <div className="avatar-wrapper">
+                            {profile.profile_picture ? (
+                                <img src={`${BASE}${profile.profile_picture}`} alt="Profile" className="avatar-img" />
+                            ) : (
+                                <span className="avatar-initial">{profile.user.username[0].toUpperCase()}</span>
+                            )}
+                        </div>
+                        <div className="profile-name-info">
+                            <h2>{profile.user.first_name} {profile.middle_name ? profile.middle_name + " " : ""}{profile.user.last_name}</h2>
+                            <p className="email-tag">{profile.user.email}</p>
+                            <span className="customer-badge">Loyal Customer</span>
+                        </div>
                     </div>
 
-                    {/* User name */}
-                    <div>
-                        <h2 className="text-2xl font-bold">{profile.user.first_name} {profile.middle_name ? profile.middle_name + " " : ""}{profile.user.last_name}</h2>
-                        <p className="text-gray-600">{profile.user.email}</p>
-                        <p className="text-gray-600">{profile.phone || "No phone number"}</p>
+                    <div className="profile-content-grid">
+                        {/* Contact Info */}
+                        <div className="info-box">
+                            <h3 className="info-label">📞 Contact Details</h3>
+                            <p>{profile.phone || "No phone number added"}</p>
+                        </div>
+
+                        {/* Address Info */}
+                        <div className="info-box">
+                            <h3 className="info-label">🏠 Default Delivery Address</h3>
+                            <p className="address-text">
+                                {profile.street ? (
+                                    <>
+                                        {profile.street}<br />
+                                        {profile.city}, {profile.province} {profile.postal_code}
+                                    </>
+                                ) : (
+                                    "No address set"
+                                )}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="profile-footer">
+                        <Link to="/profile/edit" className="btn-main edit-profile-btn">
+                            Edit Profile Settings
+                        </Link>
+                        {msg && <p className="error-msg">{msg}</p>}
                     </div>
                 </div>
-
-                {/* Address */}
-                <div className="mb-6">
-                    <h3 className="font-semibold mb-2">Address</h3>
-                    <p>{profile.street || "-"}</p>
-                    <p>{profile.city || "-"}, {profile.province || "-"} {profile.postal_code || "-"}</p>
-                </div>
-
-                {/* Update button */}
-                <Link
-                    to="/profile/edit"
-                    className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    Update Profile
-                </Link>
-
-                {msg && <p className="mt-3 text-sm text-red-500">{msg}</p>}
             </div>
         </div>
     );

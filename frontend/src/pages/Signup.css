@@ -1,110 +1,137 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
-
-:root {
-  --pink-bg: #FFF6F4;
-  --orange-accent: #F14D14;
-  --text-dark: #1F1F1F;
+.signup-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-cream);
+    padding: 80px 20px; /* More top padding for navbar clearance */
 }
 
-body {
-  margin: 0;
-  font-family: 'Outfit', sans-serif;
-  background-color: var(--pink-bg);
+.signup-box {
+    background: white;
+    width: 100%;
+    max-width: 500px; 
+    padding: 40px;
+    border-radius: 30px;
+    box-shadow: 0 15px 40px rgba(45, 27, 20, 0.08);
+    /* Add this to prevent any child from escaping */
+    box-sizing: border-box; 
 }
 
-/* Page Container */
-.min-h-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  box-sizing: border-box;
+.signup-header {
+    text-align: center;
+    margin-bottom: 30px;
 }
 
-/* Card Box */
-.bg-white {
-  background-color: #ffffff;
-  width: 100%;
-  max-width: 500px;
-  padding: 2.5rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  box-sizing: border-box;
+.signup-header h2 {
+    font-size: 1.8rem;
+    color: var(--espresso);
+    margin-bottom: 5px;
 }
 
-h2 {
-  font-size: 1.875rem;
-  font-weight: 800;
-  color: var(--text-dark);
-  margin: 0 0 1.5rem 0;
-  text-align: center;
+.signup-header p {
+    color: #888;
+    font-size: 0.9rem;
 }
 
-/* Form Layout */
-.space-y-3 {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.signup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.signup-form input {
+    width: 100%;
+    box-sizing: border-box;
 }
 
-input {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  background-color: #f9fafb;
-  font-family: inherit;
-  font-size: 0.95rem;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+/* Name Grid Logic */
+.name-grid {
+    display: grid;
+    /* Changed from fr units to a more stable percentage/auto mix */
+    grid-template-columns: 1fr 0.5fr 1fr; 
+    gap: 15px;
+    width: 100%;
+    /* Ensures the grid doesn't exceed the parent width */
+    box-sizing: border-box; 
+}
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
 }
 
-input:focus {
-  outline: none;
-  border-color: var(--orange-accent);
-  background-color: #ffffff;
+.input-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--espresso);
+    margin-left: 5px;
 }
 
-/* Primary Button */
-button {
-  width: 100%;
-  background-color: var(--orange-accent);
-  color: #ffffff;
-  padding: 0.85rem;
-  border: none;
-  border-radius: 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  box-shadow: 0 4px 12px rgba(241, 77, 20, 0.15);
-  transition: transform 0.2s ease;
+.input-group input {
+    padding: 12px 15px;
+    border: 1.5px solid #f0f0f0;
+    border-radius: 12px;
+    background-color: #fafafa;
+    font-size: 0.95rem;
+    transition: 0.3s;
 }
 
-button:hover {
-  transform: translateY(-2px);
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-berry);
+    background-color: white;
 }
 
-/* Alert Message */
-.mt-3 {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  box-sizing: border-box;
+.btn-signup {
+    background-color: var(--primary-berry);
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 10px;
 }
 
-.mt-3:not(:empty) {
-  background-color: #fee2e2;
-  color: #dc2626;
+.btn-signup:hover:not(:disabled) {
+    background-color: #c44d6a;
+    transform: translateY(-2px);
 }
 
-/* Success State Override (if message contains success words) */
-.mt-3:not(:empty):has([class*="created"]),
-.mt-3:not(:empty):contains("created") {
-  background-color: #d1fae5;
-  color: #059669;
+.form-alert {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.form-alert.success { background: #e8f5e9; color: #2e7d32; }
+.form-alert.error { background: #ffebee; color: #c62828; }
+
+.signup-footer {
+    margin-top: 25px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.login-link {
+    color: var(--primary-berry);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .name-grid {
+        grid-template-columns: 1fr; /* Stack names on mobile */
+    }
+    .signup-box {
+        padding: 30px 20px;
+    }
 }

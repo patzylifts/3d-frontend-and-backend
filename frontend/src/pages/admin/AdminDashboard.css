@@ -1,0 +1,101 @@
+.admin-page {
+    min-height: 100vh;
+    padding: 120px 24px 60px; /* Top padding to clear the fixed Navbar */
+    background-color: var(--bg-cream, #fdfaf5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.admin-container {
+    width: 100%;
+    max-width: 1200px;
+}
+
+.admin-header {
+    margin-bottom: 40px;
+    text-align: left;
+}
+
+.admin-header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--espresso, #2d1b14);
+    margin: 0;
+}
+
+.admin-header p {
+    color: #888;
+    font-size: 1rem;
+    margin-top: 5px;
+}
+
+/* Dashboard Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 25px;
+}
+
+/* Bento Card Style */
+.stat-card {
+    background: white;
+    padding: 30px;
+    border-radius: 25px;
+    box-shadow: 0 10px 30px rgba(45, 27, 20, 0.04);
+    border: 1px solid rgba(45, 27, 20, 0.03);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 140px;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(45, 27, 20, 0.08);
+}
+
+.stat-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #bbb;
+    margin-bottom: 15px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--espresso, #2d1b14);
+    margin: 0;
+}
+
+/* Revenue Card Highlight */
+.stat-card.highlight {
+    background: linear-gradient(135deg, #fff 0%, #fff5f7 100%);
+    border: 1px solid rgba(216, 92, 123, 0.1);
+}
+
+.stat-card.highlight .stat-value {
+    color: var(--primary-berry, #d85c7b);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .admin-page {
+        padding-top: 100px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr; /* 2 columns on tablets */
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr; /* 1 column on phones */
+    }
+}

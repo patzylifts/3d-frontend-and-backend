@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./RejectModal.css";
 
 const reasonsList = [
     "Location not serviceable",
@@ -11,67 +12,67 @@ export default function RejectModal({ isOpen, onClose, onSubmit }) {
     const [selectedReason, setSelectedReason] = useState("");
     const [customReason, setCustomReason] = useState("");
 
+    // Don't render anything if the modal isn't open
     if (!isOpen) return null;
 
     const handleSubmit = () => {
         const finalReason = customReason || selectedReason;
 
         if (!finalReason) {
-            alert("Please select or enter a reason");
+            alert("Please select or enter a reason for the customer.");
             return;
         }
 
         onSubmit(finalReason);
+        // Reset state for next time
+        setSelectedReason("");
+        setCustomReason("");
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-                <h2 className="text-xl font-bold mb-4">Reject Order</h2>
+        <div className="modal-overlay" onClick={onClose}>
+            {/* stopPropagation prevents the modal from closing when clicking inside the card */}
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-icon-wrap">⚠️</div>
+                
+                <h2>Reject Order?</h2>
+                <p className="modal-subtitle">Please provide a reason. This will be sent to the customer.</p>
 
-                {/* PRESET REASONS */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {reasonsList.map((reason) => (
-                        <button
-                            key={reason}
-                            onClick={() => {
-                                setSelectedReason(reason);
-                                setCustomReason("");
-                            }}
-                            className={`px-3 py-2 rounded border ${selectedReason === reason
-                                    ? "bg-red-500 text-white"
-                                    : "bg-gray-100"
-                                }`}
-                        >
-                            {reason}
-                        </button>
-                    ))}
+                <div className="modal-body">
+                    <span className="section-label">Quick Reasons</span>
+                    <div className="reasons-container">
+                        {reasonsList.map((reason) => (
+                            <button
+                                key={reason}
+                                onClick={() => {
+                                    setSelectedReason(reason);
+                                    setCustomReason("");
+                                }}
+                                className={`reason-chip ${selectedReason === reason ? "active" : ""}`}
+                            >
+                                {reason}
+                            </button>
+                        ))}
+                    </div>
+
+                    <span className="section-label">Custom Message</span>
+                    <textarea
+                        placeholder="Or type a specific reason here..."
+                        value={customReason}
+                        onChange={(e) => {
+                            setCustomReason(e.target.value);
+                            setSelectedReason("");
+                        }}
+                        className="modal-textarea"
+                    />
                 </div>
 
-                {/* CUSTOM INPUT */}
-                <textarea
-                    placeholder="Or write custom reason..."
-                    value={customReason}
-                    onChange={(e) => {
-                        setCustomReason(e.target.value);
-                        setSelectedReason("");
-                    }}
-                    className="w-full border p-2 rounded mb-4"
-                />
-
-                <div className="flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="bg-gray-400 text-white px-4 py-2 rounded"
-                    >
-                        Cancel
+                <div className="modal-actions">
+                    <button onClick={handleSubmit} className="btn-confirm-reject">
+                        Confirm Rejection
                     </button>
-
-                    <button
-                        onClick={handleSubmit}
-                        className="bg-red-500 text-white px-4 py-2 rounded"
-                    >
-                        Confirm Reject
+                    <button onClick={onClose} className="btn-cancel-link">
+                        Nevermind, go back
                     </button>
                 </div>
             </div>
