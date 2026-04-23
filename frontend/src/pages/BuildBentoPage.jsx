@@ -175,6 +175,7 @@ function Configurator() {
         balls, setBalls,
         nuts, setNuts,
         generateRandomCake,
+        calculatePrice,
     } = useCustomization();
 
     const { addCustomCakeToCart } = useCart();
@@ -194,6 +195,7 @@ function Configurator() {
             has_chocolate: chocolate,
             has_balls: balls,
             has_nuts: nuts,
+            price: calculatePrice(),
         };
 
         const result = await addCustomCakeToCart(payload);
@@ -301,6 +303,12 @@ function Configurator() {
             <button className="cfg-random-btn" onClick={generateRandomCake}>
                 🎲 Randomize My Cake!
             </button>
+
+            {/* Price Display */}
+            <div className="cfg-price-display">
+                <span className="cfg-price-label">Total Price:</span>
+                <span className="cfg-price-amount">₱{calculatePrice().toFixed(2)}</span>
+            </div>
 
             {/* Add to Cart */}
             <button

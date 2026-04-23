@@ -190,6 +190,31 @@
     background: #e5e5e5;
 }
 
+/* Price Display */
+.cfg-price-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(216, 92, 123, 0.2), rgba(199, 77, 106, 0.2));
+    border: 2px solid var(--primary-berry);
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.cfg-price-label {
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.cfg-price-amount {
+    color: var(--primary-berry);
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
 .cfg-order-btn {
     background: var(--primary-berry);
     color: white;

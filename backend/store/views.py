@@ -112,12 +112,44 @@ def create_order(request):
         if not cart.items.exists():
             return Response({"error": "Cart is empty"}, status=400)
 
-        total = sum(item.product.price * item.quantity for item in cart.items.all())
+        # Calculate total properly for both products and customizations
+        total = sum(item.subtotal for item in cart.items.all())
 
-        order = Order.objects.create(user=request.user, full_name=full_name, phone=phone, street=street, city=city, province=province, postal_code=postal_code, delivery_date=delivery_date, delivery_time=delivery_time, order_notes=notes, total_amount=total, status="pending_review", payment_status="pending")
+        order = Order.objects.create(
+            user=request.user, 
+            full_name=full_name, 
+            phone=phone, 
+            street=street, 
+            city=city, 
+            province=province, 
+            postal_code=postal_code, 
+            delivery_date=delivery_date, 
+            delivery_time=delivery_time, 
+            order_notes=notes, 
+            total_amount=total, 
+            status="pending_review", 
+            payment_status="pending"
+        )
 
+        # Handle both regular products and customizations
         for item in cart.items.all():
-            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
+            if item.product:
+                # Regular product
+                OrderItem.objects.create(
+                    order=order, 
+                    product=item.product, 
+                    quantity=item.quantity, 
+                    price=item.product.price
+                )
+            elif item.customization:
+                # Customized cake
+                OrderItem.objects.create(
+                    order=order, 
+                    product=None, 
+                    quantity=item.quantity, 
+                    price=item.customization.price,
+                    customization=item.customization.get_customization_dict()
+                )
 
         cart.items.all().delete()
 

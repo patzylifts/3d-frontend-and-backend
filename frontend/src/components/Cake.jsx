@@ -48,7 +48,7 @@ export function Cake(props) {
         roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
         aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
     });
-   
+
     //Vanilla
     const milkshakeTextureProps = useTexture({
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla/vanilla_chiffon_diffuse.jpg",
@@ -58,17 +58,17 @@ export function Cake(props) {
     });
 
     //Ube
-     const abstractTextureProps = useTexture({
+    const abstractTextureProps = useTexture({
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_diffuseOriginal.jpg",
         normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_normal.jpg",
         // displacementMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_height.jpg",
         aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_ao.jpg",
     });
-   ;
-   
+    ;
+
 
     const textures = {
-        'choco': abstractTextureProps,       
+        'choco': abstractTextureProps,
         'vanilla': coffeeTextureProps,
         'ube': milkshakeTextureProps
     };

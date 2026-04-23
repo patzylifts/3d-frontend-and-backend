@@ -7,9 +7,7 @@ function CartPage() {
     const navigate = useNavigate();
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
 
-    // Helper to checkout just one item
     const handleSingleCheckout = (item) => {
-        // You can pass the specific item data via state to the checkout page
         navigate("/checkout", { state: { directBuyItem: item } });
     };
 
@@ -17,7 +15,7 @@ function CartPage() {
         <div className="cart-page-wrapper">
             <div className="container">
                 <h1 className="cart-title">Your Sweet Bag</h1>
-                
+
                 {cartItems.length === 0 ? (
                     <div className="empty-cart-msg">
                         <p>Your bag is empty!</p>
@@ -28,21 +26,45 @@ function CartPage() {
                         <div className="cart-items-list">
                             {cartItems.map((item) => (
                                 <div key={item.id} className="cart-item-card">
+
                                     <div className="cart-item-top">
+
                                         {item.is_custom_cake ? (
                                             <div className="cart-img-placeholder">🎂</div>
                                         ) : (
-                                            <img src={`${BASEURL}${item.product_image}`} alt={item.item_name} className="cart-product-img" />
+                                            <img
+                                                src={`${BASEURL}${item.product_image}`}
+                                                alt={item.item_name}
+                                                className="cart-product-img"
+                                            />
                                         )}
-                                        
+
                                         <div className="cart-item-info">
                                             <h2 className="item-name">{item.item_name}</h2>
-                                            <p className="item-price">₱{parseFloat(item.item_unit_price).toFixed(2)}</p>
-                                            
+
+                                            <p className="item-price">
+                                                ₱{Number(item.item_unit_price).toFixed(2)}
+                                            </p>
+
                                             {item.is_custom_cake && (
                                                 <div className="custom-details">
-                                                    <span>{item.customization_detail.shape} · {item.customization_detail.flavor}</span>
-                                                    <span className="color-dot" style={{ background: item.customization_detail.cake_color }}></span>
+
+                                                    <span>
+                                                        {item.customization_detail.shape} · {item.customization_detail.flavor}
+                                                    </span>
+
+                                                    <span
+                                                        className="color-dot"
+                                                        style={{ background: item.customization_detail.cake_color }}
+                                                    ></span>
+
+                                                    <div className="addon-list">
+                                                        {item.customization_detail.has_candle && <span>+ Candle</span>}
+                                                        {item.customization_detail.has_chocolate && <span>+ Chocolate</span>}
+                                                        {item.customization_detail.has_balls && <span>+ Balls</span>}
+                                                        {item.customization_detail.has_nuts && <span>+ Nuts</span>}
+                                                    </div>
+
                                                 </div>
                                             )}
                                         </div>
@@ -52,40 +74,58 @@ function CartPage() {
                                             <span>{item.quantity}</span>
                                             <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
                                         </div>
+
                                     </div>
 
-                                    {/* NEW: Individual Action Row */}
                                     <div className="cart-item-actions">
-                                        <button className="text-btn remove" onClick={() => removeFromCart(item.id)}>Remove</button>
-                                        <button className="btn-small-primary" onClick={() => handleSingleCheckout(item)}>
+                                        <button
+                                            className="text-btn remove"
+                                            onClick={() => removeFromCart(item.id)}
+                                        >
+                                            Remove
+                                        </button>
+
+                                        <button
+                                            className="btn-small-primary"
+                                            onClick={() => handleSingleCheckout(item)}
+                                        >
                                             Checkout This Cake Only
                                         </button>
                                     </div>
+
                                 </div>
                             ))}
                         </div>
 
-                        {/* Summary Sidebar */}
                         <div className="cart-summary-sidebar">
                             <h3>Order Summary</h3>
+
                             <div className="summary-row">
                                 <span>Subtotal</span>
-                                <span>₱{total.toFixed(2)}</span>
+                                <span>₱{Number(total).toFixed(2)}</span>
                             </div>
+
                             <div className="summary-row total">
                                 <span>Total</span>
-                                <span>₱{total.toFixed(2)}</span>
+                                <span>₱{Number(total).toFixed(2)}</span>
                             </div>
-                            <button className="btn-main checkout-all" onClick={() => navigate("/checkout")}>
+
+                            <button
+                                className="btn-main checkout-all"
+                                onClick={() => navigate("/checkout")}
+                            >
                                 Checkout All Items
                             </button>
+
                             <p className="summary-note">Prices include VAT</p>
                         </div>
+
                     </div>
                 )}
             </div>
         </div>
     );
+
 }
 
 export default CartPage;

@@ -25,6 +25,27 @@ const flavorTextureMap = {
     "Ube Chiffon": "ube",
 };
 
+// Price configuration
+const CAKE_PRICES = {
+    round: {
+        "Choco Moist": 1000,
+        "Vanilla Chiffon": 900,
+        "Ube Chiffon": 900,
+    },
+    rectangle: {
+        "Choco Moist": 1100,
+        "Vanilla Chiffon": 1000,
+        "Ube Chiffon": 1000,
+    },
+};
+
+const ADDON_PRICES = {
+    candle: 100,
+    chocolate: 200,
+    balls: 100,
+    nuts: 75,
+};
+
 const CustomizationContext = createContext({});
 
 export const CustomizationProvider = (props) => {
@@ -35,6 +56,20 @@ export const CustomizationProvider = (props) => {
     const [nuts, setNuts] = useState(false);
     const [cakeColor, setCakeColor] = useState(cakeColors[0]);
     const [flavor, setFlavor] = useState(flavors[0]);
+
+    // Calculate total price based on shape, flavor, and addons
+    const calculatePrice = () => {
+        const shapeKey = form === 1 ? "round" : "rectangle";
+        const basePrice = CAKE_PRICES[shapeKey][flavor] || 1000;
+        
+        let addonsPrice = 0;
+        if (candle) addonsPrice += ADDON_PRICES.candle;
+        if (chocolate) addonsPrice += ADDON_PRICES.chocolate;
+        if (balls) addonsPrice += ADDON_PRICES.balls;
+        if (nuts) addonsPrice += ADDON_PRICES.nuts;
+        
+        return basePrice + addonsPrice;
+    };
 
     const generateRandomCake = () => {
         const randomForm = Math.random() < 0.5 ? 1 : 2;
@@ -73,6 +108,9 @@ export const CustomizationProvider = (props) => {
                 balls, setBalls,
                 nuts, setNuts,
                 generateRandomCake,
+                calculatePrice,
+                CAKE_PRICES,
+                ADDON_PRICES,
             }}
         >
             {props.children}

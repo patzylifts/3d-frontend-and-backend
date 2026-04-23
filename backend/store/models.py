@@ -78,13 +78,17 @@ class Order(models.Model):
     
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     customization = models.JSONField(blank=True, null=True)  # placeholder for 3D cake customization
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}" 
+        if self.product:
+            return f"{self.quantity} x {self.product.name}"
+        elif self.customization:
+            return f"{self.quantity} x Custom Cake"
+        return f"OrderItem {self.id}" 
     
     @property
     def subtotal(self):
@@ -154,3 +158,16 @@ class CakeCustomization(models.Model):
 
     def __str__(self):
         return f"CakeCustomization {self.id} - {self.shape} {self.flavor}"
+    
+    def get_customization_dict(self):
+        """Return customization details as a dictionary"""
+        return {
+            "shape": self.shape,
+            "cake_color": self.cake_color,
+            "flavor": self.flavor,
+            "has_candle": self.has_candle,
+            "has_chocolate": self.has_chocolate,
+            "has_balls": self.has_balls,
+            "has_nuts": self.has_nuts,
+            "price": str(self.price),
+        }

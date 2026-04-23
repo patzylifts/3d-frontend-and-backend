@@ -92,7 +92,7 @@ function CheckoutPage() {
                     {/* Delivery Address Section */}
                     <div className="checkout-section">
                         <h2 className="section-heading">📍 Delivery Address</h2>
-                        
+
                         <div className="radio-group">
                             <label className={`radio-label ${useProfileAddress ? "active" : ""}`}>
                                 <input
