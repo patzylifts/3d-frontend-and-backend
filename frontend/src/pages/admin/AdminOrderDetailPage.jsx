@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
+import Navbar from "../../components/Navbar";
+import "./AdminOrderDetailPage.css";
 
 export default function AdminOrderDetailPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -31,116 +33,122 @@ export default function AdminOrderDetailPage() {
     fetchOrder();
   }, [id]);
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
-  if (error) return <p className="text-center mt-10 text-red-600">{error}</p>;
+  if (loading) return <div className="admin-status-screen"><div className="loader"></div></div>;
+  if (error) return <div className="admin-status-screen"><p className="error-text">{error}</p></div>;
   if (!order) return null;
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6 text-center">
-        Order #{order.id}
-      </h1>
-
-      <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
-        <p><strong>Customer:</strong> {order.user_name}</p>
-        <p><strong>Total:</strong> ${order.total_amount}</p>
-        <p><strong>Status:</strong> {order.status}</p>
-        <p><strong>Placed At:</strong> {new Date(order.created_at).toLocaleString()}</p>
-        <p>
-          <strong>Delivery Schedule:</strong>{" "}
-          {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : "N/A"}{" "}
-          {order.delivery_time ? new Date(`1970-01-01T${order.delivery_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-        </p>
-        {/* ✅ REVIEW ACTIONS ONLY */}
-        {order.status === "pending_review" && (
-          <div className="flex gap-4 mt-4">
-            <button
-              onClick={async () => {
-                if (!confirm("Accept this order?")) return;
-
-                const res = await authFetch(
-                  `${BASEURL}/api/orders/admin/orders/${id}/review/`,
-                  {
-                    method: "PATCH",
-                    body: JSON.stringify({
-                      status: "awaiting_downpayment",
-                    }),
-                  }
-                );
-
-                const data = await res.json();
-                if (!res.ok) return alert(data.error);
-
-                setOrder(data.order);
-                alert("Order accepted!");
-              }}
-              className="bg-green-500 text-white px-4 py-2 rounded"
-            >
-              Accept Order
+    <div className="order-detail-page">
+      <Navbar />
+      <div className="order-detail-container">
+        
+        <header className="order-detail-header">
+            <button className="back-link" onClick={() => navigate("/admin/orders")}>
+                ← Back to Orders
             </button>
+            <h1>Order <span className="text-berry">#{order.id}</span></h1>
+            <div className={`status-badge ${order.status}`}>
+                {order.status.replace('_', ' ')}
+            </div>
+        </header>
 
-            <button
-              onClick={() => setShowRejectModal(true)}
-              className="bg-red-500 text-white px-4 py-2 rounded"
-            >
-              Reject Order
-            </button>
-          </div>
-        )}
+        <div className="order-grid">
+            {/* LEFT COLUMN: Customer Info */}
+            <div className="order-card info-card">
+                <h3>Customer Details</h3>
+                <div className="info-row">
+                    <span>Name:</span> <strong>{order.user_name}</strong>
+                </div>
+                <div className="info-row">
+                    <span>Placed At:</span> <strong>{new Date(order.created_at).toLocaleString()}</strong>
+                </div>
+                <div className="info-row">
+                    <span>Delivery Date:</span> 
+                    <strong>
+                        {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : "N/A"}
+                    </strong>
+                </div>
+                <div className="info-row">
+                    <span>Delivery Time:</span> 
+                    <strong>
+                        {order.delivery_time ? new Date(`1970-01-01T${order.delivery_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                    </strong>
+                </div>
+            </div>
 
-        {/* Back */}
-        <button
-          onClick={() => navigate("/admin/orders")}
-          className="mt-4 bg-gray-500 text-white px-4 py-2 rounded"
-        >
-          Back
-        </button>
+            {/* RIGHT COLUMN: Actions & Summary */}
+            <div className="order-card summary-card">
+                <h3>Order Summary</h3>
+                <div className="total-row">
+                    <span>Total Amount:</span>
+                    <span className="price-tag">₱{Number(order.total_amount).toLocaleString()}</span>
+                </div>
+
+                {order.status === "pending_review" && (
+                <div className="admin-actions">
+                    <button
+                    className="btn-accept"
+                    onClick={async () => {
+                        if (!confirm("Accept this order?")) return;
+                        const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/review/`, {
+                            method: "PATCH",
+                            body: JSON.stringify({ status: "awaiting_downpayment" }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) return alert(data.error);
+                        setOrder(data.order);
+                        alert("Order accepted!");
+                    }}
+                    >
+                    Accept Order
+                    </button>
+
+                    <button className="btn-reject" onClick={() => setShowRejectModal(true)}>
+                    Reject
+                    </button>
+                </div>
+                )}
+            </div>
+        </div>
+
+        {/* ITEMS TABLE */}
+        <div className="order-card table-card">
+            <h3>Items Ordered</h3>
+            <div className="table-responsive">
+                <table className="boutique-table">
+                <thead>
+                    <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th className="text-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {order.items.map((item) => (
+                    <tr key={item.id}>
+                        <td>{item.product_name}</td>
+                        <td>{item.quantity}</td>
+                        <td>₱{Number(item.price).toLocaleString()}</td>
+                        <td className="text-right font-bold">₱{Number(item.subtotal).toLocaleString()}</td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
+        </div>
       </div>
 
-      {/* ITEMS */}
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Items</h2>
-        <table className="min-w-full border">
-          <thead>
-            <tr>
-              <th className="border p-2">Product</th>
-              <th className="border p-2">Qty</th>
-              <th className="border p-2">Price</th>
-              <th className="border p-2">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item) => (
-              <tr key={item.id} className="text-center">
-                <td className="border p-2">{item.product_name}</td>
-                <td className="border p-2">{item.quantity}</td>
-                <td className="border p-2">${item.price}</td>
-                <td className="border p-2">${item.subtotal}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ✅ REJECT MODAL */}
       <RejectModal
         isOpen={showRejectModal}
         onClose={() => setShowRejectModal(false)}
         onSubmit={async (reason) => {
-          const res = await authFetch(
-            `${BASEURL}/api/orders/admin/orders/${id}/review/`,
-            {
-              method: "PATCH",
-              body: JSON.stringify({
-                status: "rejected",
-                rejection_reason: reason,
-              }),
-            }
-          );
-
+          const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/review/`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: "rejected", rejection_reason: reason }),
+          });
           const data = await res.json();
           if (!res.ok) return alert(data.error);
-
           setOrder(data.order);
           setShowRejectModal(false);
           alert("Order rejected!");

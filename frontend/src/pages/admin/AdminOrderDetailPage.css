@@ -1,0 +1,140 @@
+/* src/pages/admin/AdminOrderDetailPage.css */
+
+.order-detail-page {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    padding: 120px 24px 60px;
+}
+
+.order-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.order-detail-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.back-link {
+    background: none;
+    border: none;
+    color: #a3948e;
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.back-link:hover { color: #2d1b14; }
+
+.order-detail-header h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #2d1b14;
+    text-transform: uppercase;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-top: 10px;
+    background: #eee;
+}
+.status-badge.pending_review { background: #fff3cd; color: #856404; }
+.status-badge.rejected { background: #f8d7da; color: #721c24; }
+.status-badge.awaiting_downpayment { background: #d4edda; color: #155724; }
+
+/* Grid Layout */
+.order-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.order-card {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+}
+
+.order-card h3 {
+    font-size: 1.1rem;
+    color: #2d1b14;
+    border-bottom: 1.5px solid #fdfaf5;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.price-tag {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #d85c7b;
+}
+
+/* Actions */
+.admin-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-accept {
+    background: #2d1b14;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-reject {
+    background: white;
+    color: #d85c7b;
+    border: 1.5px solid #d85c7b;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Table Styling */
+.boutique-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.boutique-table th {
+    text-align: left;
+    padding: 12px;
+    color: #a3948e;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.boutique-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #fdfaf5;
+}
+
+.text-right { text-align: right; }
+.font-bold { font-weight: 800; color: #2d1b14; }
+
+@media (max-width: 768px) {
+    .order-grid { grid-template-columns: 1fr; }
+}
