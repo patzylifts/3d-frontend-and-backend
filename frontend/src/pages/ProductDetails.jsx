@@ -1,22 +1,22 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
+import Navbar from '../components/Navbar';
+import './ProductDetails.css';
 
 function ProductDetails() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const { addToCart } = useCart();
 
-
     useEffect(() => {
         fetch(`${BASEURL}/api/products/${id}/`)
             .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to fetch product details")
-                }
+                if (!response.ok) throw new Error("Failed to fetch product details");
                 return response.json();
             })
             .then((data) => {
@@ -26,56 +26,61 @@ function ProductDetails() {
             .catch((error) => {
                 setError(error.message);
                 setLoading(false);
-            })
+            });
     }, [id, BASEURL]);
-
-    if (loading) {
-        return <div>Loading...</div>
-    }
-    if (error) {
-        return <div>Error: {error}</div>
-    }
-    if (!product) {
-        return <div>No product found</div>
-    }
 
     const handleAddToCart = () => {
         if (!localStorage.getItem('access_token')) {
-            window.location.href = "/login";
+            navigate("/login");
             return;
         }
         addToCart(product.id);
-    }
+    };
+
+    if (loading) return <div className="product-page-status"><h3>Preparing the details...</h3></div>;
+    if (error) return <div className="product-page-status"><h3 className="text-berry">Error: {error}</h3></div>;
+    if (!product) return <div className="product-page-status"><h3>Cake not found.</h3></div>;
 
     return (
-        <div className="min-h-screen bg-gray-100 flex justify-center items-center py-10">
-            <div className="bg-white shadow-lg rounded-2xl p-8 max-w-3xl w-full">
-                <div className="flex flex-col md:flex-row gap-8">
-                    <img
-                        src={`${product.image}`}
-                        alt={product.name}
-                        className="w-full md:w-1/2 h-auto object-cover rounded-lg"
-                    />
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                            {product.name}
-                        </h1>
-                        <p className="text-gray-600 mb-4">{product.description}</p>
-                        <p className="text-2xl font-semibold text-green-600 mb-6">₱ {product.price}</p>
-                        <button onClick={handleAddToCart} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                            ☘️Add to Cart
-                        </button>
-                        {/* Home Button */}
-                        <div className="mt-4">
-                            <a href="/" className="text-blue-600 hover:underline">
-                                &larr; Back to Home
-                            </a>
+        <div className="product-details-page">
+            <Navbar />
+            <div className="product-details-container">
+                <button className="back-btn-minimal" onClick={() => navigate(-1)}>
+                    ← Back
+                </button>
+
+                <div className="product-showcase-card">
+                    <div className="product-image-section">
+                        <img
+                            src={`${product.image}`}
+                            alt={product.name}
+                            className="main-product-img"
+                        />
+                    </div>
+
+                    <div className="product-info-section">
+                        <div className="info-content">
+                            <span className="category-tag">{product.category_name || "Premium Cake"}</span>
+                            <h1 className="product-title">{product.name}</h1>
+                            <p className="product-description">{product.description}</p>
+                            
+                            <div className="price-tag">
+                                <span className="currency">₱</span>
+                                <span className="amount">{Number(product.price).toLocaleString()}</span>
+                            </div>
+
+                            <div className="action-area">
+                                <button onClick={handleAddToCart} className="btn-add-to-cart">
+                                    Add to Cart
+                                </button>
+                                <p className="secure-text">✨ Freshly baked and ready for delivery</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
 export default ProductDetails;

@@ -1,0 +1,94 @@
+.product-list-page {
+    min-height: 100vh;
+    background-color: #fdfaf5; /* Creamy background */
+    padding: 120px 24px 80px;
+}
+
+.list-container {
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+.list-header {
+    margin-bottom: 50px;
+    text-align: center;
+}
+
+.list-header h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #2d1b14;
+    margin-bottom: 10px;
+}
+
+.list-header p {
+    color: #a3948e;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.text-berry {
+    color: #d85c7b;
+}
+
+/* Responsive Grid */
+.product-grid {
+    display: grid;
+    /* This automatically adjusts the number of columns based on width */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+/* Empty State */
+.empty-products {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 100px 20px;
+    background: white;
+    border-radius: 30px;
+    border: 2px dashed #eee;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 15px;
+}
+
+/* Status Messages */
+.list-loading, .list-error {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    color: #a3948e;
+    background: #fdfaf5;
+}
+
+.list-error {
+    color: #d85c7b;
+}
+
+/* Tablet & Mobile Tweaks */
+@media (max-width: 768px) {
+    .product-list-page {
+        padding: 100px 15px 60px;
+    }
+
+    .list-header h1 {
+        font-size: 2.2rem;
+    }
+    
+    .product-grid {
+        gap: 20px;
+        /* Force 2 columns on small tablets, 1 on tiny phones */
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+}

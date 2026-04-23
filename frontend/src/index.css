@@ -3,3 +3,12 @@
 @tailwind utilities;
 
 
+:root {
+  --espresso: #2d1b14;
+  --berry: #d85c7b;
+  --cream: #fdfaf5;
+  --white: #ffffff;
+  --gray-text: #a3948e;
+  --shadow-light: rgba(45, 27, 20, 0.05);
+  --shadow-heavy: rgba(45, 27, 20, 0.2);
+}

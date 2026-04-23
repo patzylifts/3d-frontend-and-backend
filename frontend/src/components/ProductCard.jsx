@@ -1,21 +1,48 @@
 // src/components/ProductCard.jsx
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import "./ProductCard.css";
 
 function ProductCard({ product }) {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
+    const navigate = useNavigate();
+
+    const handleAddToCart = (e) => {
+        // StopPropagation prevents the card's onClick (navigate) from firing
+        e.stopPropagation();
+        console.log("Added to cart:", product.name);
+    };
+
     return (
-        <Link to={`/product/${product.id}`}>
-            <div className="bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-shadow duration-300 cursor-pointer">
+        <div 
+            className="product-card-item" 
+            onClick={() => navigate(`/product/${product.id}`)}
+        >
+            <div className="card-image-area">
                 <img
                     src={`${BASEURL}${product.image}`}
                     alt={product.name}
-                    className="w-full h-56 object-cover rounded-lg mb-4" />
-
-                <h2 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h2>
-                <p className="text-gray-600 font-medium">₱{product.price}</p>
+                    className="card-img" 
+                />
+                <div className="card-overlay">
+                    <span className="overlay-btn-text">View Details</span>
+                </div>
             </div>
-        </Link>
-    )
+
+            <div className="card-info">
+                <h2 className="card-title">{product.name}</h2>
+                <p className="card-price">₱{Number(product.price).toLocaleString()}</p>
+                
+                <div className="card-actions">
+                    <button 
+                        className="card-add-button"
+                        onClick={handleAddToCart}
+                    >
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default ProductCard;

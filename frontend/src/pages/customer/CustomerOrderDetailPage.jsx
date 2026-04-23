@@ -1,9 +1,10 @@
-// src/pages/customer/CustomerOrderDetailPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import Logistics from "../../components/Logistics";
 import AddPaymentModal from "../../components/customer/AddPaymentModal";
+import Navbar from "../../components/Navbar";
+import "./CustomerOrderDetailPage.css";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -18,22 +19,14 @@ export default function CustomerOrderDetailPage() {
     const [tipAmount, setTipAmount] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
 
-    // FETCH ORDER
     const fetchOrder = async () => {
         try {
             const res = await authFetch(`${BASEURL}/api/orders/customer/orders/${id}/`);
             if (!res.ok) throw new Error("Failed to fetch order");
-
             const data = await res.json();
             setOrder(data);
-
-            // ✅ AUTO SET 20% AFTER FETCH
-            const min = Math.max(
-                Math.round(data.total_amount * 0.2) - Number(data.total_paid),
-                0
-            );
+            const min = Math.max(Math.round(data.total_amount * 0.2) - Number(data.total_paid), 0);
             setPayAmount(min);
-
         } catch (err) {
             setError(err.message);
         } finally {
@@ -41,241 +34,176 @@ export default function CustomerOrderDetailPage() {
         }
     };
 
-    useEffect(() => {
-        fetchOrder();
-    }, [id]);
+    useEffect(() => { fetchOrder(); }, [id]);
 
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
-    // REMAINING BALANCE
     const remainingBalance = order ? Number(order.remaining_balance) : 0;
-    // VALIDATIONS
-    const minAmount = order
-        ? Math.max(
-            Math.round(order.total_amount * 0.2) - Number(order.total_paid),
-            0
-        )
-        : 0;
+    const minAmount = order ? Math.max(Math.round(order.total_amount * 0.2) - Number(order.total_paid), 0) : 0;
     const maxAmount = order ? Number(order.total_amount) : 0;
+    
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
-    const isInvalid =
-        payAmount === "" ||
-        parsedPay < minAmount ||
-        parsedPay > maxAmount;
+    const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount;
 
-
-    // 🔥 PAY NOW
     const handlePayNow = async () => {
         try {
             const res = await authFetch(`${BASEURL}/api/payments/${id}/checkout/`, {
                 method: "POST",
-                body: JSON.stringify({
-                    amount: payAmount,
-                    tip: tipAmount
-                })
+                body: JSON.stringify({ amount: payAmount, tip: tipAmount })
             });
-
-            if (!res.ok) {
-                const err = await res.text();
-                console.error("Payment error:", err);
-                return;
-            }
-
+            if (!res.ok) return;
             const data = await res.json();
-
-            // 🔥 REDIRECT TO PAYMONGO CHECKOUT
             localStorage.setItem("last_payment_amount", payAmount);
             localStorage.setItem("last_tip_amount", tipAmount);
             window.location.href = data.checkout_url;
-
-        } catch (err) {
-            console.error("Error in handlePayNow:", err);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    if (loading) return <p className="text-center mt-10">Loading order...</p>;
-    if (error) return <p className="text-center mt-10 text-red-600">{error}</p>;
+    if (loading) return <div className="order-loader">Loading your cake details...</div>;
+    if (error) return <div className="order-error">{error}</div>;
     if (!order) return null;
 
     return (
-        <div className="min-h-screen p-6 bg-gray-100">
-            <h1 className="text-3xl font-bold mb-6 text-center">
-                Order #{order.id}
-            </h1>
-
-            <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
-                <p><strong>Status:</strong> {order.status}</p>
-                <p><strong>Payment Status:</strong> {order.payment_status}</p>
-                <p><strong>Total Amount:</strong> ₱{order.total_amount}</p>
-                {order.status !== "rejected" && order.status !== "pending_review" && (
-                    <p className="mt-2 font-semibold text-blue-600">
-                        Remaining Balance: ₱{remainingBalance.toFixed(2)}
-                    </p>
-                )}
-                <p><strong>Placed At:</strong> {new Date(order.created_at).toLocaleString()}</p>
-
-                <p>
-                    <strong>Delivery Schedule:</strong>{" "}
-                    {order.delivery_date
-                        ? new Date(order.delivery_date).toLocaleDateString()
-                        : "N/A"}{" "}
-                    {order.delivery_time
-                        ? new Date(`1970-01-01T${order.delivery_time}`).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })
-                        : ""}
-                </p>
-
-                {/* ❌ REJECTED */}
-                {order.status === "rejected" && order.rejection_reason && (
-                    <div className="mt-4 p-4 bg-red-100 border-l-4 border-red-500">
-                        <strong>Reason for rejection:</strong>
-                        <p>{order.rejection_reason}</p>
-                    </div>
-                )}
-
-                {/* 💳 PAYMENT SECTION */}
-                {order.status === "awaiting_downpayment" && (
-                    <div className="mt-6">
-                        <p className="mb-2 text-gray-700">
-                            Minimum payment: ₱{minAmount}
-                        </p>
-
-                        {/* PAYMENT INPUT */}
-                        <input
-                            type="number"
-                            value={payAmount === 0 ? "" : payAmount}
-                            onChange={(e) => setPayAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                            className="border px-3 py-2 rounded w-1/3"
-                        />
-
-                        {/* TIP INPUT */}
-                        <p className="mt-4 text-gray-700">Tip (optional):</p>
-                        <input
-                            type="number"
-                            value={tipAmount === 0 ? "" : tipAmount}
-                            onChange={(e) => setTipAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                            className="border px-3 py-2 rounded w-1/3"
-                        />
-
-                        {tipAmount < 0 && (
-                            <p className="text-red-600 text-sm mt-1">
-                                Tip cannot be negative
-                            </p>
-                        )}
-                        {/* VALIDATION MESSAGES */}
-                        {payAmount < minAmount && (
-                            <p className="text-red-600 text-sm mt-1">
-                                Amount must be at least ₱{minAmount}
-                            </p>
-                        )}
-
-                        {payAmount > maxAmount && (
-                            <p className="text-red-600 text-sm mt-1">
-                                Amount cannot exceed ₱{maxAmount}
-                            </p>
-                        )}
-
-                        {/* TOTAL DISPLAY */}
-                        <p className="mt-3 font-semibold">
-                            Total to charge: ₱{totalToCharge}
-                        </p>
-
-                        {/* PAY BUTTON */}
-                        <button
-                            onClick={handlePayNow}
-                            disabled={isInvalid || isTipInvalid}
-                            className={`mt-3 px-4 py-2 rounded text-white ${(isInvalid || isTipInvalid)
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-green-500 hover:bg-green-600"
-                                }`}
-                        >
-                            Pay Now
-                        </button>
-                    </div>
-                )}
-                {/* 🔥 ADDITIONAL PAYMENT BUTTON */}
-                {order.payment_status === "partial" && order.status === "processing" && (
-                    <button
-                        onClick={() => setShowAddPayment(true)}
-                        className="mt-4 mr-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    >
-                        Add Payment
+        <div className="order-detail-page">
+            <Navbar />
+            <div className="order-detail-container">
+                
+                <header className="order-detail-header">
+                    <button className="btn-back-text" onClick={() => navigate("/orders")}>
+                        ← Back to My Orders
                     </button>
-                )}
-                {/* 🚫 CANCEL ORDER BUTTON */}
-                {(order.status === "pending_review" ||
-                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
-                ) && (
-                        <button
-                            onClick={async () => {
-                                if (!confirm("Cancel this order?")) return;
+                    <h1>Order <span className="text-berry">#{order.id}</span></h1>
+                    <div className="order-meta-badges">
+                        <span className={`status-badge ${order.status}`}>{order.status.replace("_", " ")}</span>
+                        <span className={`payment-badge ${order.payment_status}`}>{order.payment_status}</span>
+                    </div>
+                </header>
 
-                                const res = await authFetch(
-                                    `${BASEURL}/api/orders/${id}/cancel/`,
-                                    {
-                                        method: "POST",
-                                    }
-                                );
+                <div className="order-grid">
+                    {/* LEFT COLUMN: Summary & Payment */}
+                    <div className="order-main-info">
+                        <div className="bento-card summary-card">
+                            <h3>Order Summary</h3>
+                            <div className="summary-row">
+                                <span>Total Amount:</span>
+                                <span className="price-text">₱{Number(order.total_amount).toLocaleString()}</span>
+                            </div>
+                            {order.status !== "rejected" && order.status !== "pending_review" && (
+                                <div className="summary-row balance-highlight">
+                                    <span>Remaining Balance:</span>
+                                    <span>₱{remainingBalance.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div className="summary-row sub-text">
+                                <span>Placed At:</span>
+                                <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
 
-                                const data = await res.json();
+                        {/* Payment Section */}
+                        {order.status === "awaiting_downpayment" && (
+                            <div className="bento-card payment-card highlight-card">
+                                <h3>Complete Downpayment</h3>
+                                <p className="hint">Minimum required: ₱{minAmount}</p>
+                                
+                                <div className="payment-inputs">
+                                    <div className="input-group">
+                                        <label>Amount to Pay</label>
+                                        <input 
+                                            type="number" 
+                                            value={payAmount || ""} 
+                                            onChange={(e) => setPayAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                                        />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Add a Tip (Optional)</label>
+                                        <input 
+                                            type="number" 
+                                            value={tipAmount || ""} 
+                                            onChange={(e) => setTipAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
 
-                                if (!res.ok) {
-                                    alert(data.error);
-                                    return;
-                                }
+                                {isInvalid && <p className="error-msg">Please enter an amount between ₱{minAmount} and ₱{maxAmount}</p>}
 
-                                alert("Order cancelled");
-                                fetchOrder();
-                            }}
-                            className="mt-4 mr-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                        >
+                                <div className="total-charge-box">
+                                    <span>Total to Charge:</span>
+                                    <strong>₱{totalToCharge.toLocaleString()}</strong>
+                                </div>
+
+                                <button 
+                                    onClick={handlePayNow} 
+                                    disabled={isInvalid || isTipInvalid}
+                                    className="btn-pay-now"
+                                >
+                                    Proceed to Secure Checkout
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Rejection Reason */}
+                        {order.status === "rejected" && order.rejection_reason && (
+                            <div className="bento-card rejection-card">
+                                <h4>Update from Bakery</h4>
+                                <p>{order.rejection_reason}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Items & Logistics */}
+                    <div className="order-side-info">
+                        <div className="bento-card items-card">
+                            <h3>Items Ordered</h3>
+                            <div className="order-items-list">
+                                {order.items.map((item) => (
+                                    <div key={item.id} className="item-row">
+                                        <div className="item-info">
+                                            <p className="item-name">{item.product_name}</p>
+                                            <p className="item-qty">Qty: {item.quantity} × ₱{item.price}</p>
+                                        </div>
+                                        <div className="item-subtotal">₱{item.subtotal}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bento-card logistics-card">
+                            <h3>Delivery Details</h3>
+                            <div className="delivery-info">
+                                <p><strong>Date:</strong> {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : "TBD"}</p>
+                                <p><strong>Time:</strong> {order.delivery_time || "TBD"}</p>
+                            </div>
+                            <Logistics order={order} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="order-actions-footer">
+                    {order.payment_status === "partial" && order.status === "processing" && (
+                        <button onClick={() => setShowAddPayment(true)} className="btn-secondary">
+                            Add Another Payment
+                        </button>
+                    )}
+                    
+                    {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
+                        <button className="btn-outline-danger" onClick={async () => {
+                            if (!confirm("Cancel this order?")) return;
+                            const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
+                            if (res.ok) { alert("Order cancelled"); fetchOrder(); }
+                        }}>
                             Cancel Order
                         </button>
                     )}
-                {/* BACK BUTTON */}
-                <button
-                    onClick={() => navigate("/orders")}
-                    className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                >
-                    Back to My Orders
-                </button>
+                </div>
             </div>
 
-            {/* 🧾 ORDER ITEMS */}
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h2 className="text-2xl font-bold mb-4">Items</h2>
-                <table className="min-w-full border">
-                    <thead>
-                        <tr>
-                            <th className="border p-2">Product</th>
-                            <th className="border p-2">Qty</th>
-                            <th className="border p-2">Price</th>
-                            <th className="border p-2">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {order.items.map((item) => (
-                            <tr key={item.id} className="text-center">
-                                <td className="border p-2">{item.product_name}</td>
-                                <td className="border p-2">{item.quantity}</td>
-                                <td className="border p-2">₱{item.price}</td>
-                                <td className="border p-2">₱{item.subtotal}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            {/* 🧭 ORDER TIMELINE / LOGISTICS */}
-            <Logistics order={order} />
-            {/* 🔥 ADD PAYMENT MODAL */}
             {showAddPayment && (
-                <AddPaymentModal
-                    order={order}
-                    onClose={() => setShowAddPayment(false)}
-                    onSuccess={fetchOrder}
+                <AddPaymentModal 
+                    order={order} 
+                    onClose={() => setShowAddPayment(false)} 
+                    onSuccess={fetchOrder} 
                 />
             )}
         </div>
