@@ -62,6 +62,50 @@ def admin_review_order(request, order_id):
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)
     
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_order_status(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+
+        new_status = request.data.get("status")
+
+        if not new_status:
+            return Response({"error": "Status is required"}, status=400)
+
+        valid_transitions = {
+            "awaiting_downpayment": ["processing", "cancelled"],
+            "processing": ["ready_for_delivery", "cancelled"],
+            "ready_for_delivery": ["out_for_delivery"],
+            "out_for_delivery": ["delivered"],
+            "delivered": ["completed"],
+        }
+
+        current = order.status
+
+        if current not in valid_transitions or new_status not in valid_transitions[current]:
+            return Response({"error": f"Invalid transition from {current} to {new_status}"}, status=400)
+
+        order.status = new_status
+
+        # auto update payment status if delivered (cash on delivery logic)
+        if new_status == "delivered":
+            order.payment_status = "paid"
+
+        order.save()
+
+        return Response({
+            "message": "Order status updated",
+            "order": OrderSerializer(order).data,
+
+            # 🔥 PLACEHOLDER FLAGS
+            "trigger_sms": True if new_status in ["ready_for_delivery", "out_for_delivery", "delivered"] else False,
+            "allow_rating": True if new_status == "delivered" else False
+        })
+
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+    
 # DASHBOARD
 @api_view(['GET'])
 @permission_classes([IsAdminUser])

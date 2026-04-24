@@ -1,3 +1,4 @@
+// src/pages/customer/CustomerOrderDetailPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
@@ -42,7 +43,7 @@ export default function CustomerOrderDetailPage() {
     const remainingBalance = order ? Number(order.remaining_balance) : 0;
     const minAmount = order ? Math.max(Math.round(order.total_amount * 0.2) - Number(order.total_paid), 0) : 0;
     const maxAmount = order ? Number(order.total_amount) : 0;
-    
+
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
     const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount;
 
@@ -68,7 +69,7 @@ export default function CustomerOrderDetailPage() {
         <div className="order-detail-page">
             <Navbar />
             <div className="order-detail-container">
-                
+
                 <header className="order-detail-header">
                     <button className="btn-back-text" onClick={() => navigate("/orders")}>
                         ← Back to My Orders
@@ -106,21 +107,21 @@ export default function CustomerOrderDetailPage() {
                             <div className="bento-card payment-card highlight-card">
                                 <h3>Complete Downpayment</h3>
                                 <p className="hint">Minimum required: ₱{minAmount}</p>
-                                
+
                                 <div className="payment-inputs">
                                     <div className="input-group">
                                         <label>Amount to Pay</label>
-                                        <input 
-                                            type="number" 
-                                            value={payAmount || ""} 
+                                        <input
+                                            type="number"
+                                            value={payAmount || ""}
                                             onChange={(e) => setPayAmount(e.target.value === "" ? "" : Number(e.target.value))}
                                         />
                                     </div>
                                     <div className="input-group">
                                         <label>Add a Tip (Optional)</label>
-                                        <input 
-                                            type="number" 
-                                            value={tipAmount || ""} 
+                                        <input
+                                            type="number"
+                                            value={tipAmount || ""}
                                             onChange={(e) => setTipAmount(e.target.value === "" ? "" : Number(e.target.value))}
                                         />
                                     </div>
@@ -133,8 +134,8 @@ export default function CustomerOrderDetailPage() {
                                     <strong>₱{totalToCharge.toLocaleString()}</strong>
                                 </div>
 
-                                <button 
-                                    onClick={handlePayNow} 
+                                <button
+                                    onClick={handlePayNow}
                                     disabled={isInvalid || isTipInvalid}
                                     className="btn-pay-now"
                                 >
@@ -186,7 +187,7 @@ export default function CustomerOrderDetailPage() {
                             Add Another Payment
                         </button>
                     )}
-                    
+
                     {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
                         <button className="btn-outline-danger" onClick={async () => {
                             if (!confirm("Cancel this order?")) return;
@@ -200,10 +201,10 @@ export default function CustomerOrderDetailPage() {
             </div>
 
             {showAddPayment && (
-                <AddPaymentModal 
-                    order={order} 
-                    onClose={() => setShowAddPayment(false)} 
-                    onSuccess={fetchOrder} 
+                <AddPaymentModal
+                    order={order}
+                    onClose={() => setShowAddPayment(false)}
+                    onSuccess={fetchOrder}
                 />
             )}
         </div>

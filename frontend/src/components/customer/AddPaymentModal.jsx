@@ -48,8 +48,8 @@ export default function AddPaymentModal({ order, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
+        <div className="modal-overlay">
+            <div className="modal-box">
                 <h2 className="text-xl font-bold mb-4">Add Payment</h2>
 
                 <p className="text-sm text-gray-600 mb-2">
