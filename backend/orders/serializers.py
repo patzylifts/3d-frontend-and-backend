@@ -4,12 +4,23 @@ from payments.serializers import PaymentSerializer
 from store.models import Order, OrderItem, Product
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_name = serializers.SerializerMethodField()
     product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
     
     class Meta:
         model = OrderItem
         fields = ['id', 'product', 'product_name', 'product_price', 'quantity', 'price', 'customization', 'subtotal']
+
+    def get_product_name(self, obj):
+        if obj.product:
+            return obj.product.name
+    
+        if obj.customization:
+            shape = obj.customization.get("shape", "")
+            flavor = obj.customization.get("flavor", "")
+            return f"Custom {shape} {flavor} Cake"
+    
+        return "Custom Cake"
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)

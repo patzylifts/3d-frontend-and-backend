@@ -1,4 +1,5 @@
-import React, { useState } from "react"; // Added useState
+// src/components/Navbar.jsx
+import React, { useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
@@ -36,7 +37,7 @@ function Navbar() {
     return (
         <nav className="minimal-nav">
             <div className="nav-container">
-                
+
                 {/* Mobile Burger Button */}
                 <button className="mobile-burger" onClick={toggleMenu} aria-label="Toggle Menu">
                     <div className={`line ${isMenuOpen ? "open" : ""}`}></div>
@@ -59,7 +60,7 @@ function Navbar() {
                             <Link to="/admin/products" className="nav-link" onClick={() => setIsMenuOpen(false)}>Products</Link>
                         </>
                     )}
-                    
+
                     {/* Move Right Links into Burger Menu for Mobile */}
                     <div className="mobile-only-links">
                         {isLoggedIn ? (
@@ -89,6 +90,13 @@ function Navbar() {
                                 <Link to={isAdmin ? "/admin" : "/profile"} className="nav-link">
                                     {isAdmin ? "Admin" : "Profile"}
                                 </Link>
+
+                                {!isAdmin && (
+                                    <Link to="/orders" className="nav-link">
+                                        My Orders
+                                    </Link>
+                                )}
+
                                 <button onClick={handleLogout} className="nav-link logout-btn">Logout</button>
                             </>
                         )}

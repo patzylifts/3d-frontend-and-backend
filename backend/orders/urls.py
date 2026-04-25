@@ -17,4 +17,5 @@ urlpatterns = [
     path('admin/orders/<int:order_id>/', admin_views.admin_order_detail),
     path('admin/orders/<int:order_id>/review/', admin_views.admin_review_order),
     path('admin/dashboard/', admin_views.admin_dashboard),
+    path('admin/orders/<int:order_id>/update-status/', admin_views.admin_update_order_status),
 ]
