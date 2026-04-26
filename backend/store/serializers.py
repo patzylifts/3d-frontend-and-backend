@@ -23,7 +23,8 @@ class ProductSerializer(serializers.ModelSerializer):
 class CakeCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CakeCustomization
-        fields = ['id', 'shape', 'cake_color', 'flavor', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at']
+        fields = ['id', 'shape', 'cake_color', 'flavor', 'tier', 'size',
+                  'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 class CartItemSerializer(serializers.ModelSerializer):

@@ -47,27 +47,66 @@ function CartPage() {
                                                 ₱{Number(item.item_unit_price).toFixed(2)}
                                             </p>
 
-                                            {item.is_custom_cake && (
-                                                <div className="custom-details">
+                                            {item.is_custom_cake && (() => {
+                                                const d = item.customization_detail;
+                                                const addons = [
+                                                    d.has_candle    && { label: "🕯️ Candle" },
+                                                    d.has_chocolate && { label: "🍫 Chocolate" },
+                                                    d.has_balls     && { label: "🔮 Balls" },
+                                                    d.has_nuts      && { label: "🥜 Nuts" },
+                                                ].filter(Boolean);
 
-                                                    <span>
-                                                        {item.customization_detail.shape} · {item.customization_detail.flavor}
-                                                    </span>
+                                                return (
+                                                    <div className="custom-details">
+                                                        {/* Tier & Size */}
+                                                        {(d.tier || d.size) && (
+                                                            <div className="cd-row">
+                                                                <span className="cd-label">📐 Size</span>
+                                                                <span className="cd-value">
+                                                                    {d.tier}{d.tier && d.size ? " — " : ""}{d.size}
+                                                                </span>
+                                                            </div>
+                                                        )}
 
-                                                    <span
-                                                        className="color-dot"
-                                                        style={{ background: item.customization_detail.cake_color }}
-                                                    ></span>
+                                                        {/* Shape */}
+                                                        <div className="cd-row">
+                                                            <span className="cd-label">🎂 Shape</span>
+                                                            <span className="cd-value cd-capitalize">{d.shape}</span>
+                                                        </div>
 
-                                                    <div className="addon-list">
-                                                        {item.customization_detail.has_candle && <span>+ Candle</span>}
-                                                        {item.customization_detail.has_chocolate && <span>+ Chocolate</span>}
-                                                        {item.customization_detail.has_balls && <span>+ Balls</span>}
-                                                        {item.customization_detail.has_nuts && <span>+ Nuts</span>}
+                                                        {/* Flavor */}
+                                                        <div className="cd-row">
+                                                            <span className="cd-label">🍰 Flavor</span>
+                                                            <span className="cd-value">{d.flavor}</span>
+                                                        </div>
+
+                                                        {/* Cake Color */}
+                                                        <div className="cd-row">
+                                                            <span className="cd-label">🎨 Color</span>
+                                                            <span className="cd-color-row">
+                                                                <span
+                                                                    className="cd-color-dot"
+                                                                    style={{ background: d.cake_color }}
+                                                                />
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Add-ons */}
+                                                        <div className="cd-row cd-row--addons">
+                                                            <span className="cd-label">✨ Add-ons</span>
+                                                            <span className="cd-addon-wrap">
+                                                                {addons.length > 0
+                                                                    ? addons.map(a => (
+                                                                        <span key={a.label} className="cd-addon-pill">{a.label}</span>
+                                                                    ))
+                                                                    : <span className="cd-none">None</span>
+                                                                }
+                                                            </span>
+                                                        </div>
                                                     </div>
+                                                );
+                                            })()}
 
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div className="cart-item-qty">

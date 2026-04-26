@@ -118,6 +118,84 @@
     cursor: pointer;
 }
 
+/* --- Custom Cake Details Card --- */
+.custom-details {
+    margin-top: 10px;
+    background: #fdf6fb;
+    border: 1.5px solid #f0d6e8;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.cd-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.cd-row--addons {
+    align-items: flex-start;
+}
+
+.cd-label {
+    min-width: 90px;
+    color: #999;
+    font-weight: 600;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.cd-value {
+    color: #2d1b14;
+    font-weight: 700;
+}
+
+.cd-capitalize {
+    text-transform: capitalize;
+}
+
+.cd-color-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cd-color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1.5px #ddd;
+    flex-shrink: 0;
+}
+
+.cd-addon-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.cd-addon-pill {
+    background: #fce4ec;
+    color: #c2185b;
+    border-radius: 50px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid #f8bbd0;
+}
+
+.cd-none {
+    color: #bbb;
+    font-size: 0.78rem;
+    font-style: italic;
+}
+
 /* --- Mobile Responsive --- */
 @media (max-width: 900px) {
     .cart-flex-container {
@@ -138,4 +216,4 @@
         justify-content: center;
         margin-top: 10px;
     }
-}
+}

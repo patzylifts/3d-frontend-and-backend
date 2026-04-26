@@ -22,7 +22,7 @@ def create_checkout_session(request, order_id):
     try:
         order = Order.objects.get(id=order_id, user=request.user)
 
-        if order.status not in ["awaiting_downpayment", "processing"]:
+        if order.status in ["pending_review", "cancelled", "rejected", "completed"]:
             return Response({"error": "Order not ready for payment"}, status=400)
 
         amount = request.data.get("amount")
@@ -34,7 +34,7 @@ def create_checkout_session(request, order_id):
         amount = Decimal(str(amount))
         tip = Decimal(str(tip))
 
-        total_paid = sum(p.amount for p in order.payments.all())
+        total_paid = sum(p.amount for p in order.payments.filter(status__in=["partial", "paid"]))
 
         total_amount = order.total_amount  # already Decimal
 
@@ -159,13 +159,13 @@ def paymongo_webhook(request):
         order = payment.order
 
         if payment.status != "paid":
+            # Sum up previously successful payments
+            previous_paid = sum(p.amount for p in order.payments.filter(status__in=["partial", "paid"]))
+            
             # 🔥 TOTAL PAID INCLUDING THIS PAYMENT
-            total_paid = sum(p.amount for p in order.payments.all())
+            total_paid = previous_paid + payment.amount
 
-            # (optional but safer if webhook fires before DB refresh)
-            # total_paid += payment.amount
-
-            total_amount = float(order.total_amount)
+            total_amount = Decimal(str(order.total_amount))
 
             if total_paid < total_amount:
                 payment.status = "partial"
@@ -174,7 +174,8 @@ def paymongo_webhook(request):
                 payment.status = "paid"
                 order.payment_status = "paid"
 
-            order.status = "processing"
+            if order.status == "awaiting_downpayment":
+                order.status = "processing"
 
             payment.save()
             order.save()

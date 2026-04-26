@@ -193,7 +193,30 @@ export default function AdminOrderDetailPage() {
                             <tbody>
                                 {order.items.map((item) => (
                                     <tr key={item.id}>
-                                        <td>{item.product_name}</td>
+                                        <td>
+                                            <div style={{ fontWeight: "700" }}>{item.product_name}</div>
+                                            {item.customization && (
+                                                <div style={{ fontSize: "0.85rem", color: "#666", marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                    {(item.customization.tier || item.customization.size) && (
+                                                        <div><strong>Size:</strong> {item.customization.tier}{item.customization.tier && item.customization.size ? " — " : ""}{item.customization.size}</div>
+                                                    )}
+                                                    <div style={{ textTransform: "capitalize" }}><strong>Shape:</strong> {item.customization.shape}</div>
+                                                    <div><strong>Flavor:</strong> {item.customization.flavor}</div>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                        <strong>Color:</strong>
+                                                        <span style={{ display: "inline-block", width: "14px", height: "14px", borderRadius: "50%", background: item.customization.cake_color, border: "1px solid #ccc" }}></span>
+                                                    </div>
+                                                    <div>
+                                                        <strong>Add-ons:</strong> {[
+                                                            item.customization.has_candle && "Candle",
+                                                            item.customization.has_chocolate && "Chocolate",
+                                                            item.customization.has_balls && "Balls",
+                                                            item.customization.has_nuts && "Nuts"
+                                                        ].filter(Boolean).join(", ") || "None"}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>{item.quantity}</td>
                                         <td>₱{Number(item.price).toLocaleString()}</td>
                                         <td className="text-right font-bold">₱{Number(item.subtotal).toLocaleString()}</td>

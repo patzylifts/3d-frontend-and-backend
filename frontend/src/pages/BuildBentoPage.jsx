@@ -165,6 +165,40 @@ function CakeModel() {
 
 /* ─────────────────────────────── CONFIGURATOR PANEL ─────────────────────────────── */
 
+/* ── Cake size / tier catalogue ── */
+const CAKE_SIZES = [
+    {
+        tier: "1 Tier Cake",
+        sizes: [
+            "Bento Cake",
+            "Tall Bento Cake",
+            "Standard",
+            "Tall Cake",
+        ],
+    },
+    {
+        tier: "Mini 2 Tier",
+        sizes: [
+            "6×4 & 4×4",
+            "6×6 Cake",
+            "6×8 Cake",
+            "8×5 Cake",
+        ],
+    },
+    {
+        tier: "3 Tier Cake",
+        sizes: [
+            "4×5, 6×6 & 8×5",
+        ],
+    },
+    {
+        tier: "4 Tier Cake",
+        sizes: [
+            "4×4 & 6×6, 8×5 & 10×4",
+        ],
+    },
+];
+
 function Configurator() {
     const {
         cakeColors, cakeColor, setCakeColor,
@@ -183,6 +217,20 @@ function Configurator() {
     const [orderStatus, setOrderStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Size & Tier state
+    const [selectedTierIndex, setSelectedTierIndex] = useState(0);
+    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
+
+    const handleTierChange = (e) => {
+        const idx = parseInt(e.target.value, 10);
+        setSelectedTierIndex(idx);
+        setSelectedSize(CAKE_SIZES[idx].sizes[0]); // reset size to first of new tier
+    };
+
+    const handleSizeChange = (e) => {
+        setSelectedSize(e.target.value);
+    };
+
     const handleAddToCart = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -191,6 +239,8 @@ function Configurator() {
             shape: form === 1 ? "round" : "rectangle",
             cake_color: cakeColor.color,
             flavor,
+            tier: CAKE_SIZES[selectedTierIndex].tier,
+            size: selectedSize,
             has_candle: candle,
             has_chocolate: chocolate,
             has_balls: balls,
@@ -219,6 +269,44 @@ function Configurator() {
     return (
         <aside className="cfg-panel">
             <h2 className="cfg-title">Design Your Cake</h2>
+
+            {/* Size & Tier */}
+            <section className="cfg-section">
+                <h3 className="cfg-label">Tier</h3>
+
+                {/* Tier — chip buttons like Shape */}
+                <div className="cfg-chips">
+                    {CAKE_SIZES.map((item, idx) => (
+                        <button
+                            key={item.tier}
+                            className={`chip ${selectedTierIndex === idx ? "chip--active" : ""}`}
+                            onClick={() => {
+                                setSelectedTierIndex(idx);
+                                setSelectedSize(CAKE_SIZES[idx].sizes[0]);
+                            }}
+                        >
+                            {item.tier}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Size — dropdown */}
+                <h3 className="cfg-label" style={{ marginTop: "8px" }}>Size</h3>
+                <div className="cfg-select-wrapper">
+                    <select
+                        id="size-select"
+                        className="cfg-select"
+                        value={selectedSize}
+                        onChange={handleSizeChange}
+                    >
+                        {CAKE_SIZES[selectedTierIndex].sizes.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                    <span className="cfg-select-arrow">▾</span>
+                </div>
+            </section>
+
 
             {/* Shape */}
             <section className="cfg-section">

@@ -41,11 +41,11 @@ export default function CustomerOrderDetailPage() {
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
     const remainingBalance = order ? Number(order.remaining_balance) : 0;
-    const minAmount = order ? Math.max(Math.round(order.total_amount * 0.2) - Number(order.total_paid), 0) : 0;
-    const maxAmount = order ? Number(order.total_amount) : 0;
+    const minAmount = order ? Math.max(Math.round(order.total_amount * 0.2) - Number(order.total_paid), 1) : 0;
+    const maxAmount = order ? remainingBalance : 0;
 
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
-    const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount;
+    const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount || parsedPay === 0;
 
     const handlePayNow = async () => {
         try {
@@ -53,8 +53,11 @@ export default function CustomerOrderDetailPage() {
                 method: "POST",
                 body: JSON.stringify({ amount: payAmount, tip: tipAmount })
             });
-            if (!res.ok) return;
             const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || "Failed to initiate payment");
+                return;
+            }
             localStorage.setItem("last_payment_amount", payAmount);
             localStorage.setItem("last_tip_amount", tipAmount);
             window.location.href = data.checkout_url;
@@ -64,6 +67,11 @@ export default function CustomerOrderDetailPage() {
     if (loading) return <div className="order-loader">Loading your cake details...</div>;
     if (error) return <div className="order-error">{error}</div>;
     if (!order) return null;
+
+    const showPaymentCard = 
+        (order.status === "awaiting_downpayment" || 
+        (order.payment_status === "partial" && !["cancelled", "rejected"].includes(order.status))) 
+        && remainingBalance > 0;
 
     return (
         <div className="order-detail-page">
@@ -103,10 +111,14 @@ export default function CustomerOrderDetailPage() {
                         </div>
 
                         {/* Payment Section */}
-                        {order.status === "awaiting_downpayment" && (
+                        {showPaymentCard && (
                             <div className="bento-card payment-card highlight-card">
-                                <h3>Complete Downpayment</h3>
-                                <p className="hint">Minimum required: ₱{minAmount}</p>
+                                <h3>{order.total_paid == 0 ? "Complete Downpayment" : "Complete Remaining Balance"}</h3>
+                                <p className="hint">
+                                    {order.total_paid == 0 
+                                        ? `Minimum required: ₱${minAmount.toLocaleString()}` 
+                                        : `Remaining balance: ₱${remainingBalance.toLocaleString()}`}
+                                </p>
 
                                 <div className="payment-inputs">
                                     <div className="input-group">
@@ -127,7 +139,9 @@ export default function CustomerOrderDetailPage() {
                                     </div>
                                 </div>
 
-                                {isInvalid && <p className="error-msg">Please enter an amount between ₱{minAmount} and ₱{maxAmount}</p>}
+                                {isInvalid && payAmount !== "" && (
+                                    <p className="error-msg">Please enter an amount between ₱{minAmount} and ₱{maxAmount}</p>
+                                )}
 
                                 <div className="total-charge-box">
                                     <span>Total to Charge:</span>
@@ -182,12 +196,6 @@ export default function CustomerOrderDetailPage() {
                 </div>
 
                 <div className="order-actions-footer">
-                    {order.payment_status === "partial" && order.status === "processing" && (
-                        <button onClick={() => setShowAddPayment(true)} className="btn-secondary">
-                            Add Another Payment
-                        </button>
-                    )}
-
                     {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
                         <button className="btn-outline-danger" onClick={async () => {
                             if (!confirm("Cancel this order?")) return;
@@ -199,14 +207,6 @@ export default function CustomerOrderDetailPage() {
                     )}
                 </div>
             </div>
-
-            {showAddPayment && (
-                <AddPaymentModal
-                    order={order}
-                    onClose={() => setShowAddPayment(false)}
-                    onSuccess={fetchOrder}
-                />
-            )}
         </div>
     );
 }

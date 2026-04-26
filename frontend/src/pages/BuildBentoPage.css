@@ -82,7 +82,90 @@
     color: #999;
 }
 
+/* ── Size & Tier Dropdowns ── */
+.cfg-dropdown-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cfg-dropdown-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #bbb;
+}
+
+.cfg-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cfg-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 11px 42px 11px 16px;
+    border-radius: 12px;
+    border: 2px solid #f0f0f0;
+    background: white;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--espresso);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    font-family: inherit;
+}
+
+.cfg-select:hover {
+    border-color: var(--primary-berry);
+}
+
+.cfg-select:focus {
+    border-color: var(--primary-berry);
+    box-shadow: 0 0 0 3px rgba(216, 92, 123, 0.15);
+}
+
+.cfg-select-arrow {
+    position: absolute;
+    right: 14px;
+    font-size: 1rem;
+    color: var(--primary-berry);
+    pointer-events: none;
+    transition: transform 0.2s;
+}
+
+.cfg-select-wrapper:focus-within .cfg-select-arrow {
+    transform: rotate(180deg);
+}
+
+/* Summary badge shown below dropdowns */
+.cfg-size-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+    border: 1.5px solid var(--primary-berry);
+    color: var(--espresso);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    transition: all 0.25s ease;
+    animation: badgePop 0.3s ease-out;
+}
+
+@keyframes badgePop {
+    from { transform: scale(0.9); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
 /* Chips (Buttons) */
+
 .cfg-chips {
     display: flex;
     flex-wrap: wrap;

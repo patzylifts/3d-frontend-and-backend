@@ -152,6 +152,8 @@ class CakeCustomization(models.Model):
     shape = models.CharField(max_length=20, choices=SHAPE_CHOICES, default="round")
     cake_color = models.CharField(max_length=20, default="#683434")
     flavor = models.CharField(max_length=50, choices=FLAVOR_CHOICES, default="Choco Moist")
+    tier = models.CharField(max_length=50, blank=True, null=True)
+    size = models.CharField(max_length=100, blank=True, null=True)
     has_candle = models.BooleanField(default=False)
     has_chocolate = models.BooleanField(default=False)
     has_balls = models.BooleanField(default=False)
@@ -168,6 +170,8 @@ class CakeCustomization(models.Model):
             "shape": self.shape,
             "cake_color": self.cake_color,
             "flavor": self.flavor,
+            "tier": self.tier,
+            "size": self.size,
             "has_candle": self.has_candle,
             "has_chocolate": self.has_chocolate,
             "has_balls": self.has_balls,
