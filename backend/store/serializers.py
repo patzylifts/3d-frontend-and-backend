@@ -2,6 +2,12 @@
 from rest_framework import serializers
 from .models import Product, Category, Cart, CartItem, UserProfile, CakeCustomization
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator
+
+phone_validator = RegexValidator(
+    regex=r'^09\d{9}$',
+    message="Phone number must be 11 digits and start with 09"
+)
 
 # CATEGORY
 class CategorySerializer(serializers.ModelSerializer):
@@ -74,32 +80,37 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
         
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    phone = serializers.CharField(validators=[phone_validator])
+
     password2 = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(required=True)
-    middle_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'password2', 'first_name', 'middle_name', 'last_name']
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name", 
+            "password",
+            "password2",
+            "phone"
+        ]
 
     def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError("Passwords do not match.")
+        if data["password"] != data["password2"]:
+            raise serializers.ValidationError("Passwords don't match")
         return data
 
     def create(self, validated_data):
-        first_name = validated_data.pop('first_name')
-        middle_name = validated_data.pop('middle_name', '')
-        last_name = validated_data.pop('last_name')
-        username = validated_data['username']
-        email = validated_data.get('email')
-        password = validated_data['password']
+        phone = validated_data.pop("phone")
+        validated_data.pop("password2")
 
-        user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+        user = User.objects.create_user(**validated_data)
 
-        UserProfile.objects.create(user=user, middle_name=middle_name, phone="", street="", city="", province="", postal_code="", profile_picture=None)
+        UserProfile.objects.create(
+            user=user,
+            phone=phone
+        )
 
         return user
 

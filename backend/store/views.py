@@ -12,6 +12,7 @@ from .models import Product, Category, Cart, CartItem, Order, OrderItem, UserPro
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
 from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer, CakeCustomizationSerializer
 
+from .models_verification import SMSVerification
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
@@ -165,6 +166,15 @@ def create_order(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
+    phone = request.data.get("phone")
+    verified = SMSVerification.objects.filter(
+        phone=phone,
+        is_verified=True
+    ).exists()
+
+    if not verified:
+        return Response({"error": "Phone not verified"}, status=400)
+    
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()

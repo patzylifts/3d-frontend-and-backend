@@ -4,11 +4,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
 from . import admin_views
 from .views import MyTokenObtainPairView
+from .views_verification import send_verification_code, verify_code
 
 urlpatterns = [
-    
     # Register
     path('register/', views.register_view),
+    # 🔴 SMS Verification
+    path('send-code/', send_verification_code),
+    path('verify-code/', verify_code),
     # Login
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     

@@ -1,3 +1,4 @@
+# backend/settings.py
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -8,6 +9,8 @@ load_dotenv()
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
 PAYMONGO_WEBHOOK_SECRET = os.getenv("PAYMONGO_WEBHOOK_SECRET")
+SMS_API_KEY = os.getenv("SMS_API_KEY")
+SMS_API_URL = os.getenv("SMS_API_URL")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
