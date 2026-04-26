@@ -1,12 +1,15 @@
+// src/pages/Signup.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "./Signup.css"; 
+import "./Signup.css";
 
 function Signup() {
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;
+    const [step, setStep] = useState(1);
+    const [otp, setOtp] = useState("");
     const [form, setForm] = useState({
         username: "",
-        email: "",
+        phone: "",
         first_name: "",
         middle_name: "",
         last_name: "",
@@ -19,26 +22,78 @@ function Signup() {
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
-    const handleSubmit = async e => {
-        e.preventDefault();
+    const sendOtp = async () => {
         setMsg("");
         setIsLoading(true);
+
+        try {
+            const res = await fetch(`${BASE}/api/send-code/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: form.phone })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setMsg("OTP sent to your phone");
+                setStep(2);
+            } else {
+                setMsg(data.error || "Failed to send OTP");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const verifyOtp = async () => {
+        setIsLoading(true);
+
+        try {
+            const res = await fetch(`${BASE}/api/verify-code/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    phone: form.phone,
+                    code: otp
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setMsg("Phone verified!");
+                setStep(3);
+            } else {
+                setMsg(data.error || "Invalid OTP");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubmit = async e => {
+        e.preventDefault();
+
+        if (step !== 3) return;
+
+        setIsLoading(true);
+
         try {
             const res = await fetch(`${BASE}/api/register/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form)
             });
+
             const data = await res.json();
+
             if (res.ok) {
-                setMsg("✅ Account created! Redirecting to login...");
+                setMsg("Account created! Redirecting...");
                 setTimeout(() => nav("/login"), 1500);
             } else {
-                const firstKey = Object.keys(data)[0];
-                setMsg(data[firstKey] || "Registration failed.");
+                setMsg(data.error || "Registration failed");
             }
-        } catch (err) {
-            setMsg("⚠️ Signup failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -60,8 +115,15 @@ function Signup() {
                     </div>
 
                     <div className="input-group">
-                        <label>Email</label>
-                        <input name="email" type="email" onChange={handleChange} value={form.email} placeholder="you@example.com" required />
+                        <label>Phone Number</label>
+                        <input
+                            name="phone"
+                            type="tel"
+                            onChange={handleChange}
+                            value={form.phone}
+                            placeholder="09XXXXXXXXX"
+                            required
+                        />
                     </div>
 
                     {/* Name Grid */}
@@ -90,9 +152,34 @@ function Signup() {
                         <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="••••••••" required />
                     </div>
 
-                    <button type="submit" disabled={isLoading} className="btn-signup">
-                        {isLoading ? "Creating..." : "Create My Account"}
-                    </button>
+                    {step === 1 && (
+                        <button type="button" onClick={sendOtp} className="btn-signup">
+                            Send OTP
+                        </button>
+                    )}
+
+                    {step === 2 && (
+                        <>
+                            <div className="input-group">
+                                <label>OTP Code</label>
+                                <input
+                                    value={otp}
+                                    onChange={e => setOtp(e.target.value)}
+                                    placeholder="Enter OTP"
+                                />
+                            </div>
+
+                            <button type="button" onClick={verifyOtp} className="btn-signup">
+                                Verify OTP
+                            </button>
+                        </>
+                    )}
+
+                    {step === 3 && (
+                        <button type="submit" className="btn-signup">
+                            Create Account
+                        </button>
+                    )}
                 </form>
 
                 {msg && (

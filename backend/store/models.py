@@ -1,6 +1,12 @@
 # store/models.py
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator
+
+phone_validator = RegexValidator(
+    regex=r'^09\d{9}$',
+    message="Phone number must be 11 digits and start with 09"
+)
 
 # CATEGORY
 class Category(models.Model):
@@ -27,7 +33,12 @@ class Product(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=30, blank=True, null=True)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(
+        max_length=11,
+        validators=[phone_validator],
+        blank=True,
+        null=True
+    )
     street = models.CharField(max_length=150, blank=True, null=True)
     city = models.CharField(max_length=50, blank=True, null=True)
     province = models.CharField(max_length=50, blank=True, null=True)
@@ -63,7 +74,12 @@ class Order(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=150, blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    phone = models.CharField(
+        max_length=11,
+        validators=[phone_validator],
+        blank=True,
+        null=True
+    )
     street = models.CharField(max_length=200, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     province = models.CharField(max_length=100, blank=True, null=True)
@@ -174,3 +190,5 @@ class CakeCustomization(models.Model):
             "has_nuts": self.has_nuts,
             "price": str(self.price),
         }
+        
+from .models_verification import SMSVerification
