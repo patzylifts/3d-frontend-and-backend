@@ -1,15 +1,13 @@
 # orders/views.py
 import uuid
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-
 from store.models import Order
 from .serializers import OrderSerializer
+from orders.utils_sms_notifications import send_order_status_sms
 
-# CUSTOMER: ORDER HISTORY
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def order_history(request):
@@ -17,7 +15,6 @@ def order_history(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
-# CUSTOMER: ORDER DETAIL
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def order_detail(request, order_id):
@@ -51,22 +48,20 @@ def customer_order_detail(request, order_id):
 def cancel_order(request, order_id):
     try:
         order = Order.objects.get(id=order_id, user=request.user)
-
-        # check payments
         total_paid = sum(p.amount for p in order.payments.all())
 
-        # RULE 1: still under admin review
         if order.status == "pending_review":
             order.status = "cancelled"
             order.payment_status = "cancelled"
             order.save()
+            send_order_status_sms(order)
             return Response({"message": "Order cancelled successfully"})
 
-        # RULE 2: accepted but no payment yet
         if order.status == "awaiting_downpayment" and total_paid == 0:
             order.status = "cancelled"
             order.payment_status = "cancelled"
             order.save()
+            send_order_status_sms(order)
             return Response({"message": "Order cancelled successfully"})
 
         return Response(

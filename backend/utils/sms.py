@@ -5,12 +5,10 @@ import os
 SMS_API_URL = "https://smsapiph.onrender.com/api/v1/send/sms"
 SMS_API_KEY = os.getenv("SMS_API_KEY")
 
-
 def normalize_phone(phone):
     if phone.startswith("09"):
         return "+63" + phone[1:]
     return phone
-
 
 def send_sms(phone, message):
     phone = normalize_phone(phone)  # 🔥 APPLY IT HERE
