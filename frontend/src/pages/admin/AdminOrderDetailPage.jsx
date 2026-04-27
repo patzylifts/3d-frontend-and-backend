@@ -28,11 +28,6 @@ export default function AdminOrderDetailPage() {
 
         setOrder(data.order);
 
-        // 🔥 PLACEHOLDER BEHAVIOR
-        if (data.trigger_sms) {
-            console.log("📩 TODO: Send SMS notification");
-        }
-
         if (data.allow_rating) {
             console.log("⭐ TODO: Enable customer rating");
         }

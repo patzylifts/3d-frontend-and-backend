@@ -6,6 +6,7 @@ from store.models import Order
 from .serializers import OrderSerializer
 from django.db.models import Count, Sum
 from datetime import date
+from .utils_sms_notifications import send_order_status_sms
 
 # ADMIN: LIST ALL ORDERS
 @api_view(['GET'])
@@ -14,7 +15,6 @@ def admin_orders(request):
     orders = Order.objects.all().order_by('-created_at')
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
-
 
 # ADMIN: ORDER DETAIL
 @api_view(['GET'])
@@ -27,7 +27,6 @@ def admin_order_detail(request, order_id):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
-
 # ADMIN: UPDATE ORDER
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
@@ -35,14 +34,12 @@ def admin_review_order(request, order_id):
     try:
         order = Order.objects.get(id=order_id)
 
-        # 🚫 Only allow review if still pending
         if order.status != "pending_review":
             return Response({"error": "Order already reviewed"}, status=400)
 
         new_status = request.data.get("status")
         reason = request.data.get("rejection_reason")
 
-        # 🚫 Restrict allowed transitions
         if new_status not in ["awaiting_downpayment", "rejected"]:
             return Response({"error": "Invalid status"}, status=400)
 
@@ -51,9 +48,13 @@ def admin_review_order(request, order_id):
                 return Response({"error": "Rejection reason required"}, status=400)
             order.rejection_reason = reason
 
+        old_status = order.status
+
         order.status = new_status
         order.save()
 
+        if old_status != new_status:
+            send_order_status_sms(order)
         return Response({
             "message": "Order reviewed successfully",
             "order": OrderSerializer(order).data
@@ -86,14 +87,17 @@ def admin_update_order_status(request, order_id):
         if current not in valid_transitions or new_status not in valid_transitions[current]:
             return Response({"error": f"Invalid transition from {current} to {new_status}"}, status=400)
 
+        old_status = order.status
+
         order.status = new_status
 
-        # auto update payment status if delivered (cash on delivery logic)
         if new_status == "delivered":
             order.payment_status = "paid"
 
         order.save()
 
+        if old_status != new_status:
+            send_order_status_sms(order)
         return Response({
             "message": "Order status updated",
             "order": OrderSerializer(order).data,
