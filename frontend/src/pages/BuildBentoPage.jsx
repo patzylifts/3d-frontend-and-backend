@@ -1,4 +1,4 @@
-import { useRef, Suspense, useState } from "react";
+import { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { useNavigate } from "react-router-dom";
@@ -11,8 +11,9 @@ import "./BuildBentoPage.css";
 
 /* ─────────────────────────────── 3D MODEL ─────────────────────────────── */
 
-function CakeModel() {
+function CakeModel({ selectedTierIndex }) {
     const { nodes, materials } = useGLTF("https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf");
+    const tier2 = useGLTF("https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/tier2/tier2.gltf");
     const { form, cakeColor, flavor, flavorTextureMap, candle, chocolate, balls, nuts } = useCustomization();
     const groupRef = useRef();
 
@@ -60,6 +61,57 @@ function CakeModel() {
     const activeTextureKey = flavorTextureMap[flavor] || "choco";
     const activeTexture = texturesByKey[activeTextureKey];
 
+    // When the 2-tier model is selected, apply the active cake texture/material
+    useEffect(() => {
+        if (!tier2 || !tier2.scene) return;
+
+        const cakeMatProps = { color: cakeColor.color, roughness: 0.8, ...activeTexture };
+
+        tier2.scene.traverse((child) => {
+            if (!child.isMesh) return;
+
+            const lname = (child.name || "").toLowerCase();
+
+            // Decorations: hide/show based on toggles
+            if (lname.includes("chandel") || lname.includes("candle")) {
+                child.visible = !!candle;
+                return;
+            }
+            if (lname.includes("nut")) {
+                child.visible = !!nuts;
+                return;
+            }
+            if (lname.includes("bar")) {
+                child.visible = !!chocolate;
+                return;
+            }
+            if (lname.includes("ball")) {
+                child.visible = !!balls;
+                return;
+            }
+
+            // Robustly detect round vs rectangle cake mesh names and show only the selected one
+            const isRound = child.name === "Cake" || lname === "cake" || lname === "cake_01" || lname.includes("cake") && !lname.includes("rect");
+            const isRect = child.name === "Cake_Rectangle" || lname.includes("cake_rectangle") || lname.includes("cake_rect") || lname.includes("rect");
+
+            if (isRound) {
+                child.visible = form === 1;
+                if (form === 1) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
+                return;
+            }
+
+            if (isRect) {
+                child.visible = form === 2;
+                if (form === 2) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
+                return;
+            }
+
+            // For other meshes, keep them visible but enable shadows
+            child.castShadow = true;
+            child.receiveShadow = true;
+        });
+    }, [tier2, activeTexture, cakeColor, candle, chocolate, balls, nuts, form]);
+
     // Slow auto-rotation
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
@@ -67,96 +119,102 @@ function CakeModel() {
 
     const standColor = new THREE.Color("#2a2424");
 
+    // If the user selected the Mini 2 Tier (tier index 1), render the 2-tier glTF scene directly.
     return (
-
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
-            {/* Stand */}
-            <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
-                <group position={[0, 0, -27.2]} scale={1.01}>
-                    {["Mesh004", "Mesh004_1", "Mesh004_2", "Mesh004_3"].map(
-                        (name) =>
-                            nodes[name]?.geometry && (
-                                <mesh key={name} geometry={nodes[name].geometry} castShadow>
+            {selectedTierIndex === 1 ? (
+                // Render the provided 2-tier model asset. Adjusted positioning/scale for better fit.
+                <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
+            ) : (
+                <>
+                    {/* Stand */}
+                    <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
+                        <group position={[0, 0, -27.2]} scale={1.01}>
+                            {["Mesh004", "Mesh004_1", "Mesh004_2", "Mesh004_3"].map(
+                                (name) =>
+                                    nodes[name]?.geometry && (
+                                        <mesh key={name} geometry={nodes[name].geometry} castShadow>
+                                            <meshStandardMaterial color={standColor} roughness={0.55} />
+                                        </mesh>
+                                    )
+                            )}
+                        </group>
+                    </group>
 
-                                    <meshStandardMaterial color={standColor} roughness={0.55} />
-                                </mesh>
-                            )
+                    {/* Round Cake — form === 1 */}
+                    {nodes.Cake?.geometry && (
+                        <mesh
+                            geometry={nodes.Cake.geometry}
+                            position={[0, 1.89, 0]}
+                            scale={[0.95, 0.92, 0.95]}
+                            visible={form === 1}
+                            castShadow
+                        >
+                            <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} />
+                        </mesh>
                     )}
-                </group>
-            </group>
 
-            {/* Round Cake — form === 1 */}
-            {nodes.Cake?.geometry && (
-                <mesh
-                    geometry={nodes.Cake.geometry}
-                    position={[0, 1.89, 0]}
-                    scale={[0.95, 0.92, 0.95]}
-                    visible={form === 1}
-                    castShadow
-                >
-                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} />
-                </mesh>
-            )}
+                    {/* Rectangle Cake — form === 2 */}
+                    {nodes.Cake_Rectangle?.geometry && (
+                        <mesh
+                            geometry={nodes.Cake_Rectangle.geometry}
+                            position={[0, 0.21, 0]}
+                            scale={[0.95, 0.92, 0.95]}
+                            visible={form === 2}
+                            castShadow
+                        >
+                            <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
+                        </mesh>
+                    )}
 
-            {/* Rectangle Cake — form === 2 */}
-            {nodes.Cake_Rectangle?.geometry && (
-                <mesh
-                    geometry={nodes.Cake_Rectangle.geometry}
-                    position={[0, 0.21, 0]}
-                    scale={[0.95, 0.92, 0.95]}
-                    visible={form === 2}
-                    castShadow
-                >
-                    <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
-                </mesh>
-            )}
+                    {/* Candle */}
+                    {nodes.chandel?.geometry && (
+                        <mesh
+                            geometry={nodes.chandel.geometry}
+                            material={materials.chandel}
+                            position={[0, 2.33, 0]}
+                            rotation={[-Math.PI / 2, 0, 0]}
+                            scale={-0.03}
+                            visible={candle}
+                        />
+                    )}
 
-            {/* Candle */}
-            {nodes.chandel?.geometry && (
-                <mesh
-                    geometry={nodes.chandel.geometry}
-                    material={materials.chandel}
-                    position={[0, 2.33, 0]}
-                    rotation={[-Math.PI / 2, 0, 0]}
-                    scale={-0.03}
-                    visible={candle}
-                />
-            )}
+                    {/* Nuts */}
+                    {nodes.nuts?.geometry && (
+                        <mesh
+                            geometry={nodes.nuts.geometry}
+                            material={materials.Default}
+                            position={[0.08, 2.31, 0.42]}
+                            rotation={[Math.PI / 2, 0, -2.81]}
+                            scale={0.18}
+                            visible={nuts}
+                        />
+                    )}
 
-            {/* Nuts */}
-            {nodes.nuts?.geometry && (
-                <mesh
-                    geometry={nodes.nuts.geometry}
-                    material={materials.Default}
-                    position={[0.08, 2.31, 0.42]}
-                    rotation={[Math.PI / 2, 0, -2.81]}
-                    scale={0.18}
-                    visible={nuts}
-                />
-            )}
+                    {/* Chocolate Bar */}
+                    {nodes.bar?.geometry && (
+                        <mesh
+                            geometry={nodes.bar.geometry}
+                            material={materials.choco}
+                            position={[0, 2.5, 0]}
+                            rotation={[2.87, -0.55, -2.38]}
+                            scale={0.1}
+                            visible={chocolate}
+                        />
+                    )}
 
-            {/* Chocolate Bar */}
-            {nodes.bar?.geometry && (
-                <mesh
-                    geometry={nodes.bar.geometry}
-                    material={materials.choco}
-                    position={[0, 2.5, 0]}
-                    rotation={[2.87, -0.55, -2.38]}
-                    scale={0.1}
-                    visible={chocolate}
-                />
-            )}
-
-            {/* Balls */}
-            {nodes.balls?.geometry && (
-                <mesh
-                    geometry={nodes.balls.geometry}
-                    material={materials.balls}
-                    position={[0.27, 2.44, -0.05]}
-                    rotation={[-2.24, 0.35, -0.42]}
-                    scale={-0.06}
-                    visible={balls}
-                />
+                    {/* Balls */}
+                    {nodes.balls?.geometry && (
+                        <mesh
+                            geometry={nodes.balls.geometry}
+                            material={materials.balls}
+                            position={[0.27, 2.44, -0.05]}
+                            rotation={[-2.24, 0.35, -0.42]}
+                            scale={-0.06}
+                            visible={balls}
+                        />
+                    )}
+                </>
             )}
         </group>
     );
@@ -199,7 +257,7 @@ const CAKE_SIZES = [
     },
 ];
 
-function Configurator() {
+function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
         cakeColors, cakeColor, setCakeColor,
         form, setForm,
@@ -217,19 +275,14 @@ function Configurator() {
     const [orderStatus, setOrderStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Size & Tier state
-    const [selectedTierIndex, setSelectedTierIndex] = useState(0);
-    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
-
+    // Size & Tier state is lifted to BuildBentoContent and passed via props
     const handleTierChange = (e) => {
         const idx = parseInt(e.target.value, 10);
         setSelectedTierIndex(idx);
         setSelectedSize(CAKE_SIZES[idx].sizes[0]); // reset size to first of new tier
     };
 
-    const handleSizeChange = (e) => {
-        setSelectedSize(e.target.value);
-    };
+    const handleSizeChange = (e) => setSelectedSize(e.target.value);
 
     const handleAddToCart = async () => {
         if (isSubmitting) return;
@@ -293,12 +346,7 @@ function Configurator() {
                 {/* Size — dropdown */}
                 <h3 className="cfg-label" style={{ marginTop: "8px" }}>Size</h3>
                 <div className="cfg-select-wrapper">
-                    <select
-                        id="size-select"
-                        className="cfg-select"
-                        value={selectedSize}
-                        onChange={handleSizeChange}
-                    >
+                    <select id="size-select" className="cfg-select" value={selectedSize} onChange={handleSizeChange}>
                         {CAKE_SIZES[selectedTierIndex].sizes.map((s) => (
                             <option key={s} value={s}>{s}</option>
                         ))}
@@ -422,6 +470,8 @@ function Configurator() {
 
 function BuildBentoContent() {
     const navigate = useNavigate();
+    const [selectedTierIndex, setSelectedTierIndex] = useState(0);
+    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
 
     return (
         <div className="build-page">
@@ -448,7 +498,7 @@ function BuildBentoContent() {
                         <pointLight position={[4, 2, 4]} intensity={0.4} color="#ff5ec4" />
 
                         <Suspense fallback={null}>
-                            <CakeModel />
+                            <CakeModel selectedTierIndex={selectedTierIndex} />
                             <ContactShadows
                                 position={[0, -2.3, 0]}
                                 opacity={0.5}
@@ -471,7 +521,12 @@ function BuildBentoContent() {
                     <div className="canvas-hint">🖱️ Drag to rotate · Scroll to zoom</div>
                 </div>
 
-                <Configurator />
+                <Configurator
+                    selectedTierIndex={selectedTierIndex}
+                    setSelectedTierIndex={setSelectedTierIndex}
+                    selectedSize={selectedSize}
+                    setSelectedSize={setSelectedSize}
+                />
             </div>
         </div>
     );
