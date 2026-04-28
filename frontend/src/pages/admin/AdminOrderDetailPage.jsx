@@ -79,6 +79,15 @@ export default function AdminOrderDetailPage() {
                             <span>Name:</span> <strong>{order.user_name}</strong>
                         </div>
                         <div className="info-row">
+                            <span>Email:</span> <strong>{order.customer_email || "N/A"}</strong>
+                        </div>
+                        <div className="info-row">
+                            <span>Phone:</span> <strong>{order.formatted_phone || order.phone || "N/A"}</strong>
+                        </div>
+                        <div className="info-row">
+                            <span>Address:</span> <strong>{order.full_address || "N/A"}</strong>
+                        </div>
+                        <div className="info-row">
                             <span>Placed At:</span> <strong>{new Date(order.created_at).toLocaleString()}</strong>
                         </div>
                         <div className="info-row">

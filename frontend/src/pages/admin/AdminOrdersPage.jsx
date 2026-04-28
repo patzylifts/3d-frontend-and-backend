@@ -62,6 +62,8 @@ export default function AdminOrdersPage() {
                 <tr>
                   <th>Order ID</th>
                   <th>Customer</th>
+                  <th>Contact</th>
+                  <th>Address</th>
                   <th>Total</th>
                   <th>Status</th>
                   <th>Payment</th>
@@ -73,6 +75,8 @@ export default function AdminOrdersPage() {
                   <tr key={order.id}>
                     <td data-label="Order ID" className="font-bold">#{order.id}</td>
                     <td data-label="Customer">{order.user_name}</td>
+                    <td data-label="Contact">{order.formatted_phone || order.phone || "—"}<br/>{order.customer_email || ""}</td>
+                    <td data-label="Address">{order.full_address || `${order.street || ''} ${order.city || ''}` || "—"}</td>
                     <td data-label="Total" className="font-bold">₱{Number(order.total_amount).toLocaleString()}</td>
                     <td data-label="Status">
                       <span className={`badge ${getStatusClass(order.status)}`}>
