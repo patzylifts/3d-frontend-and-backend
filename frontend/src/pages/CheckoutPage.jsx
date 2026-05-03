@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { authFetch } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { regions, provinces, cities, barangays } from "phil-address";
 import "./CheckoutPage.css"; // Ensure this import is here
 
 function CheckoutPage() {
@@ -11,8 +12,10 @@ function CheckoutPage() {
     const [useProfileAddress, setUseProfileAddress] = useState(true);
     const [profileAddress, setProfileAddress] = useState({
         street: "",
-        city: "",
+        region: "",
         province: "",
+        city: "",
+        barangay: "",
         postal_code: "",
         full_name: "",
         phone: "",
@@ -20,10 +23,21 @@ function CheckoutPage() {
 
     const [customAddress, setCustomAddress] = useState({
         street: "",
-        city: "",
+        region: "",
         province: "",
+        city: "",
+        barangay: "",
         postal_code: "",
     });
+
+    // Phil-address API states
+    const [regionList, setRegionList] = useState([]);
+    const [provinceList, setProvinceList] = useState([]);
+    const [cityList, setCityList] = useState([]);
+    const [barangayList, setBarangayList] = useState([]);
+
+    // Allowed regions
+    const ALLOWED_REGIONS = ["Region 4A", "NCR"];
 
     const [deliveryDate, setDeliveryDate] = useState("");
     const [deliveryTime, setDeliveryTime] = useState("");
@@ -31,21 +45,102 @@ function CheckoutPage() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
 
+    // Load regions on mount
+    useEffect(() => {
+        const fetchRegions = async () => {
+            try {
+                const regionData = await regions();
+                const filteredRegions = regionData.filter(reg => 
+                    ALLOWED_REGIONS.includes(reg.name)
+                );
+                setRegionList(filteredRegions);
+            } catch (error) {
+                console.error("Error fetching regions:", error);
+            }
+        };
+        fetchRegions();
+    }, []);
+
     useEffect(() => {
         async function fetchProfile() {
             const res = await authFetch(`${BASEURL}/api/profile/`);
             const data = await res.json();
             setProfileAddress({
-                street: data.street,
-                city: data.city,
-                province: data.province,
-                postal_code: data.postal_code,
+                street: data.street || "",
+                region: data.region || "",
+                province: data.province || "",
+                city: data.city || "",
+                barangay: data.barangay || "",
+                postal_code: data.postal_code || "",
                 full_name: data.user.first_name + " " + data.user.last_name,
                 phone: data.phone,
             });
         }
         fetchProfile();
     }, [BASEURL]);
+
+    // Fetch provinces when custom region changes
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            if (!customAddress.region) {
+                setProvinceList([]);
+                setCityList([]);
+                setBarangayList([]);
+                return;
+            }
+
+            try {
+                const provincesData = await provinces(customAddress.region);
+                setProvinceList(provincesData);
+                setCustomAddress(prev => ({ ...prev, province: "", city: "", barangay: "" }));
+                setCityList([]);
+                setBarangayList([]);
+            } catch (error) {
+                console.error("Error fetching provinces:", error);
+            }
+        };
+        fetchProvinces();
+    }, [customAddress.region]);
+
+    // Fetch cities when custom province changes
+    useEffect(() => {
+        const fetchCities = async () => {
+            if (!customAddress.province) {
+                setCityList([]);
+                setBarangayList([]);
+                return;
+            }
+
+            try {
+                const citiesData = await cities(customAddress.province);
+                setCityList(citiesData);
+                setCustomAddress(prev => ({ ...prev, city: "", barangay: "" }));
+                setBarangayList([]);
+            } catch (error) {
+                console.error("Error fetching cities:", error);
+            }
+        };
+        fetchCities();
+    }, [customAddress.province]);
+
+    // Fetch barangays when custom city changes
+    useEffect(() => {
+        const fetchBarangays = async () => {
+            if (!customAddress.city) {
+                setBarangayList([]);
+                return;
+            }
+
+            try {
+                const barangaysData = await barangays(customAddress.city);
+                setBarangayList(barangaysData);
+                setCustomAddress(prev => ({ ...prev, barangay: "" }));
+            } catch (error) {
+                console.error("Error fetching barangays:", error);
+            }
+        };
+        fetchBarangays();
+    }, [customAddress.city]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -105,7 +200,7 @@ function CheckoutPage() {
 
                             <div className={`address-preview ${useProfileAddress ? "visible" : "hidden"}`}>
                                 <strong>{profileAddress.full_name}</strong>
-                                <p>{profileAddress.street}, {profileAddress.city}, {profileAddress.province}</p>
+                                <p>{profileAddress.street}, {profileAddress.barangay}, {profileAddress.city}, {profileAddress.province}, {profileAddress.region}</p>
                                 <p>{profileAddress.postal_code}</p>
                                 <p className="phone-text">📞 {profileAddress.phone}</p>
                             </div>
@@ -129,21 +224,74 @@ function CheckoutPage() {
                                     onChange={(e) => setCustomAddress({ ...customAddress, street: e.target.value })}
                                     required={!useProfileAddress}
                                 />
-                                <div className="input-grid">
-                                    <input
-                                        type="text"
-                                        placeholder="City"
-                                        value={customAddress.city}
-                                        onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
-                                        required={!useProfileAddress}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Province"
-                                        value={customAddress.province}
-                                        onChange={(e) => setCustomAddress({ ...customAddress, province: e.target.value })}
-                                        required={!useProfileAddress}
-                                    />
+                                <div className="input-grid four-col">
+                                    <div className="field-group">
+                                        <label>Region *</label>
+                                        <select 
+                                            value={customAddress.region} 
+                                            onChange={(e) => setCustomAddress({ ...customAddress, region: e.target.value })}
+                                            disabled={regionList.length === 0}
+                                            required={!useProfileAddress}
+                                        >
+                                            <option value="">Select Region</option>
+                                            {regionList.map(reg => (
+                                                <option key={reg.code} value={reg.code}>
+                                                    {reg.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="field-group">
+                                        <label>Province *</label>
+                                        <select 
+                                            value={customAddress.province} 
+                                            onChange={(e) => setCustomAddress({ ...customAddress, province: e.target.value })}
+                                            disabled={!customAddress.region || provinceList.length === 0}
+                                            required={!useProfileAddress}
+                                        >
+                                            <option value="">Select Province</option>
+                                            {provinceList.map(prov => (
+                                                <option key={prov.code} value={prov.code}>
+                                                    {prov.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="field-group">
+                                        <label>City/Municipality *</label>
+                                        <select 
+                                            value={customAddress.city} 
+                                            onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
+                                            disabled={!customAddress.province || cityList.length === 0}
+                                            required={!useProfileAddress}
+                                        >
+                                            <option value="">Select City</option>
+                                            {cityList.map(city => (
+                                                <option key={city.code} value={city.code}>
+                                                    {city.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="field-group">
+                                        <label>Barangay *</label>
+                                        <select 
+                                            value={customAddress.barangay} 
+                                            onChange={(e) => setCustomAddress({ ...customAddress, barangay: e.target.value })}
+                                            disabled={!customAddress.city || barangayList.length === 0}
+                                            required={!useProfileAddress}
+                                        >
+                                            <option value="">Select Barangay</option>
+                                            {barangayList.map(bgy => (
+                                                <option key={bgy.code} value={bgy.code}>
+                                                    {bgy.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <input
                                     type="text"

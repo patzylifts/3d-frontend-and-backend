@@ -88,7 +88,8 @@
 
 /* Input Styles */
 .checkout-form-card input, 
-.checkout-form-card textarea {
+.checkout-form-card textarea,
+.checkout-form-card select {
     width: 100%;
     padding: 12px 15px;
     border: 1.5px solid #eee;
@@ -100,10 +101,23 @@
 }
 
 .checkout-form-card input:focus, 
-.checkout-form-card textarea:focus {
+.checkout-form-card textarea:focus,
+.checkout-form-card select:focus {
     outline: none;
     border-color: var(--primary-berry);
     background: white;
+}
+
+.checkout-form-card select {
+    cursor: pointer;
+    color: var(--espresso);
+}
+
+.checkout-form-card select:disabled {
+    background-color: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .input-grid {
@@ -111,6 +125,10 @@
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin: 15px 0;
+}
+
+.input-grid.four-col {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
 .field-group label {

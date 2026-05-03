@@ -11,121 +11,158 @@ import "./BuildBentoPage.css";
 
 /* ─────────────────────────────── 3D MODEL ─────────────────────────────── */
 
-function CakeModel({ selectedTierIndex }) {
-    const { nodes, materials } = useGLTF("https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf");
-    const tier2 = useGLTF("https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/tier2/tier2.gltf");
-    const { form, cakeColor, flavor, flavorTextureMap, candle, chocolate, balls, nuts } = useCustomization();
-    const groupRef = useRef();
+/* ── Tier model URLs ── */
+const TIER_MODEL_URLS = {
+    tier1: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf",
+    tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/tier2/tier2.gltf",
+    tier3: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/tier3/tier3.gltf",
+    tier4: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/tier4/tier4.gltf",
+};
 
-    // Load all flavor textures
-
-    //Choco
-    const chocoTexture = useTexture({
+/* ── Texture URLs ── */
+const TEXTURE_URLS = {
+    choco: {
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
         normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_normal.jpg",
         roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
         aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
-    });
-
-    //Vanilla
-    const milkshakeTexture = useTexture({
+    },
+    vanilla: {
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla/vanilla_chiffon_diffuse.jpg",
         normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla/vanilla_chiffon_normal.jpg",
         aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla/vanilla_chiffon_ao.jpg",
-        //displacementMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/vanilla/vanilla_chiffon_height.jpg",
-    });
-
-    //Ube
-    const abstractTexture = useTexture({
+    },
+    ube: {
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_diffuseOriginal.jpg",
         normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_normal.jpg",
-        // displacementMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_height.jpg",
         aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/ube/ube_chiffon_ao.jpg",
+    },
+};
+
+/**
+ * Traverse a loaded GLTF scene and apply cake materials, shape visibility,
+ * and decoration toggles. Used for tier2, tier3, and tier4 primitive scenes.
+ */
+function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, candle, chocolate, balls, nuts }) {
+    if (!scene) return;
+
+    const cakeMatProps = { color: cakeColor.color, roughness: 0.8, ...activeTexture };
+
+    scene.traverse((child) => {
+        if (!child.isMesh) return;
+
+        const lname = (child.name || "").toLowerCase();
+
+        // ── Decorations: toggle visibility ──
+        if (lname.includes("chandel") || lname.includes("candle")) {
+            child.visible = !!candle;
+            return;
+        }
+        if (lname.includes("nut")) {
+            child.visible = !!nuts;
+            return;
+        }
+        if (lname.includes("bar")) {
+            child.visible = !!chocolate;
+            return;
+        }
+        if (lname.includes("ball")) {
+            child.visible = !!balls;
+            return;
+        }
+
+        // ── Shape: round vs rectangle ──
+        const isRect = child.name === "Cake_Rectangle"
+            || lname.includes("cake_rectangle")
+            || lname.includes("cake_rect")
+            || (lname.includes("rect") && lname.includes("cake"));
+
+        const isRound = !isRect && (
+            child.name === "Cake"
+            || lname === "cake"
+            || lname === "cake_01"
+            || lname.includes("cake")
+        );
+
+        if (isRound) {
+            child.visible = form === 1;
+            if (form === 1) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
+            return;
+        }
+        if (isRect) {
+            child.visible = form === 2;
+            if (form === 2) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
+            return;
+        }
+
+        // ── Default: enable shadows ──
+        child.castShadow = true;
+        child.receiveShadow = true;
     });
+}
 
 
+function CakeModel({ selectedTierIndex }) {
+    /* ── Load all tier models (drei caches them automatically) ── */
+    const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
+    const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
+    const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
+    const tier4 = useGLTF(TIER_MODEL_URLS.tier4);
 
+    const { nodes, materials } = tier1;          // tier1 uses inline JSX
+    const { form, cakeColor, flavor, flavorTextureMap, candle, chocolate, balls, nuts } = useCustomization();
+    const groupRef = useRef();
 
-
+    /* ── Load flavor textures ── */
+    const chocoTexture     = useTexture(TEXTURE_URLS.choco);
+    const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
+    const abstractTexture  = useTexture(TEXTURE_URLS.ube);
 
     const texturesByKey = {
-        //Choco Moist
-        choco: chocoTexture,
-
-        //Vanilla Chiffon
+        choco:   chocoTexture,
         vanilla: milkshakeTexture,
-        //ube Chiffon
-        ube: abstractTexture,
+        ube:     abstractTexture,
     };
 
     const activeTextureKey = flavorTextureMap[flavor] || "choco";
-    const activeTexture = texturesByKey[activeTextureKey];
+    const activeTexture    = texturesByKey[activeTextureKey];
 
-    // When the 2-tier model is selected, apply the active cake texture/material
-    useEffect(() => {
-        if (!tier2 || !tier2.scene) return;
+    /* ── Shared material/props bag for the scene traversal helper ── */
+    const matProps = { cakeColor, activeTexture, form, candle, chocolate, balls, nuts };
 
-        const cakeMatProps = { color: cakeColor.color, roughness: 0.8, ...activeTexture };
+    /* ── Apply materials to multi-tier scenes whenever settings change ── */
+    useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, ...Object.values(matProps)]);
+    useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, ...Object.values(matProps)]);
+    useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, ...Object.values(matProps)]);
 
-        tier2.scene.traverse((child) => {
-            if (!child.isMesh) return;
-
-            const lname = (child.name || "").toLowerCase();
-
-            // Decorations: hide/show based on toggles
-            if (lname.includes("chandel") || lname.includes("candle")) {
-                child.visible = !!candle;
-                return;
-            }
-            if (lname.includes("nut")) {
-                child.visible = !!nuts;
-                return;
-            }
-            if (lname.includes("bar")) {
-                child.visible = !!chocolate;
-                return;
-            }
-            if (lname.includes("ball")) {
-                child.visible = !!balls;
-                return;
-            }
-
-            // Robustly detect round vs rectangle cake mesh names and show only the selected one
-            const isRound = child.name === "Cake" || lname === "cake" || lname === "cake_01" || lname.includes("cake") && !lname.includes("rect");
-            const isRect = child.name === "Cake_Rectangle" || lname.includes("cake_rectangle") || lname.includes("cake_rect") || lname.includes("rect");
-
-            if (isRound) {
-                child.visible = form === 1;
-                if (form === 1) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
-                return;
-            }
-
-            if (isRect) {
-                child.visible = form === 2;
-                if (form === 2) child.material = new THREE.MeshStandardMaterial(cakeMatProps);
-                return;
-            }
-
-            // For other meshes, keep them visible but enable shadows
-            child.castShadow = true;
-            child.receiveShadow = true;
-        });
-    }, [tier2, activeTexture, cakeColor, candle, chocolate, balls, nuts, form]);
-
-    // Slow auto-rotation
+    /* ── Slow auto-rotation ── */
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
     const standColor = new THREE.Color("#2a2424");
 
-    // If the user selected the Mini 2 Tier (tier index 1), render the 2-tier glTF scene directly.
+    /* ── Render the appropriate model based on selected tier ── */
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
-            {selectedTierIndex === 1 ? (
-                // Render the provided 2-tier model asset. Adjusted positioning/scale for better fit.
+
+            {/* ── Tier 2 (Mini 2 Tier) ── */}
+            {selectedTierIndex === 1 && (
                 <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            ) : (
+            )}
+
+            {/* ── Tier 3 ── */}
+            {selectedTierIndex === 2 && (
+                <primitive object={tier3.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
+            )}
+
+            {/* ── Tier 4 ── */}
+            {selectedTierIndex === 3 && (
+                <primitive object={tier4.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
+            )}
+
+            {/* ── Tier 1 (default — inline JSX meshes) ── */}
+            {selectedTierIndex === 0 && (
                 <>
                     {/* Stand */}
                     <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
