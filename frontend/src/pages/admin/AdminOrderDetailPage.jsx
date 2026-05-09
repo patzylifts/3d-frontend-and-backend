@@ -17,6 +17,13 @@ export default function AdminOrderDetailPage() {
     const [showRejectModal, setShowRejectModal] = useState(false);
 
     const updateStatus = async (status) => {
+
+        const confirmUpdate = window.confirm(
+            `Are you sure you want to update this order to "${status.replaceAll("_", " ")}"?`
+        );
+
+        if (!confirmUpdate) return;
+
         const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/update-status/`, {
             method: "PATCH",
             body: JSON.stringify({ status })
@@ -24,15 +31,21 @@ export default function AdminOrderDetailPage() {
 
         const data = await res.json();
 
-        if (!res.ok) return alert(data.error);
+        if (!res.ok) {
+            return alert(data.error || "Failed to update status");
+        }
 
+        // AUTO UPDATE UI
         setOrder(data.order);
+
+        // OPTIONAL REFRESH FROM SERVER
+        await fetchOrder();
 
         if (data.allow_rating) {
             console.log("⭐ TODO: Enable customer rating");
         }
 
-        alert("Status updated!");
+        alert(`Order updated to "${status.replaceAll("_", " ")}"`);
     };
 
     const fetchOrder = async () => {
@@ -125,6 +138,7 @@ export default function AdminOrderDetailPage() {
                                         const data = await res.json();
                                         if (!res.ok) return alert(data.error);
                                         setOrder(data.order);
+                                        await fetchOrder();
                                         alert("Order accepted!");
                                     }}
                                 >
@@ -244,6 +258,7 @@ export default function AdminOrderDetailPage() {
                     if (!res.ok) return alert(data.error);
                     setOrder(data.order);
                     setShowRejectModal(false);
+                    await fetchOrder();
                     alert("Order rejected!");
                 }}
             />

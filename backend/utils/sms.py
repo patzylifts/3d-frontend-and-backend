@@ -55,3 +55,15 @@ def send_sms(phone, message):
             "success": False,
             "error": str(e)
         }
+       
+# dev mode (no sms credit)
+# def send_sms(phone, message):
+
+#     print("===== DEV SMS MODE =====")
+#     print("PHONE:", phone)
+#     print("MESSAGE:", message)
+
+#     return {
+#         "success": True,
+#         "dev_mode": True
+#     }
