@@ -53,11 +53,19 @@ def admin_review_order(request, order_id):
         order.status = new_status
         order.save()
 
+        sms_sent = False
+
         if old_status != new_status:
-            send_order_status_sms(order)
+            try:
+                send_order_status_sms(order)
+                sms_sent = True
+            except Exception as e:
+                print("❌ ORDER SMS ERROR:", str(e))
+                
         return Response({
             "message": "Order reviewed successfully",
-            "order": OrderSerializer(order).data
+            "order": OrderSerializer(order).data,
+            "sms_sent": sms_sent
         })
 
     except Order.DoesNotExist:
@@ -96,11 +104,19 @@ def admin_update_order_status(request, order_id):
 
         order.save()
 
+        sms_sent = False
+
         if old_status != new_status:
-            send_order_status_sms(order)
+            try:
+                send_order_status_sms(order)
+                sms_sent = True
+            except Exception as e:
+                print("❌ ORDER SMS ERROR:", str(e))
+                
         return Response({
-            "message": "Order status updated",
+            "message": "Order reviewed successfully",
             "order": OrderSerializer(order).data,
+            "sms_sent": sms_sent,
 
             # 🔥 PLACEHOLDER FLAGS
             "trigger_sms": True if new_status in ["ready_for_delivery", "out_for_delivery", "delivered"] else False,

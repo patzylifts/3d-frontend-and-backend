@@ -1,5 +1,5 @@
 // src/pages/Signup.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Signup.css";
 
@@ -7,6 +7,7 @@ function Signup() {
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;
     const [step, setStep] = useState(1);
     const [otp, setOtp] = useState("");
+    const [otpTimer, setOtpTimer] = useState(300);
     const [form, setForm] = useState({
         username: "",
         phone: "",
@@ -19,6 +20,22 @@ function Signup() {
     const [msg, setMsg] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const nav = useNavigate();
+
+    useEffect(() => {
+
+        let interval;
+
+        if (step === 2 && otpTimer > 0) {
+
+            interval = setInterval(() => {
+                setOtpTimer(prev => prev - 1);
+            }, 1000);
+
+        }
+
+        return () => clearInterval(interval);
+
+    }, [step, otpTimer]);
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -36,7 +53,8 @@ function Signup() {
             const data = await res.json();
 
             if (res.ok) {
-                setMsg("OTP sent to your phone");
+                setMsg("✅ OTP sent to your phone");
+                setOtpTimer(300);
                 setStep(2);
             } else {
                 setMsg(data.error || "Failed to send OTP");
@@ -62,7 +80,8 @@ function Signup() {
             const data = await res.json();
 
             if (res.ok) {
-                setMsg("Phone verified!");
+                setMsg("✅ Phone verified!");
+                setOtp("");
                 setStep(3);
             } else {
                 setMsg(data.error || "Invalid OTP");
@@ -167,6 +186,12 @@ function Signup() {
                                     onChange={e => setOtp(e.target.value)}
                                     placeholder="Enter OTP"
                                 />
+                                <p className="otp-timer">
+                                    OTP expires in:
+                                    {" "}
+                                    {Math.floor(otpTimer / 60)}:
+                                    {(otpTimer % 60).toString().padStart(2, "0")}
+                                </p>
                             </div>
 
                             <button type="button" onClick={verifyOtp} className="btn-signup">

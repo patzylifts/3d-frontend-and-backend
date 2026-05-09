@@ -1,6 +1,8 @@
 # store/models_verification.py
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 import random
 
 class SMSVerification(models.Model):
@@ -12,3 +14,9 @@ class SMSVerification(models.Model):
 
     def generate_code(self):
         self.code = str(random.randint(100000, 999999))
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=5)
+
+    def __str__(self):
+        return f"{self.phone} - {self.code}"

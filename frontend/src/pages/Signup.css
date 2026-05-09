@@ -55,6 +55,13 @@
     /* Ensures the grid doesn't exceed the parent width */
     box-sizing: border-box; 
 }
+
+.otp-timer {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #777;
+}
+
 .input-group {
     display: flex;
     flex-direction: column;
