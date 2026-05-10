@@ -196,8 +196,6 @@ export default function AdminOrderDetailPage() {
                     </div>
                 </div>
 
-                <AdminOrderFeedback feedback={order.feedback}/>
-
                 {/* ITEMS TABLE */}
                 <div className="order-card table-card">
                     <h3>Items Ordered</h3>
@@ -247,6 +245,7 @@ export default function AdminOrderDetailPage() {
                         </table>
                     </div>
                 </div>
+                <AdminOrderFeedback feedback={order.feedback}/>
             </div>
 
             <RejectModal

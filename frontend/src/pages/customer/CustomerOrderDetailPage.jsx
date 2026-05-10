@@ -69,10 +69,14 @@ export default function CustomerOrderDetailPage() {
     if (error) return <div className="order-error">{error}</div>;
     if (!order) return null;
 
+    const isPayable =
+        !["delivered", "completed", "cancelled", "rejected"].includes(order.status);
+
     const showPaymentCard =
+        isPayable &&
         (order.status === "awaiting_downpayment" ||
-            (order.payment_status === "partial" && !["cancelled", "rejected"].includes(order.status)))
-        && remainingBalance > 0;
+            order.payment_status === "partial") &&
+        remainingBalance > 0;
 
     return (
         <div className="order-detail-page">
@@ -127,7 +131,11 @@ export default function CustomerOrderDetailPage() {
                                         <input
                                             type="number"
                                             value={payAmount || ""}
-                                            onChange={(e) => setPayAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                                            disabled={!isPayable}
+                                            onChange={(e) =>
+                                                isPayable &&
+                                                setPayAmount(e.target.value === "" ? "" : Number(e.target.value))
+                                            }
                                         />
                                     </div>
                                     <div className="input-group">
@@ -135,7 +143,11 @@ export default function CustomerOrderDetailPage() {
                                         <input
                                             type="number"
                                             value={tipAmount || ""}
-                                            onChange={(e) => setTipAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                                            disabled={!isPayable}
+                                            onChange={(e) =>
+                                                isPayable &&
+                                                setTipAmount(e.target.value === "" ? "" : Number(e.target.value))
+                                            }
                                         />
                                     </div>
                                 </div>
@@ -151,7 +163,7 @@ export default function CustomerOrderDetailPage() {
 
                                 <button
                                     onClick={handlePayNow}
-                                    disabled={isInvalid || isTipInvalid}
+                                    disabled={!isPayable || isInvalid || isTipInvalid}
                                     className="btn-pay-now"
                                 >
                                     Proceed to Secure Checkout
@@ -196,8 +208,8 @@ export default function CustomerOrderDetailPage() {
                     </div>
                 </div>
 
-                <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder}/>
-                
+                <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
+
                 <div className="order-actions-footer">
                     {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
                         <button className="btn-outline-danger" onClick={async () => {
