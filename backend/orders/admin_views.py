@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from store.models import Order
 from .serializers import OrderSerializer
 from django.db.models import Count, Sum
-from datetime import date
+from datetime import date, timedelta
 from .utils_sms_notifications import send_order_status_sms
 
 # ADMIN: LIST ALL ORDERS
@@ -131,16 +131,45 @@ def admin_update_order_status(request, order_id):
 def admin_dashboard(request):
     orders = Order.objects.all()
 
+    today = date.today()
+    upcoming_limit = today + timedelta(days=7)
+
+    upcoming_orders_qs = Order.objects.filter(
+        delivery_date__range=[today, upcoming_limit]
+    ).exclude(status__in=["delivered", "cancelled", "rejected"]).order_by("delivery_date")
+
+    all_upcoming_qs = Order.objects.exclude(
+        status__in=["delivered", "cancelled", "rejected"]
+    ).order_by("delivery_date", "delivery_time")
+
+    # pagination
+    page = int(request.GET.get("page", 1))
+    page_size = 5
+
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    total_count = all_upcoming_qs.count()
+
+    all_upcoming_orders = OrderSerializer(all_upcoming_qs[start:end], many=True).data
+    upcoming_orders = OrderSerializer(upcoming_orders_qs, many=True).data
+    
     data = {
         "total_orders": orders.count(),
         "pending_review": orders.filter(status="pending_review").count(),
         "awaiting_downpayment": orders.filter(status="awaiting_downpayment").count(),
-        "completed": orders.filter(status="completed").count(),
+        "completed": orders.filter(status="delivered").count(),
 
-        # optional but useful
         "total_revenue": orders.filter(payment_status="paid").aggregate(
             total=Sum("total_amount")
         )["total"] or 0,
+
+        "upcoming_orders": upcoming_orders,
+        "all_upcoming_orders": all_upcoming_orders,
+        "all_upcoming_total": total_count,
+        "all_upcoming_page": page,
+        "all_upcoming_has_next": end < total_count,
+        "all_upcoming_has_prev": page > 1,
     }
 
     return Response(data)
