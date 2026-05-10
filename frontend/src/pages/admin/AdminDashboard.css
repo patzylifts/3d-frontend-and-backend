@@ -1,3 +1,4 @@
+/* src/pages/admin/AdminDashboard.css */
 .admin-page {
     min-height: 100vh;
     padding: 120px 24px 60px; /* Top padding to clear the fixed Navbar */
@@ -98,4 +99,114 @@
     .stats-grid {
         grid-template-columns: 1fr; /* 1 column on phones */
     }
+}
+
+.todo-section {
+    margin-top: 50px;
+    width: 100%;
+}
+
+.todo-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--espresso, #2d1b14);
+    margin-bottom: 20px;
+}
+
+.todo-empty {
+    color: #999;
+    font-size: 0.95rem;
+}
+
+.todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.todo-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 18px 22px;
+    border-radius: 18px;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+    transition: 0.2s ease;
+}
+
+.todo-card:hover {
+    transform: translateY(-2px);
+}
+
+.todo-name {
+    font-weight: 700;
+    color: #2d1b14;
+    margin: 0;
+}
+
+.todo-meta {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 3px;
+}
+
+.todo-status {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* status colors */
+.todo-status.pending_review { background: #fff3cd; color: #856404; }
+.todo-status.awaiting_downpayment { background: #cce5ff; color: #004085; }
+.todo-status.processing { background: #d4edda; color: #155724; }
+.todo-status.ready_for_delivery { background: #e2e3ff; color: #2c2f77; }
+
+.all-orders-section {
+    margin-top: 60px;
+    width: 100%;
+}
+
+/* ================= PAGINATION ================= */
+
+.pagination-controls {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.pagination-controls button {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: none;
+    background: #2d1b14;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.pagination-controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.pagination-controls span {
+    font-weight: 600;
+    color: #555;
+}
+
+.todo-card.clickable {
+    cursor: pointer;
+}
+
+.todo-card.clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
 }
