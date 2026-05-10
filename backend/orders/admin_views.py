@@ -87,7 +87,6 @@ def admin_update_order_status(request, order_id):
             "processing": ["ready_for_delivery", "cancelled"],
             "ready_for_delivery": ["out_for_delivery"],
             "out_for_delivery": ["delivered"],
-            "delivered": ["completed"],
         }
 
         current = order.status

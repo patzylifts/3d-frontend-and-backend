@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
 import Navbar from "../../components/Navbar";
+import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import "./AdminOrderDetailPage.css";
 
 export default function AdminOrderDetailPage() {
@@ -151,7 +152,7 @@ export default function AdminOrderDetailPage() {
                             </div>
                         )}
                         {/* STATUS PROGRESSION */}
-                        {order.status !== "pending_review" && order.status !== "rejected" && order.status !== "completed" && (
+                        {order.status !== "pending_review" && order.status !== "rejected" && order.status !== "delivered" && (
                             <div className="admin-actions">
                                 <h4>Update Order Status</h4>
 
@@ -194,6 +195,8 @@ export default function AdminOrderDetailPage() {
                         )}
                     </div>
                 </div>
+
+                <AdminOrderFeedback feedback={order.feedback}/>
 
                 {/* ITEMS TABLE */}
                 <div className="order-card table-card">

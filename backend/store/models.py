@@ -60,7 +60,6 @@ class Order(models.Model):
         ("ready_for_delivery", "Ready for Delivery"),
         ("out_for_delivery", "Out for Delivery"),
         ("delivered", "Delivered"),
-        ("completed", "Completed"),
         ("cancelled", "Cancelled"),
         ("rejected", "Rejected"),
     ]

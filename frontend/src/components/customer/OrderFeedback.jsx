@@ -12,9 +12,7 @@ export default function OrderFeedback({ order, onFeedbackSubmitted }) {
 
     const [loading, setLoading] = useState(false);
 
-    const canReview =
-        order.status === "delivered" ||
-        order.status === "completed";
+    const canReview = order.status === "delivered";
 
     // already reviewed
     if (order.feedback) {

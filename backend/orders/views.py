@@ -91,7 +91,7 @@ def submit_feedback(request, order_id):
         )
 
     # ONLY DELIVERED OR COMPLETED ORDERS
-    if order.status not in ["delivered", "completed"]:
+    if order.status != "delivered":
         return Response(
             {"error": "You can only review delivered orders"},
             status=400
