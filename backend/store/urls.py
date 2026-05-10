@@ -9,7 +9,7 @@ from .views_verification import send_verification_code, verify_code
 urlpatterns = [
     # Register
     path('register/', views.register_view),
-    # 🔴 SMS Verification
+    # SMS Verification
     path('send-code/', send_verification_code),
     path('verify-code/', verify_code),
     # Login

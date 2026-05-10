@@ -28,12 +28,14 @@ def send_verification_code(request):
     )
 
     verification.generate_code()
+    print("OTP CODE:", verification.code)
     verification.save()
 
     sms_response = send_sms(
         phone,
-        f"Your Cake Shop verification code is {verification.code}. Valid for 5 minutes."
+        f"Smiley Page Corner account verification code: {verification.code}. This code expires in 5 minutes."
     )
+    print("OTP SMS RESPONSE:", sms_response)
 
     if not sms_response:
         return Response({

@@ -5,6 +5,7 @@ import { authFetch } from "../../utils/auth";
 import Logistics from "../../components/Logistics";
 import AddPaymentModal from "../../components/customer/AddPaymentModal";
 import Navbar from "../../components/Navbar";
+import OrderFeedback from "../../components/customer/OrderFeedback";
 import "./CustomerOrderDetailPage.css";
 
 export default function CustomerOrderDetailPage() {
@@ -68,9 +69,9 @@ export default function CustomerOrderDetailPage() {
     if (error) return <div className="order-error">{error}</div>;
     if (!order) return null;
 
-    const showPaymentCard = 
-        (order.status === "awaiting_downpayment" || 
-        (order.payment_status === "partial" && !["cancelled", "rejected"].includes(order.status))) 
+    const showPaymentCard =
+        (order.status === "awaiting_downpayment" ||
+            (order.payment_status === "partial" && !["cancelled", "rejected"].includes(order.status)))
         && remainingBalance > 0;
 
     return (
@@ -115,8 +116,8 @@ export default function CustomerOrderDetailPage() {
                             <div className="bento-card payment-card highlight-card">
                                 <h3>{order.total_paid == 0 ? "Complete Downpayment" : "Complete Remaining Balance"}</h3>
                                 <p className="hint">
-                                    {order.total_paid == 0 
-                                        ? `Minimum required: ₱${minAmount.toLocaleString()}` 
+                                    {order.total_paid == 0
+                                        ? `Minimum required: ₱${minAmount.toLocaleString()}`
                                         : `Remaining balance: ₱${remainingBalance.toLocaleString()}`}
                                 </p>
 
@@ -195,6 +196,8 @@ export default function CustomerOrderDetailPage() {
                     </div>
                 </div>
 
+                <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder}/>
+                
                 <div className="order-actions-footer">
                     {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
                         <button className="btn-outline-danger" onClick={async () => {

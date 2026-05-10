@@ -2,7 +2,14 @@
 from rest_framework import serializers
 from payments.serializers import PaymentSerializer
 from store.models import Order, OrderItem, Product
+from .models import OrderFeedback
+        
+class OrderFeedbackSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = OrderFeedback
+        fields = "__all__"
+        
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
     product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
@@ -31,11 +38,12 @@ class OrderSerializer(serializers.ModelSerializer):
     full_address = serializers.SerializerMethodField()
     formatted_phone = serializers.SerializerMethodField()
     payments = PaymentSerializer(many=True, read_only=True)
+    feedback = OrderFeedbackSerializer(read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'payments',
+            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'payments', 'feedback',
         ]
         
     def get_total_paid(self, obj):

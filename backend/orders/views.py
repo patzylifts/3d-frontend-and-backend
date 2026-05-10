@@ -5,7 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from store.models import Order
+from .models import OrderFeedback
 from .serializers import OrderSerializer
+from .serializers_feedback import OrderFeedbackSerializer
 from orders.utils_sms_notifications import send_order_status_sms
 
 @api_view(['GET'])
@@ -71,3 +73,49 @@ def cancel_order(request, order_id):
 
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_feedback(request, order_id):
+
+    try:
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user
+        )
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    # ONLY DELIVERED OR COMPLETED ORDERS
+    if order.status != "delivered":
+        return Response(
+            {"error": "You can only review delivered orders"},
+            status=400
+        )
+
+    # PREVENT DUPLICATE FEEDBACK
+    if hasattr(order, "feedback"):
+        return Response(
+            {"error": "Feedback already submitted"},
+            status=400
+        )
+
+    serializer = OrderFeedbackSerializer(data=request.data)
+
+    if serializer.is_valid():
+
+        serializer.save(
+            order=order,
+            user=request.user
+        )
+
+        return Response({
+            "message": "Feedback submitted successfully",
+            "feedback": serializer.data
+        })
+
+    return Response(serializer.errors, status=400)
