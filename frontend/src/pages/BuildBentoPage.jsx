@@ -3,7 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
-import { CustomizationProvider, useCustomization } from "../contexts/Customization";
+import { CAKE_SIZES, CustomizationProvider, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import "./BuildBentoPage.css";
@@ -261,39 +261,6 @@ function CakeModel({ selectedTierIndex }) {
 /* ─────────────────────────────── CONFIGURATOR PANEL ─────────────────────────────── */
 
 /* ── Cake size / tier catalogue ── */
-const CAKE_SIZES = [
-    {
-        tier: "1 Tier Cake",
-        sizes: [
-            "Bento Cake",
-            "Tall Bento Cake",
-            "Standard",
-            "Tall Cake",
-        ],
-    },
-    {
-        tier: "Mini 2 Tier",
-        sizes: [
-            "6×4 & 4×4",
-            "6×6 Cake",
-            "6×8 Cake",
-            "8×5 Cake",
-        ],
-    },
-    {
-        tier: "3 Tier Cake",
-        sizes: [
-            "4×5, 6×6 & 8×5",
-        ],
-    },
-    {
-        tier: "4 Tier Cake",
-        sizes: [
-            "4×4 & 6×6, 8×5 & 10×4",
-        ],
-    },
-];
-
 function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
         cakeColors, cakeColor, setCakeColor,
@@ -305,19 +272,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         nuts, setNuts,
         generateRandomCake,
         calculatePrice,
+        pricingLoading,
+        pricingError,
     } = useCustomization();
 
     const { addCustomCakeToCart } = useCart();
     const navigate = useNavigate();
     const [orderStatus, setOrderStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Size & Tier state is lifted to BuildBentoContent and passed via props
-    const handleTierChange = (e) => {
-        const idx = parseInt(e.target.value, 10);
-        setSelectedTierIndex(idx);
-        setSelectedSize(CAKE_SIZES[idx].sizes[0]); // reset size to first of new tier
-    };
 
     const handleSizeChange = (e) => setSelectedSize(e.target.value);
 
@@ -335,7 +297,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             has_chocolate: chocolate,
             has_balls: balls,
             has_nuts: nuts,
-            price: calculatePrice(),
         };
 
         const result = await addCustomCakeToCart(payload);
@@ -478,6 +439,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </button>
 
             {/* Price Display */}
+            {pricingLoading && (
+                <div className="cfg-pricing-note">Loading latest prices...</div>
+            )}
+            {pricingError && (
+                <div className="cfg-pricing-note cfg-pricing-note--error">
+                    {pricingError}
+                </div>
+            )}
             <div className="cfg-price-display">
                 <span className="cfg-price-label">Total Price:</span>
                 <span className="cfg-price-amount">₱{calculatePrice().toFixed(2)}</span>
@@ -487,7 +456,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             <button
                 className="cfg-order-btn"
                 onClick={handleAddToCart}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!pricingError}
             >
                 {isSubmitting ? "Adding..." : "🛒 Add to Cart"}
             </button>
@@ -506,9 +475,12 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 /* ─────────────────────────────── PAGE ─────────────────────────────── */
 
 function BuildBentoContent() {
-    const navigate = useNavigate();
-    const [selectedTierIndex, setSelectedTierIndex] = useState(0);
-    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
+    const {
+        selectedTierIndex,
+        setSelectedTierIndex,
+        selectedSize,
+        setSelectedSize,
+    } = useCustomization();
 
     return (
         <div className="build-page">

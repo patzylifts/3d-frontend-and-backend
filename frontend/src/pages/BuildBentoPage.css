@@ -286,6 +286,20 @@
     backdrop-filter: blur(10px);
 }
 
+.cfg-pricing-note {
+    border-radius: 10px;
+    background: #f7f3ed;
+    color: var(--espresso);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 10px 12px;
+}
+
+.cfg-pricing-note--error {
+    background: #fff1f3;
+    color: var(--primary-berry);
+}
+
 .cfg-price-label {
     color: white;
     font-weight: 600;

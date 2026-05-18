@@ -2,6 +2,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
+from decimal import Decimal
 
 phone_validator = RegexValidator(
     regex=r'^09\d{9}$',
@@ -28,6 +29,76 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CustomCakePricing(models.Model):
+    FLAVOR_CHOICES = [
+        ("Choco Moist", "Choco Moist"),
+        ("Vanilla Chiffon", "Vanilla Chiffon"),
+        ("Ube Chiffon", "Ube Chiffon"),
+    ]
+
+    tier = models.CharField(max_length=50)
+    size = models.CharField(max_length=100)
+    flavor = models.CharField(max_length=50, choices=FLAVOR_CHOICES)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tier", "size", "flavor"],
+                name="unique_custom_cake_pricing",
+            )
+        ]
+        ordering = ["tier", "size", "flavor"]
+
+    def __str__(self):
+        return f"{self.tier} - {self.size} - {self.flavor}: {self.price}"
+
+
+class AddonPricing(models.Model):
+    ADDON_CHOICES = [
+        ("candle", "Candle"),
+        ("chocolate", "Chocolate"),
+        ("balls", "Balls"),
+        ("nuts", "Nuts"),
+    ]
+
+    key = models.CharField(max_length=30, choices=ADDON_CHOICES, unique=True)
+    name = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name}: {self.price}"
+
+
+def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
+                                has_chocolate=False, has_balls=False, has_nuts=False):
+    base_price = CustomCakePricing.objects.get(
+        tier=tier,
+        size=size,
+        flavor=flavor,
+    ).price
+
+    selected_addons = []
+    if has_candle:
+        selected_addons.append("candle")
+    if has_chocolate:
+        selected_addons.append("chocolate")
+    if has_balls:
+        selected_addons.append("balls")
+    if has_nuts:
+        selected_addons.append("nuts")
+
+    addon_total = sum(
+        AddonPricing.objects.filter(key__in=selected_addons).values_list("price", flat=True),
+        Decimal("0.00"),
+    )
+
+    return base_price + addon_total
 
 # USER
 class UserProfile(models.Model):

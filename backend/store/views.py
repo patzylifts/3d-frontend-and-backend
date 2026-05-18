@@ -6,11 +6,28 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .token_serializers import MyTokenObtainPairSerializer
 
-from django.contrib.auth.models import BaseUserManager
-
-from .models import Product, Category, Cart, CartItem, Order, OrderItem, UserProfile, CakeCustomization
+from .models import (
+    AddonPricing,
+    CakeCustomization,
+    Cart,
+    CartItem,
+    Category,
+    CustomCakePricing,
+    Order,
+    OrderItem,
+    Product,
+    UserProfile,
+    calculate_custom_cake_price,
+)
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
-from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer, CakeCustomizationSerializer
+from .serializers import (
+    AddonPricingSerializer,
+    CakeCustomizationSerializer,
+    CustomCakePricingSerializer,
+    RegisterSerializer,
+    UserProfileSerializer,
+    UserSerializer,
+)
 
 from .models_verification import SMSVerification
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -38,6 +55,17 @@ def get_categories(request):
     categories = Category.objects.all()
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def get_custom_pricing(request):
+    base_prices = CustomCakePricing.objects.all().order_by('tier', 'size', 'flavor')
+    addon_prices = AddonPricing.objects.all().order_by('name')
+
+    return Response({
+        "base_prices": CustomCakePricingSerializer(base_prices, many=True).data,
+        "addon_prices": AddonPricingSerializer(addon_prices, many=True).data,
+    })
 
 # Cart
 @api_view(['GET'])
@@ -211,7 +239,24 @@ def add_custom_cake_to_cart(request):
     """
     serializer = CakeCustomizationSerializer(data=request.data)
     if serializer.is_valid():
-        customization = serializer.save(user=request.user)
+        data = serializer.validated_data
+
+        try:
+            price = calculate_custom_cake_price(
+                tier=data.get("tier"),
+                size=data.get("size"),
+                flavor=data.get("flavor"),
+                has_candle=data.get("has_candle", False),
+                has_chocolate=data.get("has_chocolate", False),
+                has_balls=data.get("has_balls", False),
+                has_nuts=data.get("has_nuts", False),
+            )
+        except CustomCakePricing.DoesNotExist:
+            return Response({
+                "error": "No price is configured for the selected tier, size, and flavor."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        customization = serializer.save(user=request.user, price=price)
         
         # Get or create the user's cart
         cart, _ = Cart.objects.get_or_create(user=request.user)

@@ -9,6 +9,33 @@
     margin: 0 auto;
 }
 
+.admin-price-toast {
+    position: fixed;
+    top: 96px;
+    right: 24px;
+    z-index: 1000;
+    background: #2d1b14;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(45, 27, 20, 0.18);
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    padding: 14px 18px;
+    animation: adminToastIn 0.2s ease-out;
+}
+
+@keyframes adminToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .admin-products-header {
     display: flex;
     justify-content: space-between;
@@ -84,5 +111,165 @@
     .btn-add-product {
         width: 100%;
         justify-content: center;
+    }
+
+    .admin-price-toast {
+        left: 16px;
+        right: 16px;
+        text-align: center;
+    }
+}
+
+.admin-product-tabs {
+    display: inline-flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    padding: 6px;
+    border: 1px solid #f0e6dd;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.admin-product-tab {
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #7c6f67;
+    cursor: pointer;
+    font-weight: 800;
+    padding: 10px 18px;
+}
+
+.admin-product-tab.active {
+    background: #2d1b14;
+    color: white;
+}
+
+.pricing-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.pricing-section {
+    background: #fff;
+    border: 1px solid #f0e6dd;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(45, 27, 20, 0.06);
+    overflow: hidden;
+}
+
+.pricing-section-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #f0e6dd;
+}
+
+.pricing-section-header h2 {
+    color: #2d1b14;
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.pricing-section-header p {
+    color: #888;
+    font-size: 0.9rem;
+    margin: 6px 0 0;
+}
+
+.pricing-table-wrap {
+    overflow-x: auto;
+}
+
+.pricing-table-wrap-small {
+    max-width: 720px;
+}
+
+.pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.pricing-table th,
+.pricing-table td {
+    border-bottom: 1px solid #f5eee7;
+    color: #3a2a22;
+    padding: 14px 18px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.pricing-table th {
+    background: #fbf7f1;
+    color: #8b7c72;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pricing-input {
+    width: 130px;
+    border: 2px solid #f1ebe5;
+    border-radius: 10px;
+    color: #2d1b14;
+    font-weight: 700;
+    padding: 10px 12px;
+}
+
+.pricing-input:focus {
+    border-color: #d85c7b;
+    outline: none;
+}
+
+.pricing-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-price-save,
+.btn-price-cancel {
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 800;
+    padding: 9px 12px;
+}
+
+.btn-price-save {
+    background: #2d1b14;
+    color: white;
+}
+
+.btn-price-cancel {
+    background: #f5f0eb;
+    color: #7c6f67;
+}
+
+.btn-price-save:disabled,
+.btn-price-cancel:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.pricing-status {
+    background: #fff;
+    border-radius: 8px;
+    color: #888;
+    font-weight: 700;
+    padding: 40px;
+    text-align: center;
+}
+
+.pricing-status-error {
+    color: #d85c7b;
+}
+
+@media (max-width: 640px) {
+    .admin-product-tabs {
+        width: 100%;
+    }
+
+    .admin-product-tab {
+        flex: 1;
     }
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const cakeColors = [
     { color: "#683434", name: "brown" },
@@ -24,7 +24,6 @@ const flavorTextureMap = {
     "Ube Chiffon": "ube",
 };
 
-/* ── Cake size / tier catalogue ── */
 export const CAKE_SIZES = [
     {
         tier: "1 Tier Cake",
@@ -34,41 +33,28 @@ export const CAKE_SIZES = [
     {
         tier: "Mini 2 Tier",
         tierKey: "tier2",
-        sizes: ["6×4 & 4×4", "6×6 Cake", "6×8 Cake", "8×5 Cake"],
+        sizes: ["6x4 & 4x4", "6x6 Cake", "6x8 Cake", "8x5 Cake"],
     },
     {
         tier: "3 Tier Cake",
         tierKey: "tier3",
-        sizes: ["4×5, 6×6 & 8×5"],
+        sizes: ["4x5, 6x6 & 8x5"],
     },
     {
         tier: "4 Tier Cake",
         tierKey: "tier4",
-        sizes: ["4×4 & 6×6, 8×5 & 10×4"],
+        sizes: ["4x4 & 6x6, 8x5 & 10x4"],
     },
 ];
 
-// Base prices per tier × flavor
-const CAKE_PRICES = {
-    tier1: {
-        round:     { "Choco Moist": 1000, "Vanilla Chiffon": 900,  "Ube Chiffon": 900  },
-        rectangle: { "Choco Moist": 1100, "Vanilla Chiffon": 1000, "Ube Chiffon": 1000 },
-    },
-    tier2: {
-        round:     { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
-        rectangle: { "Choco Moist": 1900, "Vanilla Chiffon": 1700, "Ube Chiffon": 1700 },
-    },
-    tier3: {
-        round:     { "Choco Moist": 2800, "Vanilla Chiffon": 2500, "Ube Chiffon": 2500 },
-        rectangle: { "Choco Moist": 2900, "Vanilla Chiffon": 2600, "Ube Chiffon": 2600 },
-    },
-    tier4: {
-        round:     { "Choco Moist": 3800, "Vanilla Chiffon": 3400, "Ube Chiffon": 3400 },
-        rectangle: { "Choco Moist": 3900, "Vanilla Chiffon": 3500, "Ube Chiffon": 3500 },
-    },
+const DEFAULT_CAKE_PRICES = {
+    tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
+    tier2: { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
+    tier3: { "Choco Moist": 2800, "Vanilla Chiffon": 2500, "Ube Chiffon": 2500 },
+    tier4: { "Choco Moist": 3800, "Vanilla Chiffon": 3400, "Ube Chiffon": 3400 },
 };
 
-const ADDON_PRICES = {
+const DEFAULT_ADDON_PRICES = {
     candle: 100,
     chocolate: 200,
     balls: 100,
@@ -78,38 +64,83 @@ const ADDON_PRICES = {
 const CustomizationContext = createContext({});
 
 export const CustomizationProvider = (props) => {
-    // Shape: 1 = round, 2 = rectangle
+    const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
+
     const [form, setForm] = useState(1);
-
-    // Tier & size
     const [selectedTierIndex, setSelectedTierIndex] = useState(0);
-    const [selectedSize, setSelectedSize]           = useState(CAKE_SIZES[0].sizes[0]);
-
-    // Decorations
-    const [candle,    setCandle]    = useState(false);
+    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
+    const [candle, setCandle] = useState(false);
     const [chocolate, setChocolate] = useState(false);
-    const [balls,     setBalls]     = useState(false);
-    const [nuts,      setNuts]      = useState(false);
-
-    // Color & flavor
+    const [balls, setBalls] = useState(false);
+    const [nuts, setNuts] = useState(false);
     const [cakeColor, setCakeColor] = useState(cakeColors[0]);
-    const [flavor,    setFlavor]    = useState(flavors[0]);
+    const [flavor, setFlavor] = useState(flavors[0]);
+    const [basePrices, setBasePrices] = useState([]);
+    const [addonPrices, setAddonPrices] = useState([]);
+    const [pricingLoading, setPricingLoading] = useState(true);
+    const [pricingError, setPricingError] = useState("");
 
-    // Derived helper
-    const tierKey   = CAKE_SIZES[selectedTierIndex]?.tierKey ?? "tier1";
-    const shapeKey  = form === 1 ? "round" : "rectangle";
+    const tier = CAKE_SIZES[selectedTierIndex] ?? CAKE_SIZES[0];
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function fetchPricing() {
+            setPricingLoading(true);
+            setPricingError("");
+
+            try {
+                const res = await fetch(`${BASEURL}/api/custom-pricing/`);
+                if (!res.ok) throw new Error("Failed to load custom cake pricing");
+                const data = await res.json();
+
+                if (isMounted) {
+                    setBasePrices(data.base_prices || []);
+                    setAddonPrices(data.addon_prices || []);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setPricingError(error.message);
+                }
+            } finally {
+                if (isMounted) {
+                    setPricingLoading(false);
+                }
+            }
+        }
+
+        fetchPricing();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [BASEURL]);
+
+    const getBasePrice = () => {
+        const configuredPrice = basePrices.find((item) =>
+            item.tier === tier.tier &&
+            item.size === selectedSize &&
+            item.flavor === flavor
+        );
+
+        if (configuredPrice) return Number(configuredPrice.price);
+        return DEFAULT_CAKE_PRICES[tier.tierKey]?.[flavor] ?? 1000;
+    };
+
+    const getAddonPrice = (key) => {
+        const configuredAddon = addonPrices.find((item) => item.key === key);
+        if (configuredAddon) return Number(configuredAddon.price);
+        return DEFAULT_ADDON_PRICES[key] ?? 0;
+    };
 
     const calculatePrice = () => {
-        const basePrice =
-            CAKE_PRICES[tierKey]?.[shapeKey]?.[flavor] ?? 1000;
-
         let addonsPrice = 0;
-        if (candle)    addonsPrice += ADDON_PRICES.candle;
-        if (chocolate) addonsPrice += ADDON_PRICES.chocolate;
-        if (balls)     addonsPrice += ADDON_PRICES.balls;
-        if (nuts)      addonsPrice += ADDON_PRICES.nuts;
+        if (candle) addonsPrice += getAddonPrice("candle");
+        if (chocolate) addonsPrice += getAddonPrice("chocolate");
+        if (balls) addonsPrice += getAddonPrice("balls");
+        if (nuts) addonsPrice += getAddonPrice("nuts");
 
-        return basePrice + addonsPrice;
+        return getBasePrice() + addonsPrice;
     };
 
     const handleTierChange = (idx) => {
@@ -118,12 +149,12 @@ export const CustomizationProvider = (props) => {
     };
 
     const generateRandomCake = () => {
-        const randomForm        = Math.random() < 0.5 ? 1 : 2;
-        const randomTierIdx     = Math.floor(Math.random() * CAKE_SIZES.length);
-        const randomCakeColor   = cakeColors[Math.floor(Math.random() * cakeColors.length)];
-        const randomFlavor      = flavors[Math.floor(Math.random() * flavors.length)];
+        const randomForm = Math.random() < 0.5 ? 1 : 2;
+        const randomTierIdx = Math.floor(Math.random() * CAKE_SIZES.length);
+        const randomCakeColor = cakeColors[Math.floor(Math.random() * cakeColors.length)];
+        const randomFlavor = flavors[Math.floor(Math.random() * flavors.length)];
         const decorationOptions = ["candle", "chocolate", "balls", "nuts"];
-        const randomDecoration  = decorationOptions[Math.floor(Math.random() * decorationOptions.length)];
+        const randomDecoration = decorationOptions[Math.floor(Math.random() * decorationOptions.length)];
 
         setForm(randomForm);
         setSelectedTierIndex(randomTierIdx);
@@ -131,44 +162,58 @@ export const CustomizationProvider = (props) => {
         setCakeColor(randomCakeColor);
         setFlavor(randomFlavor);
 
-        setCandle(false); setChocolate(false); setBalls(false); setNuts(false);
+        setCandle(false);
+        setChocolate(false);
+        setBalls(false);
+        setNuts(false);
         switch (randomDecoration) {
-            case "candle":    setCandle(true);    break;
-            case "chocolate": setChocolate(true); break;
-            case "balls":     setBalls(true);     break;
-            case "nuts":      setNuts(true);      break;
-            default: break;
+            case "candle":
+                setCandle(true);
+                break;
+            case "chocolate":
+                setChocolate(true);
+                break;
+            case "balls":
+                setBalls(true);
+                break;
+            case "nuts":
+                setNuts(true);
+                break;
+            default:
+                break;
         }
     };
 
     return (
         <CustomizationContext.Provider
             value={{
-                // Shape
-                form, setForm,
-
-                // Tier & size
-                selectedTierIndex, setSelectedTierIndex: handleTierChange,
-                selectedSize, setSelectedSize,
-
-                // Colors
-                cakeColors, cakeColor, setCakeColor,
-
-                // Flavor
-                flavors, flavor, setFlavor,
+                form,
+                setForm,
+                selectedTierIndex,
+                setSelectedTierIndex: handleTierChange,
+                selectedSize,
+                setSelectedSize,
+                cakeColors,
+                cakeColor,
+                setCakeColor,
+                flavors,
+                flavor,
+                setFlavor,
                 flavorTextureMap,
-
-                // Decorations
-                candle, setCandle,
-                chocolate, setChocolate,
-                balls, setBalls,
-                nuts, setNuts,
-
-                // Helpers
+                candle,
+                setCandle,
+                chocolate,
+                setChocolate,
+                balls,
+                setBalls,
+                nuts,
+                setNuts,
                 generateRandomCake,
                 calculatePrice,
-                CAKE_PRICES,
-                ADDON_PRICES,
+                pricingLoading,
+                pricingError,
+                basePrices,
+                addonPrices,
             }}
         >
             {props.children}
