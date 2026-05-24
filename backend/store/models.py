@@ -244,6 +244,7 @@ class CakeCustomization(models.Model):
     has_chocolate = models.BooleanField(default=False)
     has_balls = models.BooleanField(default=False)
     has_nuts = models.BooleanField(default=False)
+    topping_layout = models.JSONField(default=dict, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=500.00)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -262,6 +263,7 @@ class CakeCustomization(models.Model):
             "has_chocolate": self.has_chocolate,
             "has_balls": self.has_balls,
             "has_nuts": self.has_nuts,
+            "topping_layout": self.topping_layout,
             "price": str(self.price),
         }
         
