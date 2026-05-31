@@ -61,53 +61,7 @@ const DEFAULT_ADDON_PRICES = {
     nuts: 75,
 };
 
-export const TOPPING_OPTIONS = [
-    { key: "candle", label: "Candle", shortLabel: "C", color: "#f3b23f" },
-    { key: "chocolate", label: "Chocolate", shortLabel: "Ch", color: "#5c2f1f" },
-    { key: "balls", label: "Balls", shortLabel: "B", color: "#7f54d8" },
-    { key: "nuts", label: "Nuts", shortLabel: "N", color: "#c99a5b" },
-];
-
-export const TOPPING_SIZES = {
-    Small: 0.78,
-    Medium: 1,
-    Large: 1.28,
-};
-
-const DEFAULT_TOPPING_LAYOUT = {
-    candle: { x: 50, y: 45, size: "Medium" },
-    chocolate: { x: 49, y: 42, size: "Medium" },
-    balls: { x: 61, y: 50, size: "Medium" },
-    nuts: { x: 54, y: 66, size: "Medium" },
-};
-
 const CustomizationContext = createContext({});
-
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-const clampToCakeShape = (x, y, form) => {
-    const next = {
-        x: clamp(x, 10, 90),
-        y: clamp(y, 10, 90),
-    };
-
-    if (form === 1) {
-        const centerX = 50;
-        const centerY = 50;
-        const radius = 40;
-        const dx = next.x - centerX;
-        const dy = next.y - centerY;
-        const distance = Math.hypot(dx, dy);
-
-        if (distance > radius) {
-            const ratio = radius / distance;
-            next.x = centerX + dx * ratio;
-            next.y = centerY + dy * ratio;
-        }
-    }
-
-    return next;
-};
 
 export const CustomizationProvider = (props) => {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -125,20 +79,8 @@ export const CustomizationProvider = (props) => {
     const [addonPrices, setAddonPrices] = useState([]);
     const [pricingLoading, setPricingLoading] = useState(true);
     const [pricingError, setPricingError] = useState("");
-    const [toppingLayout, setToppingLayout] = useState(DEFAULT_TOPPING_LAYOUT);
 
     const tier = CAKE_SIZES[selectedTierIndex] ?? CAKE_SIZES[0];
-
-    useEffect(() => {
-        setToppingLayout((currentLayout) =>
-            Object.fromEntries(
-                Object.entries(currentLayout).map(([key, value]) => {
-                    const nextPosition = clampToCakeShape(value.x, value.y, form);
-                    return [key, { ...value, ...nextPosition }];
-                })
-            )
-        );
-    }, [form]);
 
     useEffect(() => {
         let isMounted = true;
@@ -206,35 +148,6 @@ export const CustomizationProvider = (props) => {
         setSelectedSize(CAKE_SIZES[idx].sizes[0]);
     };
 
-    const setToppingPosition = (key, x, y) => {
-        setToppingLayout((currentLayout) => {
-            const current = currentLayout[key] ?? DEFAULT_TOPPING_LAYOUT[key];
-            const nextPosition = clampToCakeShape(x, y, form);
-            return {
-                ...currentLayout,
-                [key]: {
-                    ...current,
-                    ...nextPosition,
-                },
-            };
-        });
-    };
-
-    const setToppingSize = (key, size) => {
-        if (!TOPPING_SIZES[size]) return;
-
-        setToppingLayout((currentLayout) => {
-            const current = currentLayout[key] ?? DEFAULT_TOPPING_LAYOUT[key];
-            return {
-                ...currentLayout,
-                [key]: {
-                    ...current,
-                    size,
-                },
-            };
-        });
-    };
-
     const generateRandomCake = () => {
         const randomForm = Math.random() < 0.5 ? 1 : 2;
         const randomTierIdx = Math.floor(Math.random() * CAKE_SIZES.length);
@@ -248,26 +161,6 @@ export const CustomizationProvider = (props) => {
         setSelectedSize(CAKE_SIZES[randomTierIdx].sizes[0]);
         setCakeColor(randomCakeColor);
         setFlavor(randomFlavor);
-        setToppingLayout(
-            Object.fromEntries(
-                Object.entries(DEFAULT_TOPPING_LAYOUT).map(([key, value]) => {
-                    const nextPosition = clampToCakeShape(
-                        clamp(value.x + (Math.random() * 18 - 9), 10, 90),
-                        clamp(value.y + (Math.random() * 18 - 9), 10, 90),
-                        randomForm
-                    );
-                    const sizeNames = Object.keys(TOPPING_SIZES);
-                    return [
-                        key,
-                        {
-                            ...value,
-                            ...nextPosition,
-                            size: sizeNames[Math.floor(Math.random() * sizeNames.length)],
-                        },
-                    ];
-                })
-            )
-        );
 
         setCandle(false);
         setChocolate(false);
@@ -321,9 +214,6 @@ export const CustomizationProvider = (props) => {
                 pricingError,
                 basePrices,
                 addonPrices,
-                toppingLayout,
-                setToppingPosition,
-                setToppingSize,
             }}
         >
             {props.children}
