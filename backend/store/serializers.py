@@ -57,6 +57,7 @@ class CakeCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CakeCustomization
         fields = ['id', 'shape', 'cake_color', 'flavor', 'tier', 'size',
+                  'tier_flavors', 'inscription_text', 'text_font', 'topping_layout',
                   'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at']
         read_only_fields = ['id', 'price', 'created_at']
 

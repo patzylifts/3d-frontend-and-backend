@@ -24,6 +24,31 @@ const flavorTextureMap = {
     "Ube Chiffon": "ube",
 };
 
+export const FLAVOR_VISUALS = {
+    "Choco Moist": { color: "#8B4513", label: "Chocolate" },
+    "Vanilla Chiffon": { color: "#F3E5AB", label: "Vanilla" },
+    "Ube Chiffon": { color: "#A56BFF", label: "Ube" },
+};
+
+export const TEXT_FONT_OPTIONS = [
+    { value: "classic", label: "Classic", path: "/fonts/customization/classic.ttf" },
+    { value: "elegant", label: "Elegant", path: "/fonts/customization/elegant.otf" },
+    { value: "playful", label: "Playful", path: "/fonts/customization/playful.ttf" },
+];
+
+export const TOPPING_OPTIONS = [
+    { key: "candle", label: "Candle", color: "#FFD700" },
+    { key: "chocolate", label: "Chocolate", color: "#8B4513" },
+    { key: "balls", label: "Balls", color: "#D4AF37" },
+    { key: "nuts", label: "Nuts", color: "#A0522D" },
+];
+
+export const TOPPING_SIZES = {
+    small: 0.8,
+    medium: 1.0,
+    large: 1.2,
+};
+
 export const CAKE_SIZES = [
     {
         tier: "1 Tier Cake",
@@ -79,8 +104,49 @@ export const CustomizationProvider = (props) => {
     const [addonPrices, setAddonPrices] = useState([]);
     const [pricingLoading, setPricingLoading] = useState(true);
     const [pricingError, setPricingError] = useState("");
+    const [toppingLayout, setToppingLayout] = useState({
+        candle: { x: 50, y: 50, size: "medium" },
+        chocolate: { x: 50, y: 50, size: "medium" },
+        balls: { x: 50, y: 50, size: "medium" },
+        nuts: { x: 50, y: 50, size: "medium" },
+    });
+    const [tierFlavors, setTierFlavors] = useState({
+        tier2: [flavors[0], flavors[0]],
+        tier3: [flavors[0], flavors[0], flavors[0]],
+        tier4: [flavors[0], flavors[0], flavors[0], flavors[0]],
+    });
+    const [tierFlavorLabels] = useState(["Bottom Tier", "Middle Tier", "Top Tier", "Peak Tier"]);
+    const [inscriptionText, setInscriptionText] = useState("");
+    const [textFont, setTextFont] = useState(TEXT_FONT_OPTIONS[0].value);
 
     const tier = CAKE_SIZES[selectedTierIndex] ?? CAKE_SIZES[0];
+    const selectedTierFlavors = tier.tierKey === "tier1"
+        ? [flavor]
+        : tierFlavors[tier.tierKey] ?? [flavor];
+    const pricingFlavor = selectedTierFlavors[0] ?? flavor;
+
+    const setToppingPosition = (key, x, y) => {
+        setToppingLayout((prev) => ({
+            ...prev,
+            [key]: { ...prev[key], x, y },
+        }));
+    };
+
+    const setToppingSize = (key, size) => {
+        setToppingLayout((prev) => ({
+            ...prev,
+            [key]: { ...prev[key], size },
+        }));
+    };
+
+    const setTierLayerFlavor = (layerIdx, newFlavor) => {
+        const tierKey = CAKE_SIZES[selectedTierIndex]?.tierKey;
+        if (!tierKey || tierKey === "tier1") return;
+        setTierFlavors((prev) => ({
+            ...prev,
+            [tierKey]: prev[tierKey].map((f, idx) => (idx === layerIdx ? newFlavor : f)),
+        }));
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -120,11 +186,11 @@ export const CustomizationProvider = (props) => {
         const configuredPrice = basePrices.find((item) =>
             item.tier === tier.tier &&
             item.size === selectedSize &&
-            item.flavor === flavor
+            item.flavor === pricingFlavor
         );
 
         if (configuredPrice) return Number(configuredPrice.price);
-        return DEFAULT_CAKE_PRICES[tier.tierKey]?.[flavor] ?? 1000;
+        return DEFAULT_CAKE_PRICES[tier.tierKey]?.[pricingFlavor] ?? 1000;
     };
 
     const getAddonPrice = (key) => {
@@ -161,6 +227,11 @@ export const CustomizationProvider = (props) => {
         setSelectedSize(CAKE_SIZES[randomTierIdx].sizes[0]);
         setCakeColor(randomCakeColor);
         setFlavor(randomFlavor);
+        setTierFlavors({
+            tier2: Array.from({ length: 2 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
+            tier3: Array.from({ length: 3 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
+            tier4: Array.from({ length: 4 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
+        });
 
         setCandle(false);
         setChocolate(false);
@@ -200,6 +271,9 @@ export const CustomizationProvider = (props) => {
                 flavor,
                 setFlavor,
                 flavorTextureMap,
+                FLAVOR_VISUALS,
+                TEXT_FONT_OPTIONS,
+                selectedTierFlavors,
                 candle,
                 setCandle,
                 chocolate,
@@ -214,6 +288,16 @@ export const CustomizationProvider = (props) => {
                 pricingError,
                 basePrices,
                 addonPrices,
+                toppingLayout,
+                setToppingPosition,
+                setToppingSize,
+                tierFlavors,
+                setTierLayerFlavor,
+                tierFlavorLabels,
+                inscriptionText,
+                setInscriptionText,
+                textFont,
+                setTextFont,
             }}
         >
             {props.children}

@@ -49,6 +49,10 @@ class CustomCakePricingTests(APITestCase):
             "flavor": "Choco Moist",
             "tier": "1 Tier Cake",
             "size": "Bento Cake",
+            "tier_flavors": {"Bottom Tier": "Choco Moist"},
+            "inscription_text": "Happy Birthday",
+            "text_font": "classic",
+            "topping_layout": {"balls": {"x": 40, "y": 60, "size": "medium"}},
             "has_candle": True,
             "has_chocolate": False,
             "has_balls": True,
@@ -70,6 +74,8 @@ class CustomCakePricingTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         customization = CakeCustomization.objects.get()
         self.assertEqual(customization.price, Decimal("1200.00"))
+        self.assertEqual(customization.inscription_text, "Happy Birthday")
+        self.assertEqual(customization.tier_flavors["Bottom Tier"], "Choco Moist")
         self.assertTrue(CartItem.objects.filter(customization=customization).exists())
 
     def test_submitted_price_is_ignored(self):

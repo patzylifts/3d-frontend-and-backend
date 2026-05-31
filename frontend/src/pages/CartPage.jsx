@@ -49,6 +49,7 @@ function CartPage() {
 
                                             {item.is_custom_cake && (() => {
                                                 const d = item.customization_detail;
+                                                const tierFlavors = Object.entries(d.tier_flavors || {});
                                                 const addons = [
                                                     d.has_candle    && { label: "🕯️ Candle" },
                                                     d.has_chocolate && { label: "🍫 Chocolate" },
@@ -79,6 +80,26 @@ function CartPage() {
                                                             <span className="cd-label">🍰 Flavor</span>
                                                             <span className="cd-value">{d.flavor}</span>
                                                         </div>
+
+                                                        {tierFlavors.length > 0 && (
+                                                            <div className="cd-row cd-row--addons">
+                                                                <span className="cd-label">Tier Flavors</span>
+                                                                <span className="cd-addon-wrap">
+                                                                    {tierFlavors.map(([tierName, tierFlavor]) => (
+                                                                        <span key={tierName} className="cd-addon-pill">
+                                                                            {tierName}: {tierFlavor}
+                                                                        </span>
+                                                                    ))}
+                                                                </span>
+                                                            </div>
+                                                        )}
+
+                                                        {d.inscription_text && (
+                                                            <div className="cd-row">
+                                                                <span className="cd-label">Message</span>
+                                                                <span className="cd-value">{d.inscription_text}</span>
+                                                            </div>
+                                                        )}
 
                                                         {/* Cake Color */}
                                                         <div className="cd-row">

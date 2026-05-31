@@ -221,6 +221,14 @@ export default function AdminOrderDetailPage() {
                                                     )}
                                                     <div style={{ textTransform: "capitalize" }}><strong>Shape:</strong> {item.customization.shape}</div>
                                                     <div><strong>Flavor:</strong> {item.customization.flavor}</div>
+                                                    {item.customization.tier_flavors && Object.keys(item.customization.tier_flavors).length > 0 && (
+                                                        <div>
+                                                            <strong>Tier Flavors:</strong> {Object.entries(item.customization.tier_flavors).map(([tierName, tierFlavor]) => `${tierName}: ${tierFlavor}`).join(", ")}
+                                                        </div>
+                                                    )}
+                                                    {item.customization.inscription_text && (
+                                                        <div><strong>Message:</strong> {item.customization.inscription_text}</div>
+                                                    )}
                                                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                                         <strong>Color:</strong>
                                                         <span style={{ display: "inline-block", width: "14px", height: "14px", borderRadius: "50%", background: item.customization.cake_color, border: "1px solid #ccc" }}></span>

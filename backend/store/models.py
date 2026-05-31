@@ -240,6 +240,10 @@ class CakeCustomization(models.Model):
     flavor = models.CharField(max_length=50, choices=FLAVOR_CHOICES, default="Choco Moist")
     tier = models.CharField(max_length=50, blank=True, null=True)
     size = models.CharField(max_length=100, blank=True, null=True)
+    tier_flavors = models.JSONField(blank=True, default=dict)
+    inscription_text = models.CharField(max_length=80, blank=True, default="")
+    text_font = models.CharField(max_length=50, blank=True, default="")
+    topping_layout = models.JSONField(blank=True, default=dict)
     has_candle = models.BooleanField(default=False)
     has_chocolate = models.BooleanField(default=False)
     has_balls = models.BooleanField(default=False)
@@ -258,6 +262,10 @@ class CakeCustomization(models.Model):
             "flavor": self.flavor,
             "tier": self.tier,
             "size": self.size,
+            "tier_flavors": self.tier_flavors,
+            "inscription_text": self.inscription_text,
+            "text_font": self.text_font,
+            "topping_layout": self.topping_layout,
             "has_candle": self.has_candle,
             "has_chocolate": self.has_chocolate,
             "has_balls": self.has_balls,
