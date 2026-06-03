@@ -1,27 +1,16 @@
+// src/pages/BuildBentoPag.jsx
 import { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
-import {
-    CAKE_SIZES,
-    CustomizationProvider,
-    FLAVOR_VISUALS,
-    TEXT_FONT_OPTIONS,
-    TOPPING_OPTIONS,
-    TOPPING_SIZES,
-    useCustomization,
-} from "../contexts/Customization";
+import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
 import "./BuildBentoPage.css";
 
-
-/* ─────────────────────────────── 3D MODEL ─────────────────────────────── */
-
-/* ── Tier model URLs ── */
 const TIER_MODEL_URLS = {
     tier1: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf",
     tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier2/tier2.gltf",
@@ -29,7 +18,6 @@ const TIER_MODEL_URLS = {
     tier4: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier4/tier4.gltf",
 };
 
-/* ── Texture URLs ── */
 const TEXTURE_URLS = {
     choco: {
         map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
@@ -101,10 +89,6 @@ const getToppingPosition = (layout, config, selectedTierIndex) => {
     return [x, y, z];
 };
 
-/**
- * Traverse a loaded GLTF scene and apply cake materials, shape visibility,
- * and decoration toggles. Used for tier2, tier3, and tier4 primitive scenes.
- */
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
     color: FLAVOR_VISUALS[flavorName]?.color || fallbackColor,
     roughness: 0.8,
@@ -129,7 +113,6 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
 
         const lname = (child.name || "").toLowerCase();
 
-        // ── Decorations: toggle visibility ──
         if (lname.includes("chandel") || lname.includes("candle")) {
             child.visible = false;
             return;
@@ -154,7 +137,6 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
             return;
         }
 
-        // ── Shape: round vs rectangle ──
         const isRect = child.name === "Cake_Rectangle"
             || lname.includes("cake_rectangle")
             || lname.includes("cake_rect")
@@ -178,7 +160,6 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
             return;
         }
 
-        // ── Default: enable shadows ──
         child.castShadow = true;
         child.receiveShadow = true;
     });
@@ -200,9 +181,7 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
         });
 }
 
-
 function CakeModel({ selectedTierIndex }) {
-    /* ── Load all tier models (drei caches them automatically) ── */
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
@@ -225,7 +204,6 @@ function CakeModel({ selectedTierIndex }) {
     } = useCustomization();
     const groupRef = useRef();
 
-    /* ── Load flavor textures ── */
     const chocoTexture     = useTexture(TEXTURE_URLS.choco);
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture  = useTexture(TEXTURE_URLS.ube);
@@ -245,7 +223,6 @@ function CakeModel({ selectedTierIndex }) {
         ])
     );
 
-    /* ── Shared material/props bag for the scene traversal helper ── */
     const matProps = {
         cakeColor,
         activeTexture,
@@ -254,12 +231,10 @@ function CakeModel({ selectedTierIndex }) {
         textureByFlavor,
     };
 
-    /* ── Apply materials to multi-tier scenes whenever settings change ── */
     useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, cakeColor, form, selectedTierFlavors, textureByFlavor]);
 
-    /* ── Slow auto-rotation ── */
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
@@ -322,7 +297,6 @@ function CakeModel({ selectedTierIndex }) {
         </>
     );
 
-    /* ── Render the appropriate model based on selected tier ── */
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
 
@@ -392,10 +366,6 @@ function CakeModel({ selectedTierIndex }) {
     );
 }
 
-
-/* ─────────────────────────────── CONFIGURATOR PANEL ─────────────────────────────── */
-
-/* ── Cake size / tier catalogue ── */
 function DraggableTopping({ topping, layout }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: topping.key,
@@ -445,8 +415,32 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
         if (!key || !currentLayout || !boardRef.current) return;
 
         const rect = boardRef.current.getBoundingClientRect();
-        const nextX = currentLayout.x + (delta.x / rect.width) * 100;
-        const nextY = currentLayout.y + (delta.y / rect.height) * 100;
+
+        let nextX =
+            currentLayout.x + (delta.x / rect.width) * 100;
+
+        let nextY =
+            currentLayout.y + (delta.y / rect.height) * 100;
+
+        nextX = Math.max(5, Math.min(95, nextX));
+        nextY = Math.max(5, Math.min(95, nextY));
+
+        if (form === 1) {
+            const dx = nextX - 50;
+            const dy = nextY - 50;
+
+            const radius = 45; // leave some padding
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > radius) {
+                const angle = Math.atan2(dy, dx);
+
+                nextX = 50 + Math.cos(angle) * radius;
+                nextY = 50 + Math.sin(angle) * radius;
+            }
+        }
+
         onMove(key, nextX, nextY);
     };
 
@@ -514,7 +508,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         const selectedTierKey = selectedTier.tierKey;
         const layerCount = selectedTierIndex + 1;
 
-        // Prepare tier-specific flavors
         const activeTierFlavors = selectedTierKey === "tier1"
             ? [flavor]
             : Array.from(
@@ -601,7 +594,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     <span className="cfg-select-arrow">▾</span>
                 </div>
             </section>
-
 
             {/* Shape */}
             <section className="cfg-section">
@@ -811,9 +803,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         </aside>
     );
 }
-
-
-/* ─────────────────────────────── PAGE ─────────────────────────────── */
 
 function BuildBentoContent() {
     const {

@@ -14,12 +14,10 @@ from .models import (
     UserProfile,
 )
 
-
 phone_validator = RegexValidator(
     regex=r'^09\d{9}$',
     message="Phone number must be 11 digits and start with 09"
 )
-
 
 class CustomCakePricingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,19 +25,16 @@ class CustomCakePricingSerializer(serializers.ModelSerializer):
         fields = ['id', 'tier', 'size', 'flavor', 'price']
         read_only_fields = ['id']
 
-
 class AddonPricingSerializer(serializers.ModelSerializer):
     class Meta:
         model = AddonPricing
         fields = ['id', 'key', 'name', 'price']
         read_only_fields = ['id']
 
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
-
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(
@@ -50,7 +45,6 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
-
 class CakeCustomizationSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
@@ -60,7 +54,6 @@ class CakeCustomizationSerializer(serializers.ModelSerializer):
                   'tier_flavors', 'inscription_text', 'text_font', 'topping_layout',
                   'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at']
         read_only_fields = ['id', 'price', 'created_at']
-
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True, default=None)
@@ -94,7 +87,6 @@ class CartItemSerializer(serializers.ModelSerializer):
     def get_is_custom_cake(self, obj):
         return obj.customization is not None
 
-
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.ReadOnlyField()
@@ -103,12 +95,10 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = '__all__'
 
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(validators=[phone_validator])
@@ -135,7 +125,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         return user
-
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

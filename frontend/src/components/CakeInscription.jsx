@@ -1,3 +1,4 @@
+// src/components/CakeInscription.jsx
 import { useMemo, useCallback } from "react";
 import * as THREE from "three";
 import { Text as ThreeText } from "three-text/mesh/react";
