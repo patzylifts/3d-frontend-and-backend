@@ -39,32 +39,40 @@ const TEXTURE_URLS = {
 
 const TOPPING_3D_CONFIG = {
     candle: {
-        yOffset: 0,
+        yOffset: 0.03,
         rotation: [-Math.PI / 2, 0, 0],
         scale: -0.03,
         radius: 0.95,
     },
+
     chocolate: {
-        yOffset: 0.17,
+        yOffset: 0.06,
         rotation: [2.87, -0.55, -2.38],
         scale: 0.1,
         radius: 0.9,
     },
+
     balls: {
-        yOffset: 0.11,
+        yOffset: 0.05,
         rotation: [-2.24, 0.35, -0.42],
         scale: -0.06,
         radius: 0.95,
     },
+
     nuts: {
-        yOffset: -0.02,
+        yOffset: 0.02,
         rotation: [Math.PI / 2, 0, -2.81],
         scale: 0.18,
         radius: 0.92,
     },
 };
 
-const TIER_TOP_Y = [2.33, 3.35, 4.2, 5.05];
+const TIER_TOP_Y = [
+    2.30, // tier1
+    1.70, // tier2
+    2.25, // tier3
+    2.70, // tier4
+];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
@@ -79,14 +87,52 @@ const FLAVOR_LABELS = {
     "Ube Chiffon": "Ube",
 };
 
-const getToppingPosition = (layout, config, selectedTierIndex) => {
-    const tierRadius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
-    const radius = config.radius * tierRadius;
-    const x = ((layout.x - 50) / 50) * radius;
-    const z = ((layout.y - 50) / 50) * radius;
-    const y = (TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0]) + config.yOffset;
+const getTierTopY = (selectedTierIndex) => {
+    switch (selectedTierIndex) {
+        case 0:
+            return 2.33;
 
-    return [x, y, z];
+        case 1:
+            return 2.38;
+
+        case 2:
+            return 3.15;
+
+        case 3:
+            return 3.95;
+
+        default:
+            return 2.33;
+    }
+};
+
+const getToppingPosition = (
+    layout,
+    config,
+    selectedTierIndex
+) => {
+    const tierRadius =
+        TIER_TOP_RADIUS[selectedTierIndex] ??
+        TIER_TOP_RADIUS[0];
+
+    const radius =
+        config.radius * tierRadius;
+
+    const x =
+        ((layout.x - 50) / 50) * radius;
+
+    const z =
+        ((layout.y - 50) / 50) * radius;
+
+    const topSurfaceY =
+        TIER_TOP_Y[selectedTierIndex] ??
+        TIER_TOP_Y[0];
+
+    return [
+        x,
+        topSurfaceY + config.yOffset,
+        z,
+    ];
 };
 
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
@@ -299,6 +345,12 @@ function CakeModel({ selectedTierIndex }) {
 
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
+      
+            {/* DEBUG SURFACE LANDMARK */}
+            <mesh position={[0, TIER_TOP_Y[selectedTierIndex], 0]}>
+                <sphereGeometry args={[0.2, 32, 32]} />
+                <meshBasicMaterial color="red" />
+            </mesh>
 
             {/* ── Tier 2 (Mini 2 Tier) ── */}
             {selectedTierIndex === 1 && (
