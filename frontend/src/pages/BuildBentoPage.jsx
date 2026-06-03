@@ -345,13 +345,6 @@ function CakeModel({ selectedTierIndex }) {
 
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
-      
-            {/* DEBUG SURFACE LANDMARK */}
-            <mesh position={[0, TIER_TOP_Y[selectedTierIndex], 0]}>
-                <sphereGeometry args={[0.2, 32, 32]} />
-                <meshBasicMaterial color="red" />
-            </mesh>
-
             {/* ── Tier 2 (Mini 2 Tier) ── */}
             {selectedTierIndex === 1 && (
                 <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
