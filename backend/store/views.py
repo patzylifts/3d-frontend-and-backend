@@ -6,19 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .token_serializers import MyTokenObtainPairSerializer
 
-from .models import (
-    AddonPricing,
-    CakeCustomization,
-    Cart,
-    CartItem,
-    Category,
-    CustomCakePricing,
-    Order,
-    OrderItem,
-    Product,
-    UserProfile,
-    calculate_custom_cake_price,
-)
+from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Order, OrderItem, Product, UserProfile, calculate_custom_cake_price,)
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
 from .serializers import (
     AddonPricingSerializer,

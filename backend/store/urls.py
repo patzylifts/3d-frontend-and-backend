@@ -6,7 +6,6 @@ from . import admin_views, views
 from .views import MyTokenObtainPairView
 from .views_verification import send_verification_code, verify_code
 
-
 urlpatterns = [
     path('register/', views.register_view),
     path('send-code/', send_verification_code),

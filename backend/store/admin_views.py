@@ -11,14 +11,12 @@ from .serializers import (
     ProductSerializer,
 )
 
-
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_get_products(request):
     products = Product.objects.all().order_by('-created_at')
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
-
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -28,7 +26,6 @@ def admin_create_product(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
@@ -44,7 +41,6 @@ def admin_update_product(request, pk):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_product(request, pk):
@@ -56,14 +52,12 @@ def admin_delete_product(request, pk):
     product.delete()
     return Response({"message": "Product deleted"})
 
-
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_get_custom_pricing(request):
     pricing = CustomCakePricing.objects.all().order_by('tier', 'size', 'flavor')
     serializer = CustomCakePricingSerializer(pricing, many=True)
     return Response(serializer.data)
-
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -73,7 +67,6 @@ def admin_create_custom_pricing(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
@@ -89,7 +82,6 @@ def admin_update_custom_pricing(request, pk):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_custom_pricing(request, pk):
@@ -101,14 +93,12 @@ def admin_delete_custom_pricing(request, pk):
     pricing.delete()
     return Response({"message": "Custom pricing deleted"})
 
-
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_get_addon_pricing(request):
     addons = AddonPricing.objects.all().order_by('name')
     serializer = AddonPricingSerializer(addons, many=True)
     return Response(serializer.data)
-
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -118,7 +108,6 @@ def admin_create_addon_pricing(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
@@ -133,7 +122,6 @@ def admin_update_addon_pricing(request, pk):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])

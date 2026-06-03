@@ -1,3 +1,4 @@
+// src/components/CakeInscription.jsx
 import { useMemo, useCallback } from "react";
 import * as THREE from "three";
 import { Text as ThreeText } from "three-text/mesh/react";
@@ -6,10 +7,10 @@ import { TEXT_FONT_OPTIONS } from "../contexts/Customization";
 ThreeText.setHarfBuzzPath("/hb/hb.wasm");
 
 const TEXT_LAYOUT_BY_TIER = [
-    { y: 2.46, width: 1.55, size: 0.22, z: 0.22 },
-    { y: 3.47, width: 1.28, size: 0.18, z: 0.18 },
-    { y: 4.32, width: 1.05, size: 0.16, z: 0.12 },
-    { y: 5.16, width: 0.86, size: 0.13, z: 0.1 },
+    { y: 2.35, width: 1.55, size: 0.22, z: 0.22 },
+    { y: 1.80, width: 1.28, size: 0.18, z: 0.18 },
+    { y: 2.30, width: 1.05, size: 0.16, z: 0.12 },
+    { y: 2.75, width: 0.86, size: 0.13, z: 0.10 },
 ];
 
 const FONT_PATHS = Object.fromEntries(

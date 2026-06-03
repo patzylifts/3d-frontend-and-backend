@@ -1,6 +1,4 @@
-/* ──────────────────────────────────────────────────
-   PAGE LAYOUT
-   ────────────────────────────────────────────────── */
+// src/pages/BuildBentoPag.css
 .build-page {
     width: 100%;
     height: 100vh;
@@ -19,9 +17,6 @@
     margin-top: 80px;
 }
 
-/* ──────────────────────────────────────────────────
-   3D CANVAS AREA
-   ────────────────────────────────────────────────── */
 .build-canvas-wrap {
     flex: 1;
     position: relative;
@@ -45,9 +40,6 @@
     animation: fadeIn 2s ease-in-out;
 }
 
-/* ──────────────────────────────────────────────────
-   CONFIGURATOR PANEL (THE BENTO BOX)
-   ────────────────────────────────────────────────── */
 .cfg-panel {
     width: 400px;
     background: white;
@@ -74,6 +66,67 @@
     gap: 12px;
 }
 
+.topping-board {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.topping-board__cake {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #f5d7c3;
+    border: 3px solid #d6a889;
+    overflow: visible;
+}
+
+.topping-board--round .topping-board__cake {
+    border-radius: 50%;
+}
+
+.topping-board--rectangle .topping-board__cake {
+    border-radius: 16px;
+}
+
+.topping-marker {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    z-index: 5;
+}
+
+.topping-marker--dragging {
+    cursor: grabbing;
+    z-index: 10;
+}
+
+.topping-marker--small {
+    width: 22px;
+    height: 22px;
+}
+
+.topping-marker--medium {
+    width: 28px;
+    height: 28px;
+}
+
+.topping-marker--large {
+    width: 36px;
+    height: 36px;
+}
+
 .cfg-label {
     font-size: 0.85rem;
     font-weight: 700;
@@ -82,7 +135,6 @@
     color: #999;
 }
 
-/* ── Size & Tier Dropdowns ── */
 .cfg-dropdown-wrap {
     display: flex;
     flex-direction: column;
@@ -142,7 +194,6 @@
     transform: rotate(180deg);
 }
 
-/* Summary badge shown below dropdowns */
 .cfg-size-badge {
     display: inline-flex;
     align-items: center;
@@ -163,8 +214,6 @@
     from { transform: scale(0.9); opacity: 0; }
     to   { transform: scale(1);   opacity: 1; }
 }
-
-/* Chips (Buttons) */
 
 .cfg-chips {
     display: flex;
@@ -196,7 +245,6 @@
     box-shadow: 0 4px 12px rgba(216, 92, 123, 0.3);
 }
 
-/* Color Swatches */
 .cfg-swatches {
     display: flex;
     flex-wrap: wrap;
@@ -222,7 +270,6 @@
     transform: scale(1.1);
 }
 
-/* Decorations Toggles */
 .cfg-toggles {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -257,7 +304,6 @@
     color: var(--primary-berry);
 }
 
-/* Random & Order Buttons */
 .cfg-random-btn {
     background: #f0f0f0;
     color: var(--espresso);
@@ -273,7 +319,6 @@
     background: #e5e5e5;
 }
 
-/* Price Display */
 .cfg-price-display {
     display: flex;
     justify-content: space-between;
@@ -336,7 +381,6 @@
     cursor: not-allowed;
 }
 
-/* ── Tier Flavor Selection ── */
 .tier-flavor-list {
     display: flex;
     flex-direction: column;
@@ -392,7 +436,6 @@
     box-shadow: 0 0 0 3px rgba(216, 92, 123, 0.1);
 }
 
-/* ── Cake Message (Inscription) ── */
 .cfg-input {
     padding: 10px 12px;
     border: 1px solid #ddd;
@@ -406,11 +449,8 @@
     outline: none;
     border-color: var(--primary-berry);
     box-shadow: 0 0 0 3px rgba(216, 92, 123, 0.1);
-     cursor: not-allowed;
 }
    
-
-/* Toast Messages */
 .cfg-toast {
     position: fixed;
     top: 100px;
@@ -426,9 +466,6 @@
 .cfg-toast--success { background: #4caf50; }
 .cfg-toast--error { background: #f44336; }
 
-/* ──────────────────────────────────────────────────
-   RESPONSIVE
-   ────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .build-layout {
         flex-direction: column;
