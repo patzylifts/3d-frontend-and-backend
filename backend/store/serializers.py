@@ -132,3 +132,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']
+
+# store/serializers.py
+
+class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
+    customer_name = serializers.SerializerMethodField()
+    customer_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CakeCustomization
+        fields = [
+            'id', 'customer_name', 'customer_username', 'shape', 'cake_color', 'flavor', 'tier', 'size', 'tier_flavors', 'inscription_text', 'text_font', 'topping_layout', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at',
+        ]
+
+    def get_customer_name(self, obj):
+        if not obj.user:
+            return None
+
+        return f"{obj.user.first_name} {obj.user.last_name}".strip()
+
+    def get_customer_username(self, obj):
+        return obj.user.username if obj.user else None

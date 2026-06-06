@@ -5,18 +5,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .token_serializers import MyTokenObtainPairSerializer
-
 from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Order, OrderItem, Product, UserProfile, calculate_custom_cake_price,)
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
-from .serializers import (
-    AddonPricingSerializer,
-    CakeCustomizationSerializer,
-    CustomCakePricingSerializer,
-    RegisterSerializer,
-    UserProfileSerializer,
-    UserSerializer,
-)
-
+from .serializers import (AddonPricingSerializer, CakeCustomizationSerializer, CustomCakePricingSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer)
 from .models_verification import SMSVerification
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -43,7 +34,6 @@ def get_categories(request):
     categories = Category.objects.all()
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
-
 
 @api_view(['GET'])
 def get_custom_pricing(request):
@@ -148,10 +138,8 @@ def create_order(request):
             payment_status="pending"
         )
 
-        # Handle both regular products and customizations
         for item in cart.items.all():
             if item.product:
-                # Regular product
                 OrderItem.objects.create(
                     order=order, 
                     product=item.product, 
@@ -159,7 +147,6 @@ def create_order(request):
                     price=item.product.price
                 )
             elif item.customization:
-                # Customized cake
                 OrderItem.objects.create(
                     order=order, 
                     product=None, 

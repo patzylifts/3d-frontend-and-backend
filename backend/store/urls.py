@@ -34,6 +34,8 @@ urlpatterns = [
     path('admin/addon-pricing/create/', admin_views.admin_create_addon_pricing),
     path('admin/addon-pricing/<int:pk>/update/', admin_views.admin_update_addon_pricing),
     path('admin/addon-pricing/<int:pk>/delete/', admin_views.admin_delete_addon_pricing),
+    path('admin/custom-cakes/', admin_views.admin_get_custom_cakes ),
+    path('admin/custom-cakes/<int:pk>/', admin_views.admin_get_custom_cake),    
 
     path('cart/', views.get_cart),
     path('cart/add/', views.add_to_cart),

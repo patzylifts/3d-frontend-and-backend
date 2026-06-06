@@ -257,6 +257,7 @@ class CakeCustomization(models.Model):
     def get_customization_dict(self):
         """Return customization details as a dictionary"""
         return {
+            "id": self.id,
             "shape": self.shape,
             "cake_color": self.cake_color,
             "flavor": self.flavor,

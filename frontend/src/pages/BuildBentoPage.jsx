@@ -1,4 +1,4 @@
-// src/pages/BuildBentoPag.jsx
+// src/pages/BuildBentoPage.jsx
 import { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -227,7 +227,7 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
         });
 }
 
-function CakeModel({ selectedTierIndex }) {
+export function CakeModel({ selectedTierIndex }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
@@ -250,18 +250,20 @@ function CakeModel({ selectedTierIndex }) {
     } = useCustomization();
     const groupRef = useRef();
 
-    const chocoTexture     = useTexture(TEXTURE_URLS.choco);
+    const chocoTexture = useTexture(TEXTURE_URLS.choco);
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
-    const abstractTexture  = useTexture(TEXTURE_URLS.ube);
+    const abstractTexture = useTexture(TEXTURE_URLS.ube);
 
     const texturesByKey = {
-        choco:   chocoTexture,
+        choco: chocoTexture,
         vanilla: milkshakeTexture,
-        ube:     abstractTexture,
+        ube: abstractTexture,
     };
 
-    const activeTextureKey = flavorTextureMap[selectedTierFlavors?.[0] || flavor] || "choco";
-    const activeTexture    = texturesByKey[activeTextureKey];
+    // LANDMARK: admin + tier-aware flavor fix
+    const baseFlavor = selectedTierFlavors?.[0] || flavor;
+    const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
+    const activeTexture = texturesByKey[activeTextureKey];
     const textureByFlavor = Object.fromEntries(
         Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
             flavorName,

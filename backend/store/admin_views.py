@@ -3,7 +3,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-
+from .models import CakeCustomization
+from .serializers import AdminCakeCustomizationSerializer
 from .models import AddonPricing, CustomCakePricing, Product
 from .serializers import (
     AddonPricingSerializer,
@@ -133,3 +134,33 @@ def admin_delete_addon_pricing(request, pk):
 
     addon.delete()
     return Response({"message": "Addon pricing deleted"})
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_get_custom_cakes(request):
+
+    cakes = CakeCustomization.objects.all().order_by('-created_at')
+
+    serializer = AdminCakeCustomizationSerializer(
+        cakes,
+        many=True
+    )
+
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_get_custom_cake(request, pk):
+
+    try:
+        cake = CakeCustomization.objects.get(id=pk)
+
+    except CakeCustomization.DoesNotExist:
+        return Response(
+            {"error": "Custom cake not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = AdminCakeCustomizationSerializer(cake)
+
+    return Response(serializer.data)
