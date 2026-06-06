@@ -5,6 +5,8 @@ import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
 import Navbar from "../../components/Navbar";
 import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
+import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
+import { CustomizationProvider } from "../../contexts/Customization";
 import "./AdminOrderDetailPage.css";
 
 export default function AdminOrderDetailPage() {
@@ -16,6 +18,8 @@ export default function AdminOrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showCakeModal, setShowCakeModal] = useState(false);
+    const [selectedCake, setSelectedCake] = useState(null);
 
     const updateStatus = async (status) => {
 
@@ -241,6 +245,17 @@ export default function AdminOrderDetailPage() {
                                                             item.customization.has_nuts && "Nuts"
                                                         ].filter(Boolean).join(", ") || "None"}
                                                     </div>
+                                                    <button
+                                                        className="btn-view-cake"
+                                                        onClick={() => {
+                                                            console.log(item);
+                                                            console.log(item.customization);
+                                                            setSelectedCake(item.customization);
+                                                            setShowCakeModal(true);
+                                                        }}
+                                                    >
+                                                        View Cake
+                                                    </button>
                                                 </div>
                                             )}
                                         </td>
@@ -253,7 +268,7 @@ export default function AdminOrderDetailPage() {
                         </table>
                     </div>
                 </div>
-                <AdminOrderFeedback feedback={order.feedback}/>
+                <AdminOrderFeedback feedback={order.feedback} />
             </div>
 
             <RejectModal
@@ -272,6 +287,16 @@ export default function AdminOrderDetailPage() {
                     alert("Order rejected!");
                 }}
             />
+            <CustomizationProvider>
+                <CustomCakeModal
+                    isOpen={showCakeModal}
+                    onClose={() => {
+                        setShowCakeModal(false);
+                        setSelectedCake(null);
+                    }}
+                    customization={selectedCake}
+                />
+            </CustomizationProvider>
         </div>
     );
 }

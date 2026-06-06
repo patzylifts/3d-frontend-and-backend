@@ -1,3 +1,4 @@
+// src/components/Cake.jsx
 import React, { useEffect, useMemo } from 'react';
 import { useGLTF, useTexture } from '@react-three/drei';
 import { useCustomization } from "../contexts/Customization.jsx";

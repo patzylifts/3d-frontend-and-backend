@@ -1,3 +1,4 @@
+// src/contexts/Customization.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 
 const cakeColors = [
@@ -72,6 +73,32 @@ export const CAKE_SIZES = [
     },
 ];
 
+// LANDMARK: hydrate tierFlavors from saved payload
+const hydrateTierFlavors = (initialState) => {
+    if (!initialState?.tier_flavors) return null;
+
+    const map = initialState.tier_flavors;
+
+    return {
+        tier2: map["Bottom Tier"] && map["Top Tier"]
+            ? [map["Bottom Tier"], map["Top Tier"]]
+            : [flavors[0], flavors[0]],
+
+        tier3: [
+            map["Bottom Tier"] || flavors[0],
+            map["Middle Tier"] || flavors[0],
+            map["Top Tier"] || flavors[0],
+        ],
+
+        tier4: [
+            map["Bottom Tier"] || flavors[0],
+            map["Second Tier"] || flavors[0],
+            map["Third Tier"] || flavors[0],
+            map["Top Tier"] || flavors[0],
+        ],
+    };
+};
+
 const DEFAULT_CAKE_PRICES = {
     tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
     tier2: { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
@@ -91,33 +118,62 @@ const CustomizationContext = createContext({});
 export const CustomizationProvider = (props) => {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
 
+    const initialState = props.initialState;
     const [form, setForm] = useState(1);
-    const [selectedTierIndex, setSelectedTierIndex] = useState(0);
-    const [selectedSize, setSelectedSize] = useState(CAKE_SIZES[0].sizes[0]);
-    const [candle, setCandle] = useState(false);
-    const [chocolate, setChocolate] = useState(false);
-    const [balls, setBalls] = useState(false);
-    const [nuts, setNuts] = useState(false);
-    const [cakeColor, setCakeColor] = useState(cakeColors[0]);
-    const [flavor, setFlavor] = useState(flavors[0]);
+    const [selectedTierIndex, setSelectedTierIndex] = useState(
+        () => {
+            if (!initialState?.tier) return 0;
+            const idx = CAKE_SIZES.findIndex(t => t.tier === initialState.tier);
+            return idx === -1 ? 0 : idx;
+        }
+    );
+    const [selectedSize, setSelectedSize] = useState(
+        () => initialState?.size || CAKE_SIZES[0].sizes[0]
+    );
+    const [candle, setCandle] = useState(!!initialState?.has_candle);
+    const [chocolate, setChocolate] = useState(!!initialState?.has_chocolate);
+    const [balls, setBalls] = useState(!!initialState?.has_balls);
+    const [nuts, setNuts] = useState(!!initialState?.has_nuts);
+    const [cakeColor, setCakeColor] = useState(
+        () => cakeColors.find(c => c.color === initialState?.cake_color) || cakeColors[0]
+    );
+    const [flavor, setFlavor] = useState(
+        () => initialState?.flavor || flavors[0]
+    );
     const [basePrices, setBasePrices] = useState([]);
     const [addonPrices, setAddonPrices] = useState([]);
     const [pricingLoading, setPricingLoading] = useState(true);
     const [pricingError, setPricingError] = useState("");
-    const [toppingLayout, setToppingLayout] = useState({
-        candle: { x: 50, y: 50, size: "medium" },
-        chocolate: { x: 50, y: 50, size: "medium" },
-        balls: { x: 50, y: 50, size: "medium" },
-        nuts: { x: 50, y: 50, size: "medium" },
-    });
-    const [tierFlavors, setTierFlavors] = useState({
-        tier2: [flavors[0], flavors[0]],
-        tier3: [flavors[0], flavors[0], flavors[0]],
-        tier4: [flavors[0], flavors[0], flavors[0], flavors[0]],
+    // LANDMARK: init topping layout (ADMIN FIX)
+    const [toppingLayout, setToppingLayout] = useState(
+        () =>
+            initialState?.topping_layout || {
+                candle: { x: 50, y: 50, size: "medium" },
+                chocolate: { x: 50, y: 50, size: "medium" },
+                balls: { x: 50, y: 50, size: "medium" },
+                nuts: { x: 50, y: 50, size: "medium" },
+            }
+    );
+    // LANDMARK: init tier flavors from admin payload
+    const [tierFlavors, setTierFlavors] = useState(() => {
+        const hydrated = hydrateTierFlavors(initialState);
+        if (hydrated) return hydrated;
+
+        return {
+            tier2: [flavors[0], flavors[0]],
+            tier3: [flavors[0], flavors[0], flavors[0]],
+            tier4: [flavors[0], flavors[0], flavors[0], flavors[0]],
+        };
     });
     const [tierFlavorLabels] = useState(["Bottom Tier", "Middle Tier", "Top Tier", "Peak Tier"]);
-    const [inscriptionText, setInscriptionText] = useState("");
-    const [textFont, setTextFont] = useState(TEXT_FONT_OPTIONS[0].value);
+    // LANDMARK: inscription + font hydrate fix
+    const [inscriptionText, setInscriptionText] = useState(
+        () => initialState?.inscription_text || ""
+    );
+
+    const [textFont, setTextFont] = useState(
+        () => initialState?.text_font || TEXT_FONT_OPTIONS[0].value
+    );
 
     const tier = CAKE_SIZES[selectedTierIndex] ?? CAKE_SIZES[0];
     const selectedTierFlavors = tier.tierKey === "tier1"

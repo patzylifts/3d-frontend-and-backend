@@ -1,0 +1,45 @@
+/* src/components/admin/CustomCakeModal.css */
+.custom-cake-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+}
+
+.custom-cake-modal {
+    position: relative;
+    width: 1000px;
+    max-width: 95vw;
+    height: 700px;
+    max-height: 90vh;
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-cake-modal h2 {
+    margin-bottom: 15px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.close-btn:hover {
+    opacity: 0.8;
+}
