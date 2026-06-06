@@ -75,13 +75,74 @@ class AddonPricing(models.Model):
         return f"{self.name}: {self.price}"
 
 
+DEFAULT_CUSTOM_CAKE_PRICES = {
+    "1 Tier Cake": {
+        "sizes": ["Bento Cake", "Tall Bento Cake", "Standard", "Tall Cake"],
+        "prices": {
+            "Choco Moist": Decimal("1000.00"),
+            "Vanilla Chiffon": Decimal("900.00"),
+            "Ube Chiffon": Decimal("900.00"),
+        },
+    },
+    "Mini 2 Tier": {
+        "sizes": ["6x4 & 4x4", "6x6 Cake", "6x8 Cake", "8x5 Cake"],
+        "prices": {
+            "Choco Moist": Decimal("1800.00"),
+            "Vanilla Chiffon": Decimal("1600.00"),
+            "Ube Chiffon": Decimal("1600.00"),
+        },
+    },
+    "3 Tier Cake": {
+        "sizes": ["4x5, 6x6 & 8x5"],
+        "prices": {
+            "Choco Moist": Decimal("2800.00"),
+            "Vanilla Chiffon": Decimal("2500.00"),
+            "Ube Chiffon": Decimal("2500.00"),
+        },
+    },
+    "4 Tier Cake": {
+        "sizes": ["4x4 & 6x6, 8x5 & 10x4"],
+        "prices": {
+            "Choco Moist": Decimal("3800.00"),
+            "Vanilla Chiffon": Decimal("3400.00"),
+            "Ube Chiffon": Decimal("3400.00"),
+        },
+    },
+}
+
+DEFAULT_ADDON_PRICES = {
+    "candle": Decimal("100.00"),
+    "chocolate": Decimal("200.00"),
+    "balls": Decimal("100.00"),
+    "nuts": Decimal("75.00"),
+}
+
+
+def get_default_custom_cake_price(*, tier, size, flavor):
+    tier_config = DEFAULT_CUSTOM_CAKE_PRICES.get(tier)
+    if not tier_config or size not in tier_config["sizes"]:
+        raise CustomCakePricing.DoesNotExist
+
+    try:
+        return tier_config["prices"][flavor]
+    except KeyError:
+        raise CustomCakePricing.DoesNotExist
+
+
 def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
                                 has_chocolate=False, has_balls=False, has_nuts=False):
-    base_price = CustomCakePricing.objects.get(
-        tier=tier,
-        size=size,
-        flavor=flavor,
-    ).price
+    try:
+        base_price = CustomCakePricing.objects.get(
+            tier=tier,
+            size=size,
+            flavor=flavor,
+        ).price
+    except CustomCakePricing.DoesNotExist:
+        base_price = get_default_custom_cake_price(
+            tier=tier,
+            size=size,
+            flavor=flavor,
+        )
 
     selected_addons = []
     if has_candle:
@@ -93,9 +154,14 @@ def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
     if has_nuts:
         selected_addons.append("nuts")
 
+    configured_addon_prices = dict(
+        AddonPricing.objects
+        .filter(key__in=selected_addons)
+        .values_list("key", "price")
+    )
     addon_total = sum(
-        AddonPricing.objects.filter(key__in=selected_addons).values_list("price", flat=True),
-        Decimal("0.00"),
+        configured_addon_prices.get(key, DEFAULT_ADDON_PRICES.get(key, Decimal("0.00")))
+        for key in selected_addons
     )
 
     return base_price + addon_total
@@ -199,14 +265,16 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
-    customization = models.ForeignKey('CakeCustomization', on_delete=models.SET_NULL, null=True, blank=True)
+    customization = models.JSONField(blank=True, null=True)
     quantity = models.PositiveIntegerField(default=1)
     
     def __str__(self):
         if self.product:
             return f"{self.quantity} x {self.product.name}"
         elif self.customization:
-            return f"{self.quantity} x Custom {self.customization.shape} {self.customization.flavor} Cake"
+            shape = self.customization.get("shape", "")
+            flavor = self.customization.get("flavor", "")
+            return f"{self.quantity} x Custom {shape} {flavor} Cake"
         return f"CartItem {self.id}"
     
     @property
@@ -214,8 +282,8 @@ class CartItem(models.Model):
         if self.product:
             return self.product.price
         elif self.customization:
-            return self.customization.price
-        return 0
+            return Decimal(str(self.customization.get("price", "0.00")))
+        return Decimal("0.00")
     
     @property
     def subtotal(self):
@@ -242,6 +310,8 @@ class CakeCustomization(models.Model):
     size = models.CharField(max_length=100, blank=True, null=True)
     tier_flavors = models.JSONField(blank=True, default=dict)
     inscription_text = models.CharField(max_length=80, blank=True, default="")
+    inscription_size = models.CharField(max_length=50, blank=True, default="")  # ← ADD THIS
+    inscription_font = models.CharField(max_length=50, blank=True, default="")  # ← ADD THIS
     text_font = models.CharField(max_length=50, blank=True, default="")
     topping_layout = models.JSONField(blank=True, default=dict)
     has_candle = models.BooleanField(default=False)
@@ -265,6 +335,8 @@ class CakeCustomization(models.Model):
             "size": self.size,
             "tier_flavors": self.tier_flavors,
             "inscription_text": self.inscription_text,
+            "inscription_size": self.inscription_size,  # ← ADD THIS
+            "inscription_font": self.inscription_font,  # ← ADD THIS
             "text_font": self.text_font,
             "topping_layout": self.topping_layout,
             "has_candle": self.has_candle,

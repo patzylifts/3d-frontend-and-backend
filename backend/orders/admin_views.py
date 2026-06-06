@@ -60,7 +60,7 @@ def admin_review_order(request, order_id):
                 send_order_status_sms(order)
                 sms_sent = True
             except Exception as e:
-                print("❌ ORDER SMS ERROR:", str(e))
+                print("ORDER SMS ERROR:", str(e))
                 
         return Response({
             "message": "Order reviewed successfully",
@@ -110,14 +110,14 @@ def admin_update_order_status(request, order_id):
                 send_order_status_sms(order)
                 sms_sent = True
             except Exception as e:
-                print("❌ ORDER SMS ERROR:", str(e))
+                print("ORDER SMS ERROR:", str(e))
                 
         return Response({
             "message": "Order reviewed successfully",
             "order": OrderSerializer(order).data,
             "sms_sent": sms_sent,
 
-            # 🔥 PLACEHOLDER FLAGS
+            # PLACEHOLDER FLAGS
             "trigger_sms": True if new_status in ["ready_for_delivery", "out_for_delivery", "delivered"] else False,
             "allow_rating": True if new_status == "delivered" else False
         })

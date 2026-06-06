@@ -6,7 +6,7 @@ def send_order_status_sms(order):
     Sends SMS based on order status.
     """
     if not order.phone:
-        print("⚠️ No phone number for this order")
+        print("No phone number for this order")
         return
 
     status_messages = {
@@ -23,12 +23,12 @@ def send_order_status_sms(order):
     message = status_messages.get(order.status)
 
     if not message:
-        print(f"⚠️ No SMS template for status: {order.status}")
+        print(f"No SMS template for status: {order.status}")
         return
 
-    print(f"📩 Sending SMS to {order.phone}")
-    print(f"📨 MESSAGE: {message}")
+    print(f"Sending SMS to {order.phone}")
+    print(f"MESSAGE: {message}")
 
     sms_result = send_sms(order.phone, message)
 
-    print("📡 SMS RESULT:", sms_result)
+    print("SMS RESULT:", sms_result)

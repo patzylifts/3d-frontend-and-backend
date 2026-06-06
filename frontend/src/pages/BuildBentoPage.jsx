@@ -1,16 +1,28 @@
 // src/pages/BuildBentoPage.jsx
-import { useRef, Suspense, useState, useEffect } from "react";
+import { useRef, Suspense, useState, useEffect, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useGLTF, useTexture, OrbitControls, Environment, ContactShadows } from "@react-three/drei";
+// ✅ REMOVED: Environment — was fetching potsdamer_platz_1k.hdr and crashing WebGL
+import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
-import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
+import {
+    CAKE_SIZES,
+    CustomizationProvider,
+    FLAVOR_VISUALS,
+    TEXT_FONT_OPTIONS,
+    TOPPING_OPTIONS,
+    TOPPING_SIZES,
+    useCustomization,
+} from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
 import "./BuildBentoPage.css";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
 const TIER_MODEL_URLS = {
     tier1: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf",
     tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier2/tier2.gltf",
@@ -44,21 +56,18 @@ const TOPPING_3D_CONFIG = {
         scale: -0.03,
         radius: 0.95,
     },
-
     chocolate: {
         yOffset: 0.06,
         rotation: [2.87, -0.55, -2.38],
         scale: 0.1,
         radius: 0.9,
     },
-
     balls: {
         yOffset: 0.05,
         rotation: [-2.24, 0.35, -0.42],
         scale: -0.06,
         radius: 0.95,
     },
-
     nuts: {
         yOffset: 0.02,
         rotation: [Math.PI / 2, 0, -2.81],
@@ -87,52 +96,26 @@ const FLAVOR_LABELS = {
     "Ube Chiffon": "Ube",
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 const getTierTopY = (selectedTierIndex) => {
     switch (selectedTierIndex) {
-        case 0:
-            return 2.33;
-
-        case 1:
-            return 2.38;
-
-        case 2:
-            return 3.15;
-
-        case 3:
-            return 3.95;
-
-        default:
-            return 2.33;
+        case 0: return 2.33;
+        case 1: return 2.38;
+        case 2: return 3.15;
+        case 3: return 3.95;
+        default: return 2.33;
     }
 };
 
-const getToppingPosition = (
-    layout,
-    config,
-    selectedTierIndex
-) => {
-    const tierRadius =
-        TIER_TOP_RADIUS[selectedTierIndex] ??
-        TIER_TOP_RADIUS[0];
-
-    const radius =
-        config.radius * tierRadius;
-
-    const x =
-        ((layout.x - 50) / 50) * radius;
-
-    const z =
-        ((layout.y - 50) / 50) * radius;
-
-    const topSurfaceY =
-        TIER_TOP_Y[selectedTierIndex] ??
-        TIER_TOP_Y[0];
-
-    return [
-        x,
-        topSurfaceY + config.yOffset,
-        z,
-    ];
+const getToppingPosition = (layout, config, selectedTierIndex) => {
+    const tierRadius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
+    const radius = config.radius * tierRadius;
+    const x = ((layout.x - 50) / 50) * radius;
+    const z = ((layout.y - 50) / 50) * radius;
+    const topSurfaceY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
+    return [x, topSurfaceY + config.yOffset, z];
 };
 
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
@@ -159,22 +142,10 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
 
         const lname = (child.name || "").toLowerCase();
 
-        if (lname.includes("chandel") || lname.includes("candle")) {
-            child.visible = false;
-            return;
-        }
-        if (lname.includes("nut")) {
-            child.visible = false;
-            return;
-        }
-        if (lname.includes("bar")) {
-            child.visible = false;
-            return;
-        }
-        if (lname.includes("ball")) {
-            child.visible = false;
-            return;
-        }
+        if (lname.includes("chandel") || lname.includes("candle")) { child.visible = false; return; }
+        if (lname.includes("nut")) { child.visible = false; return; }
+        if (lname.includes("bar")) { child.visible = false; return; }
+        if (lname.includes("ball")) { child.visible = false; return; }
 
         const shape = getCakeShape(child.name);
         if (shape) {
@@ -183,17 +154,19 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
             return;
         }
 
-        const isRect = child.name === "Cake_Rectangle"
-            || lname.includes("cake_rectangle")
-            || lname.includes("cake_rect")
-            || (lname.includes("rect") && lname.includes("cake"));
+        const isRect =
+            child.name === "Cake_Rectangle" ||
+            lname.includes("cake_rectangle") ||
+            lname.includes("cake_rect") ||
+            (lname.includes("rect") && lname.includes("cake"));
 
-        const isRound = !isRect && (
-            child.name === "Cake"
-            || lname === "cake"
-            || lname === "cake_01"
-            || lname.includes("cake")
-        );
+        const isRound =
+            !isRect && (
+                child.name === "Cake" ||
+                lname === "cake" ||
+                lname === "cake_01" ||
+                lname.includes("cake")
+            );
 
         if (isRound) {
             child.visible = form === 1;
@@ -227,13 +200,72 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
         });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ NEW: Error Boundary — catches WebGL / drei loader crashes gracefully
+// ─────────────────────────────────────────────────────────────────────────────
+class CanvasErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, info) {
+        console.error("3D Canvas error caught by boundary:", error, info);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "100%",
+                        color: "#fff",
+                        gap: "12px",
+                        background: "#120020",
+                        borderRadius: "12px",
+                    }}
+                >
+                    <span style={{ fontSize: "3rem" }}>🎂</span>
+                    <p style={{ opacity: 0.8, margin: 0 }}>3D preview couldn't load.</p>
+                    <button
+                        onClick={() => this.setState({ hasError: false })}
+                        style={{
+                            padding: "8px 20px",
+                            background: "#c77dff",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                        }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CakeModel
+// ─────────────────────────────────────────────────────────────────────────────
 export function CakeModel({ selectedTierIndex }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
     const tier4 = useGLTF(TIER_MODEL_URLS.tier4);
 
-    const { nodes, materials } = tier1;          // tier1 uses inline JSX
+    const { nodes, materials } = tier1;
     const {
         form,
         cakeColor,
@@ -260,7 +292,6 @@ export function CakeModel({ selectedTierIndex }) {
         ube: abstractTexture,
     };
 
-    // LANDMARK: admin + tier-aware flavor fix
     const baseFlavor = selectedTierFlavors?.[0] || flavor;
     const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
     const activeTexture = texturesByKey[activeTextureKey];
@@ -404,15 +435,18 @@ export function CakeModel({ selectedTierIndex }) {
                             <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
                         </mesh>
                     )}
-
                 </>
             )}
+
             {renderCustomToppings()}
             <CakeInscription selectedTierIndex={selectedTierIndex} text={inscriptionText} font={textFont} />
         </group>
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DraggableTopping
+// ─────────────────────────────────────────────────────────────────────────────
 function DraggableTopping({ topping, layout }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: topping.key,
@@ -441,6 +475,9 @@ function DraggableTopping({ topping, layout }) {
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ToppingPlacementBoard
+// ─────────────────────────────────────────────────────────────────────────────
 function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) {
     const boardRef = useRef(null);
     const { setNodeRef } = useDroppable({ id: "cake-placement" });
@@ -463,11 +500,8 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
 
         const rect = boardRef.current.getBoundingClientRect();
 
-        let nextX =
-            currentLayout.x + (delta.x / rect.width) * 100;
-
-        let nextY =
-            currentLayout.y + (delta.y / rect.height) * 100;
+        let nextX = currentLayout.x + (delta.x / rect.width) * 100;
+        let nextY = currentLayout.y + (delta.y / rect.height) * 100;
 
         nextX = Math.max(5, Math.min(95, nextX));
         nextY = Math.max(5, Math.min(95, nextY));
@@ -475,14 +509,10 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
         if (form === 1) {
             const dx = nextX - 50;
             const dy = nextY - 50;
-
-            const radius = 45; // leave some padding
-
+            const radius = 45;
             const distance = Math.sqrt(dx * dx + dy * dy);
-
             if (distance > radius) {
                 const angle = Math.atan2(dy, dx);
-
                 nextX = 50 + Math.cos(angle) * radius;
                 nextY = 50 + Math.sin(angle) * radius;
             }
@@ -511,6 +541,9 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Configurator
+// ─────────────────────────────────────────────────────────────────────────────
 function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
         cakeColors, cakeColor, setCakeColor,
@@ -555,21 +588,23 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         const selectedTierKey = selectedTier.tierKey;
         const layerCount = selectedTierIndex + 1;
 
-        const activeTierFlavors = selectedTierKey === "tier1"
-            ? [flavor]
-            : Array.from(
-                { length: layerCount },
-                (_, idx) => tierFlavors[selectedTierKey]?.[idx] ?? flavors[idx % flavors.length]
-            );
+        const activeTierFlavors =
+            selectedTierKey === "tier1"
+                ? [flavor]
+                : Array.from(
+                    { length: layerCount },
+                    (_, idx) => tierFlavors[selectedTierKey]?.[idx] ?? flavors[idx % flavors.length]
+                );
 
-        const tierFlavorPayload = selectedTierKey === "tier1"
-            ? {}
-            : Object.fromEntries(
-                activeTierFlavors.map((layerFlavor, idx) => [
-                    activeTierLabels[idx] ?? `Tier ${idx + 1}`,
-                    layerFlavor,
-                ])
-            );
+        const tierFlavorPayload =
+            selectedTierKey === "tier1"
+                ? {}
+                : Object.fromEntries(
+                    activeTierFlavors.map((layerFlavor, idx) => [
+                        activeTierLabels[idx] ?? `Tier ${idx + 1}`,
+                        layerFlavor,
+                    ])
+                );
 
         const payload = {
             shape: form === 1 ? "round" : "rectangle",
@@ -599,7 +634,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             }, 1500);
         } else {
             setOrderStatus("error");
-            setErrorMessage(result.error?.error || result.error?.message || "Failed to add cake to cart. Please try again.");
+            setErrorMessage(
+                result.error?.error || result.error?.message || "Failed to add cake to cart. Please try again."
+            );
             setTimeout(() => setOrderStatus(null), 3000);
         }
 
@@ -610,11 +647,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         <aside className="cfg-panel">
             <h2 className="cfg-title">Design Your Cake</h2>
 
-            {/* Size & Tier */}
+            {/* ── Tier & Size ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Tier</h3>
-
-                {/* Tier — chip buttons like Shape */}
                 <div className="cfg-chips">
                     {CAKE_SIZES.map((item, idx) => (
                         <button
@@ -630,7 +665,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     ))}
                 </div>
 
-                {/* Size — dropdown */}
                 <h3 className="cfg-label" style={{ marginTop: "8px" }}>Size</h3>
                 <div className="cfg-select-wrapper">
                     <select id="size-select" className="cfg-select" value={selectedSize} onChange={handleSizeChange}>
@@ -642,26 +676,20 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 </div>
             </section>
 
-            {/* Shape */}
+            {/* ── Shape ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Shape</h3>
                 <div className="cfg-chips">
-                    <button
-                        className={`chip ${form === 1 ? "chip--active" : ""}`}
-                        onClick={() => setForm(1)}
-                    >
+                    <button className={`chip ${form === 1 ? "chip--active" : ""}`} onClick={() => setForm(1)}>
                         Round
                     </button>
-                    <button
-                        className={`chip ${form === 2 ? "chip--active" : ""}`}
-                        onClick={() => setForm(2)}
-                    >
+                    <button className={`chip ${form === 2 ? "chip--active" : ""}`} onClick={() => setForm(2)}>
                         Rectangle
                     </button>
                 </div>
             </section>
 
-            {/* Cake Color */}
+            {/* ── Cake Color ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Cake Color</h3>
                 <div className="cfg-swatches">
@@ -678,9 +706,11 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 </div>
             </section>
 
-            {/* Flavor */}
+            {/* ── Flavor ── */}
             <section className="cfg-section">
-                <h3 className="cfg-label">{selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}</h3>
+                <h3 className="cfg-label">
+                    {selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}
+                </h3>
                 {selectedTierIndex === 0 ? (
                     <div className="cfg-chips">
                         {flavors.map((f) => (
@@ -689,9 +719,12 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 className={`chip ${flavor === f ? "chip--active" : ""}`}
                                 onClick={() => {
                                     setFlavor(f);
-                                    if (f === "Choco Moist") setCakeColor(cakeColors.find(c => c.name === "brown") || cakeColors[0]);
-                                    else if (f === "Vanilla Chiffon") setCakeColor(cakeColors.find(c => c.name === "vanilla") || cakeColors[0]);
-                                    else if (f === "Ube Chiffon") setCakeColor(cakeColors.find(c => c.name === "lavender") || cakeColors[0]);
+                                    if (f === "Choco Moist")
+                                        setCakeColor(cakeColors.find((c) => c.name === "brown") || cakeColors[0]);
+                                    else if (f === "Vanilla Chiffon")
+                                        setCakeColor(cakeColors.find((c) => c.name === "vanilla") || cakeColors[0]);
+                                    else if (f === "Ube Chiffon")
+                                        setCakeColor(cakeColors.find((c) => c.name === "lavender") || cakeColors[0]);
                                 }}
                             >
                                 {FLAVOR_LABELS[f] || "Cake"} - {f}
@@ -706,7 +739,11 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 <span className="tier-flavor-name">
                                     <span
                                         className="tier-flavor-dot"
-                                        style={{ backgroundColor: FLAVOR_VISUALS[tierFlavors[CAKE_SIZES[selectedTierIndex]?.tierKey]?.[idx]]?.color || cakeColor.color }}
+                                        style={{
+                                            backgroundColor:
+                                                FLAVOR_VISUALS[tierFlavors[CAKE_SIZES[selectedTierIndex]?.tierKey]?.[idx]]
+                                                    ?.color || cakeColor.color,
+                                        }}
                                     />
                                     {activeTierLabels[idx] ?? tierFlavorLabels[idx] ?? `Tier ${idx + 1}`}
                                 </span>
@@ -725,7 +762,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 )}
             </section>
 
-            {/* Cake Message */}
+            {/* ── Cake Message ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Cake Message</h3>
                 <input
@@ -742,14 +779,16 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         onChange={(event) => setTextFont(event.target.value)}
                     >
                         {TEXT_FONT_OPTIONS.map((fontOption) => (
-                            <option key={fontOption.value} value={fontOption.value}>{fontOption.label}</option>
+                            <option key={fontOption.value} value={fontOption.value}>
+                                {fontOption.label}
+                            </option>
                         ))}
                     </select>
                     <span className="cfg-select-arrow">▾</span>
                 </div>
             </section>
 
-            {/* Decorations */}
+            {/* ── Decorations ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Decorations</h3>
                 <div className="cfg-toggles">
@@ -771,6 +810,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 </div>
             </section>
 
+            {/* ── Topping Placement ── */}
             <section className="cfg-section">
                 <h3 className="cfg-label">Topping Placement</h3>
                 {activeToppings.length > 0 ? (
@@ -813,26 +853,24 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 )}
             </section>
 
-            {/* Randomize */}
+            {/* ── Randomize ── */}
             <button className="cfg-random-btn" onClick={generateRandomCake}>
                 🎲 Randomize My Cake!
             </button>
 
-            {/* Price Display */}
+            {/* ── Price ── */}
             {pricingLoading && (
                 <div className="cfg-pricing-note">Loading latest prices...</div>
             )}
             {pricingError && (
-                <div className="cfg-pricing-note cfg-pricing-note--error">
-                    {pricingError}
-                </div>
+                <div className="cfg-pricing-note cfg-pricing-note--error">{pricingError}</div>
             )}
             <div className="cfg-price-display">
                 <span className="cfg-price-label">Total Price:</span>
                 <span className="cfg-price-amount">₱{calculatePrice().toFixed(2)}</span>
             </div>
 
-            {/* Add to Cart */}
+            {/* ── Add to Cart ── */}
             <button
                 className="cfg-order-btn"
                 onClick={handleAddToCart}
@@ -851,6 +889,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BuildBentoContent
+// ─────────────────────────────────────────────────────────────────────────────
 function BuildBentoContent() {
     const {
         selectedTierIndex,
@@ -865,44 +906,72 @@ function BuildBentoContent() {
 
             <div className="build-layout">
                 <div className="build-canvas-wrap">
-                    <Canvas
-                        dpr={[1, 2]}
-                        camera={{ fov: 40, position: [0, 4, 5] }}
-                        shadows
-                    >
-                        <color attach="background" args={["#120020"]} />
-                        <fog attach="fog" args={["#120020", 12, 22]} />
+                    {/* ✅ Error boundary isolates WebGL crashes from the rest of the UI */}
+                    <CanvasErrorBoundary>
+                        <Canvas
+                            dpr={[1, 2]}
+                            camera={{ fov: 40, position: [0, 4, 5] }}
+                            shadows
+                            // ✅ Handle WebGL context loss gracefully instead of crashing
+                            onCreated={({ gl }) => {
+                                gl.domElement.addEventListener(
+                                    "webglcontextlost",
+                                    (e) => {
+                                        e.preventDefault();
+                                        console.warn("WebGL context lost — will attempt to restore.");
+                                    },
+                                    false
+                                );
+                                gl.domElement.addEventListener(
+                                    "webglcontextrestored",
+                                    () => {
+                                        console.info("WebGL context restored.");
+                                    },
+                                    false
+                                );
+                            }}
+                        >
+                            <color attach="background" args={["#120020"]} />
+                            <fog attach="fog" args={["#120020", 12, 22]} />
 
-                        <ambientLight intensity={0.6} />
-                        <directionalLight
-                            position={[5, 8, 5]}
-                            intensity={1.4}
-                            castShadow
-                            shadow-mapSize={[1024, 1024]}
-                        />
-                        <pointLight position={[-4, 4, -4]} intensity={0.6} color="#c77dff" />
-                        <pointLight position={[4, 2, 4]} intensity={0.4} color="#ff5ec4" />
-
-                        <Suspense fallback={null}>
-                            <CakeModel selectedTierIndex={selectedTierIndex} />
-                            <ContactShadows
-                                position={[0, -2.3, 0]}
-                                opacity={0.5}
-                                scale={6}
-                                blur={2}
+                            {/* ── Lighting (replaces the removed Environment preset) ── */}
+                            <ambientLight intensity={0.6} />
+                            {/* ✅ hemisphereLight mimics sky/ground ambient that Environment provided */}
+                            <hemisphereLight intensity={0.45} skyColor="#c77dff" groundColor="#1a0030" />
+                            <directionalLight
+                                position={[5, 8, 5]}
+                                intensity={1.4}
+                                castShadow
+                                shadow-mapSize={[1024, 1024]}
                             />
-                            <Environment preset="city" />
-                        </Suspense>
+                            <pointLight position={[-4, 4, -4]} intensity={0.6} color="#c77dff" />
+                            <pointLight position={[4, 2, 4]} intensity={0.4} color="#ff5ec4" />
+                            {/* ✅ Extra fill light to compensate for the removed HDR environment */}
+                            <pointLight position={[0, 6, 0]} intensity={0.35} color="#ffffff" />
 
-                        <OrbitControls
-                            enablePan={false}
-                            minDistance={3}
-                            maxDistance={12}
-                            minPolarAngle={Math.PI / 6}
-                            maxPolarAngle={Math.PI / 2}
-                            target={[0, 1.2, 0]}
-                        />
-                    </Canvas>
+                            <Suspense fallback={null}>
+                                <CakeModel selectedTierIndex={selectedTierIndex} />
+                                <ContactShadows
+                                    position={[0, -2.3, 0]}
+                                    opacity={0.5}
+                                    scale={6}
+                                    blur={2}
+                                />
+                                {/* ✅ REMOVED: <Environment preset="city" />
+                                     This was fetching potsdamer_platz_1k.hdr from drei's CDN,
+                                     failing silently, then crashing the WebGL context entirely. */}
+                            </Suspense>
+
+                            <OrbitControls
+                                enablePan={false}
+                                minDistance={3}
+                                maxDistance={12}
+                                minPolarAngle={Math.PI / 6}
+                                maxPolarAngle={Math.PI / 2}
+                                target={[0, 1.2, 0]}
+                            />
+                        </Canvas>
+                    </CanvasErrorBoundary>
 
                     <div className="canvas-hint">🖱️ Drag to rotate · Scroll to zoom</div>
                 </div>
@@ -918,6 +987,9 @@ function BuildBentoContent() {
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Default export
+// ─────────────────────────────────────────────────────────────────────────────
 export default function BuildBentoPage() {
     return (
         <CustomizationProvider>

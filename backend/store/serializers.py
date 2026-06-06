@@ -59,7 +59,7 @@ class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True, default=None)
     product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True, default=None)
     product_image = serializers.ImageField(source='product.image', read_only=True, default=None)
-    customization_detail = CakeCustomizationSerializer(source='customization', read_only=True)
+    customization_detail = serializers.SerializerMethodField()
     item_name = serializers.SerializerMethodField()
     item_unit_price = serializers.SerializerMethodField()
     is_custom_cake = serializers.SerializerMethodField()
@@ -74,18 +74,23 @@ class CartItemSerializer(serializers.ModelSerializer):
         if obj.product:
             return obj.product.name
         elif obj.customization:
-            return f"Custom {obj.customization.get_shape_display()} {obj.customization.flavor} Cake"
+            shape = obj.customization.get("shape", "")
+            flavor = obj.customization.get("flavor", "")
+            return f"Custom {shape} {flavor} Cake"
         return "Unknown Item"
 
     def get_item_unit_price(self, obj):
         if obj.product:
             return str(obj.product.price)
         elif obj.customization:
-            return str(obj.customization.price)
+            return str(obj.customization.get("price", "0.00"))
         return "0.00"
 
     def get_is_custom_cake(self, obj):
         return obj.customization is not None
+
+    def get_customization_detail(self, obj):
+        return obj.customization
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)

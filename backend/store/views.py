@@ -65,6 +65,28 @@ def add_to_cart(request):
         item.save()
     return Response({'message': 'Product added to cart', "cart":CartSerializer(cart).data})
 
+
+def build_customization_snapshot(data, price, customization_id=None):
+    snapshot = {
+        "shape": data.get("shape", "round"),
+        "cake_color": data.get("cake_color", "#683434"),
+        "flavor": data.get("flavor", "Choco Moist"),
+        "tier": data.get("tier"),
+        "size": data.get("size"),
+        "tier_flavors": data.get("tier_flavors") or {},
+        "inscription_text": data.get("inscription_text") or "",
+        "text_font": data.get("text_font") or "",
+        "topping_layout": data.get("topping_layout") or {},
+        "has_candle": bool(data.get("has_candle", False)),
+        "has_chocolate": bool(data.get("has_chocolate", False)),
+        "has_balls": bool(data.get("has_balls", False)),
+        "has_nuts": bool(data.get("has_nuts", False)),
+        "price": str(price),
+    }
+    if customization_id is not None:
+        snapshot["id"] = customization_id
+    return snapshot
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_cart_quantity(request):
@@ -151,8 +173,8 @@ def create_order(request):
                     order=order, 
                     product=None, 
                     quantity=item.quantity, 
-                    price=item.customization.price,
-                    customization=item.customization.get_customization_dict()
+                    price=item.item_price,
+                    customization=item.customization
                 )
 
         cart.items.all().delete()
@@ -210,7 +232,7 @@ def profile_view(request):
 @permission_classes([IsAuthenticated])
 def add_custom_cake_to_cart(request):
     """
-    Saves a CakeCustomization and adds it to the user's cart as a CartItem.
+    Saves a custom cake as JSON and adds it to the user's cart as a CartItem.
     """
     serializer = CakeCustomizationSerializer(data=request.data)
     if serializer.is_valid():
@@ -231,15 +253,20 @@ def add_custom_cake_to_cart(request):
                 "error": "No price is configured for the selected tier, size, and flavor."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        customization = serializer.save(user=request.user, price=price)
+        customization_record = serializer.save(user=request.user, price=price)
+        customization_snapshot = build_customization_snapshot(
+            data,
+            price,
+            customization_id=customization_record.id,
+        )
         
         # Get or create the user's cart
         cart, _ = Cart.objects.get_or_create(user=request.user)
         
-        # Create a CartItem linked to this customization (no product)
+        # Create a CartItem with a JSON customization snapshot (no product)
         CartItem.objects.create(
             cart=cart,
-            customization=customization,
+            customization=customization_snapshot,
             quantity=1,
         )
         

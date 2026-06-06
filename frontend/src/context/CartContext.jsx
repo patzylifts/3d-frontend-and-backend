@@ -1,15 +1,16 @@
+// src/context/CartContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import { authFetch, getAccessToken } from "../utils/auth";
+import { authFetch, getAccessToken, clearTokens } from "../utils/auth";
 
 const CartContext = createContext({
     cartItems: [],
     total: 0,
-    fetchCart: () => { },
-    addToCart: () => { },
-    addCustomCakeToCart: () => { },
-    removeFromCart: () => { },
-    updateQuantity: () => { },
-    clearCart: () => { },
+    fetchCart: () => {},
+    addToCart: () => {},
+    addCustomCakeToCart: () => {},
+    removeFromCart: () => {},
+    updateQuantity: () => {},
+    clearCart: () => {},
 });
 
 export const CartProvider = ({ children }) => {
@@ -17,82 +18,121 @@ export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
     const [total, setTotal] = useState(0);
 
-    // Fetch Cart from backend
+    /* ── Fetch Cart ── */
     const fetchCart = async () => {
         try {
-            const res = await authFetch(`${BASEURL}/api/cart/`)
+            const res = await authFetch(`${BASEURL}/api/cart/`);
+
+            if (res.status === 401) {
+                // Token refresh also failed — clear cart silently
+                clearCart();
+                return;
+            }
+
+            if (!res.ok) {
+                console.error("Unexpected error fetching cart:", res.status);
+                return;
+            }
+
             const data = await res.json();
             setCartItems(data.items || []);
             setTotal(data.total || 0);
         } catch (error) {
-            console.error("Error fetching cart: ", error)
+            console.error("Error fetching cart:", error);
         }
-    }
+    };
 
+    /* ── Load cart on mount if user is logged in ── */
     useEffect(() => {
         if (getAccessToken()) {
             fetchCart();
         }
     }, []);
 
-    // Add Product to Cart
+    /* ── Listen for forced logout (both tokens expired) ── */
+    useEffect(() => {
+        const handleLogout = () => clearCart();
+        window.addEventListener("auth:logout", handleLogout);
+        return () => window.removeEventListener("auth:logout", handleLogout);
+    }, []);
+
+    /* ── Add Regular Product to Cart ── */
     const addToCart = async (productId) => {
         try {
-            await authFetch(`${BASEURL}/api/cart/add/`, {
+            const res = await authFetch(`${BASEURL}/api/cart/add/`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ product_id: productId }),
             });
-            fetchCart();
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-        }
-    }
 
-    // Remove Product from Cart
+            if (!res.ok) {
+                const err = await res.json();
+                console.error("Failed to add product:", err);
+                return { success: false, error: err };
+            }
+
+            await fetchCart();
+            return { success: true };
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            return { success: false, error };
+        }
+    };
+
+    /* ── Remove Product from Cart ── */
     const removeFromCart = async (itemId) => {
         try {
-            await authFetch(`${BASEURL}/api/cart/remove/`, {
+            const res = await authFetch(`${BASEURL}/api/cart/remove/`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ item_id: itemId }),
             });
-            fetchCart();
-        } catch (error) {
-            console.error("Error removing from cart:", error)
-        }
-    }
 
-    // Update Quantity
+            if (!res.ok) {
+                const err = await res.json();
+                console.error("Failed to remove item:", err);
+                return { success: false, error: err };
+            }
+
+            await fetchCart();
+            return { success: true };
+        } catch (error) {
+            console.error("Error removing from cart:", error);
+            return { success: false, error };
+        }
+    };
+
+    /* ── Update Item Quantity ── */
     const updateQuantity = async (itemId, quantity) => {
         if (quantity < 1) {
-            await removeFromCart(itemId);
-            return;
+            return await removeFromCart(itemId);
         }
+
         try {
-            await authFetch(`${BASEURL}/api/cart/update/`, {
+            const res = await authFetch(`${BASEURL}/api/cart/update/`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ item_id: itemId, quantity }),
             });
-            fetchCart();
-        } catch (error) {
-            console.log("Error updating quantity: ", error);
-        }
-    }
 
+            if (!res.ok) {
+                const err = await res.json();
+                console.error("Failed to update quantity:", err);
+                return { success: false, error: err };
+            }
+
+            await fetchCart();
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating quantity:", error);
+            return { success: false, error };
+        }
+    };
+
+    /* ── Clear Cart (local state only) ── */
     const clearCart = () => {
         setCartItems([]);
         setTotal(0);
-    }
+    };
 
-    // Add Custom Cake to Cart (via Django backend)
+    /* ── Add Custom Cake to Cart ── */
     const addCustomCakeToCart = async (payload) => {
         try {
             const res = await authFetch(`${BASEURL}/api/cake-customization/`, {
@@ -110,33 +150,33 @@ export const CartProvider = ({ children }) => {
             await fetchCart();
             return { success: true, data };
         } catch (error) {
-            console.error("Error adding custom cake to cart:", error);
+            console.error("Error adding custom cake:", error);
             return { success: false, error };
         }
     };
 
     return (
-        <CartContext.Provider value={{
-            cartItems,
-            total,
-            fetchCart,
-            addToCart,
-            addCustomCakeToCart,
-            removeFromCart,
-            updateQuantity,
-            clearCart
-        }}>
+        <CartContext.Provider
+            value={{
+                cartItems,
+                total,
+                fetchCart,
+                addToCart,
+                addCustomCakeToCart,
+                removeFromCart,
+                updateQuantity,
+                clearCart,
+            }}
+        >
             {children}
-        </CartContext.Provider >
-    )
+        </CartContext.Provider>
+    );
 };
 
 export const useCart = () => {
     const context = useContext(CartContext);
-
     if (!context) {
         throw new Error("useCart must be used inside CartProvider");
     }
-
     return context;
 };

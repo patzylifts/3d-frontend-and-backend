@@ -50,6 +50,13 @@ export const TOPPING_SIZES = {
     large: 1.2,
 };
 
+const DEFAULT_TOPPING_LAYOUT = {
+    candle: { x: 50, y: 50, size: "medium" },
+    chocolate: { x: 50, y: 50, size: "medium" },
+    balls: { x: 50, y: 50, size: "medium" },
+    nuts: { x: 50, y: 50, size: "medium" },
+};
+
 export const CAKE_SIZES = [
     {
         tier: "1 Tier Cake",
@@ -99,6 +106,20 @@ const hydrateTierFlavors = (initialState) => {
     };
 };
 
+const hydrateToppingLayout = (initialState) => {
+    const savedLayout = initialState?.topping_layout || {};
+
+    return Object.fromEntries(
+        Object.entries(DEFAULT_TOPPING_LAYOUT).map(([key, defaultLayout]) => [
+            key,
+            {
+                ...defaultLayout,
+                ...(savedLayout[key] || {}),
+            },
+        ])
+    );
+};
+
 const DEFAULT_CAKE_PRICES = {
     tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
     tier2: { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
@@ -119,7 +140,9 @@ export const CustomizationProvider = (props) => {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
 
     const initialState = props.initialState;
-    const [form, setForm] = useState(1);
+    const [form, setForm] = useState(
+        () => initialState?.shape === "rectangle" ? 2 : 1
+    );
     const [selectedTierIndex, setSelectedTierIndex] = useState(
         () => {
             if (!initialState?.tier) return 0;
@@ -146,13 +169,7 @@ export const CustomizationProvider = (props) => {
     const [pricingError, setPricingError] = useState("");
     // LANDMARK: init topping layout (ADMIN FIX)
     const [toppingLayout, setToppingLayout] = useState(
-        () =>
-            initialState?.topping_layout || {
-                candle: { x: 50, y: 50, size: "medium" },
-                chocolate: { x: 50, y: 50, size: "medium" },
-                balls: { x: 50, y: 50, size: "medium" },
-                nuts: { x: 50, y: 50, size: "medium" },
-            }
+        () => hydrateToppingLayout(initialState)
     );
     // LANDMARK: init tier flavors from admin payload
     const [tierFlavors, setTierFlavors] = useState(() => {
