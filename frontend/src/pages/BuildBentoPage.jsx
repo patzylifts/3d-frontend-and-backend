@@ -1,8 +1,7 @@
 // src/pages/BuildBentoPage.jsx
 import { useRef, Suspense, useState, useEffect, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-// ✅ REMOVED: Environment — was fetching potsdamer_platz_1k.hdr and crashing WebGL
-import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
+import { useGLTF, useTexture, OrbitControls, ContactShadows, SpotLight } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
@@ -120,7 +119,9 @@ const getToppingPosition = (layout, config, selectedTierIndex) => {
 
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
     color: FLAVOR_VISUALS[flavorName]?.color || fallbackColor,
-    roughness: 0.8,
+    // ✅ Reduced roughness for a realistic slight sheen on frosting
+    roughness: 0.65,
+    metalness: 0.0,
     ...(textureByFlavor[flavorName] || {}),
 });
 
@@ -134,7 +135,8 @@ const getCakeShape = (name) => {
 function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selectedLayerFlavors = [], textureByFlavor = {} }) {
     if (!scene) return;
 
-    const cakeMatProps = { color: cakeColor.color, roughness: 0.8, ...activeTexture };
+    // ✅ Lowered roughness for realistic frosting sheen
+    const cakeMatProps = { color: cakeColor.color, roughness: 0.65, metalness: 0.0, ...activeTexture };
     const cakeMeshes = [];
 
     scene.traverse((child) => {
@@ -201,7 +203,7 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ✅ NEW: Error Boundary — catches WebGL / drei loader crashes gracefully
+// Error Boundary — catches WebGL / drei loader crashes gracefully
 // ─────────────────────────────────────────────────────────────────────────────
 class CanvasErrorBoundary extends Component {
     constructor(props) {
@@ -254,6 +256,122 @@ class CanvasErrorBoundary extends Component {
         }
         return this.props.children;
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RealisticLighting — product-photography 3-point rig + overhead key
+// ─────────────────────────────────────────────────────────────────────────────
+function RealisticLighting() {
+    return (
+        <>
+            {/*
+             * ── AMBIENT ──────────────────────────────────────────────────────
+             * Soft, neutral base so shadows are never pitch-black.
+             * Intentionally kept moderate — we let the key lights do the work.
+             */}
+            <ambientLight intensity={0.9} color="#fff8f2" />
+
+            {/*
+             * ── HEMISPHERE (sky/ground bounce) ───────────────────────────────
+             * Warm ivory sky + subtle warm ground bounce imitates a daylight
+             * studio with a warm reflector on the floor.
+             */}
+            <hemisphereLight
+                intensity={0.7}
+                skyColor="#fffbf0"
+                groundColor="#c8956c"
+            />
+
+            {/*
+             * ── KEY LIGHT (main studio softbox, upper-front-right) ───────────
+             * This is the dominant light. Warm white, cast from 45° above and
+             * slightly to the right — classic product-photography angle.
+             * Shadow map at 2048 keeps edges crisp without banding.
+             */}
+            <directionalLight
+                position={[4, 9, 6]}
+                intensity={3.5}
+                color="#fff5e8"
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-bias={-0.0008}
+                shadow-camera-near={0.5}
+                shadow-camera-far={30}
+                shadow-camera-left={-6}
+                shadow-camera-right={6}
+                shadow-camera-top={6}
+                shadow-camera-bottom={-6}
+            />
+
+            {/*
+             * ── FILL LIGHT (opposite side softbox) ───────────────────────────
+             * Softer than the key, from upper-left-back. Lifts shadow areas
+             * without flattening the form — about 40% of key intensity.
+             */}
+            <directionalLight
+                position={[-5, 6, -3]}
+                intensity={1.6}
+                color="#ffeedd"
+            />
+
+            {/*
+             * ── RIM / BACK LIGHT ─────────────────────────────────────────────
+             * Separates the cake from the dark background with a cool-neutral
+             * halo. Essential for product shots on dark BG.
+             */}
+            <directionalLight
+                position={[0, 4, -7]}
+                intensity={1.2}
+                color="#e8f0ff"
+            />
+
+            {/*
+             * ── OVERHEAD SPOT (hero downlight) ───────────────────────────────
+             * Tight spot aimed straight down at the cake top — this is what
+             * makes the frosting & toppings "pop" and look delicious.
+             * penumbra softens the edge so it doesn't look artificial.
+             */}
+            <spotLight
+                position={[0.5, 9, 1.5]}
+                intensity={5.0}
+                angle={Math.PI / 7}
+                penumbra={0.55}
+                color="#fff9f0"
+                castShadow
+                shadow-mapSize-width={1024}
+                shadow-mapSize-height={1024}
+                shadow-bias={-0.001}
+                target-position={[0, 1, 0]}
+            />
+
+            {/*
+             * ── FRONT ACCENT (camera-side bounce card) ───────────────────────
+             * Small warm point close to the camera side to ensure the front
+             * face of the cake stays bright and appetising.
+             */}
+            <pointLight
+                position={[1, 3, 5]}
+                intensity={1.4}
+                color="#fff8f0"
+                distance={12}
+                decay={2}
+            />
+
+            {/*
+             * ── LEFT ACCENT ──────────────────────────────────────────────────
+             * Subtle left-side fill, very warm, keeps any remaining dark zones
+             * from going fully black.
+             */}
+            <pointLight
+                position={[-3, 4, 3]}
+                intensity={0.9}
+                color="#ffe8cc"
+                distance={10}
+                decay={2}
+            />
+        </>
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,7 +521,7 @@ export function CakeModel({ selectedTierIndex }) {
                                 (name) =>
                                     nodes[name]?.geometry && (
                                         <mesh key={name} geometry={nodes[name].geometry} castShadow>
-                                            <meshStandardMaterial color={standColor} roughness={0.55} />
+                                            <meshStandardMaterial color={standColor} roughness={0.55} metalness={0.1} />
                                         </mesh>
                                     )
                             )}
@@ -418,8 +536,15 @@ export function CakeModel({ selectedTierIndex }) {
                             scale={[0.95, 0.92, 0.95]}
                             visible={form === 1}
                             castShadow
+                            receiveShadow
                         >
-                            <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} />
+                            {/* ✅ roughness 0.65 gives a subtle frosting sheen */}
+                            <meshStandardMaterial
+                                {...activeTexture}
+                                color={cakeColor.color}
+                                roughness={0.65}
+                                metalness={0.0}
+                            />
                         </mesh>
                     )}
 
@@ -431,8 +556,15 @@ export function CakeModel({ selectedTierIndex }) {
                             scale={[0.95, 0.92, 0.95]}
                             visible={form === 2}
                             castShadow
+                            receiveShadow
                         >
-                            <meshStandardMaterial {...activeTexture} color={cakeColor.color} roughness={0.8} displacementScale={0.01} />
+                            <meshStandardMaterial
+                                {...activeTexture}
+                                color={cakeColor.color}
+                                roughness={0.65}
+                                metalness={0.0}
+                                displacementScale={0.01}
+                            />
                         </mesh>
                     )}
                 </>
@@ -906,13 +1038,18 @@ function BuildBentoContent() {
 
             <div className="build-layout">
                 <div className="build-canvas-wrap">
-                    {/* ✅ Error boundary isolates WebGL crashes from the rest of the UI */}
+                    {/* Error boundary isolates WebGL crashes from the rest of the UI */}
                     <CanvasErrorBoundary>
                         <Canvas
                             dpr={[1, 2]}
                             camera={{ fov: 40, position: [0, 4, 5] }}
                             shadows
-                            // ✅ Handle WebGL context loss gracefully instead of crashing
+                            // ✅ Tone mapping for realistic, film-like brightness response
+                            gl={{
+                                toneMapping: THREE.ACESFilmicToneMapping,
+                                toneMappingExposure: 1.15,
+                                outputColorSpace: THREE.SRGBColorSpace,
+                            }}
                             onCreated={({ gl }) => {
                                 gl.domElement.addEventListener(
                                     "webglcontextlost",
@@ -932,34 +1069,31 @@ function BuildBentoContent() {
                             }}
                         >
                             <color attach="background" args={["#120020"]} />
-                            <fog attach="fog" args={["#120020", 12, 22]} />
 
-                            {/* ── Lighting (replaces the removed Environment preset) ── */}
-                            <ambientLight intensity={0.6} />
-                            {/* ✅ hemisphereLight mimics sky/ground ambient that Environment provided */}
-                            <hemisphereLight intensity={0.45} skyColor="#c77dff" groundColor="#1a0030" />
-                            <directionalLight
-                                position={[5, 8, 5]}
-                                intensity={1.4}
-                                castShadow
-                                shadow-mapSize={[1024, 1024]}
-                            />
-                            <pointLight position={[-4, 4, -4]} intensity={0.6} color="#c77dff" />
-                            <pointLight position={[4, 2, 4]} intensity={0.4} color="#ff5ec4" />
-                            {/* ✅ Extra fill light to compensate for the removed HDR environment */}
-                            <pointLight position={[0, 6, 0]} intensity={0.35} color="#ffffff" />
+                            {/*
+                             * ✅ Reduced fog density — previous fog was too thick,
+                             * swallowing light and making everything appear dark.
+                             * Far plane moved to 28 so the cake is fully clear.
+                             */}
+                            <fog attach="fog" args={["#1a0030", 16, 28]} />
+
+                            {/* ✅ Full realistic lighting rig — replaces old dark colored lights */}
+                            <RealisticLighting />
 
                             <Suspense fallback={null}>
                                 <CakeModel selectedTierIndex={selectedTierIndex} />
+
+                                {/*
+                                 * ✅ ContactShadows opacity reduced slightly so it
+                                 * doesn't make the base look muddy.
+                                 */}
                                 <ContactShadows
                                     position={[0, -2.3, 0]}
-                                    opacity={0.5}
+                                    opacity={0.35}
                                     scale={6}
-                                    blur={2}
+                                    blur={2.5}
+                                    color="#200040"
                                 />
-                                {/* ✅ REMOVED: <Environment preset="city" />
-                                     This was fetching potsdamer_platz_1k.hdr from drei's CDN,
-                                     failing silently, then crashing the WebGL context entirely. */}
                             </Suspense>
 
                             <OrbitControls
