@@ -1,4 +1,4 @@
-/* src/components/Navbar.css */
+/* src/components/Navbar.css | DO NOT REMOVE THIS */
 .minimal-nav {
     position: fixed;
     top: 0; left: 0;
@@ -29,9 +29,24 @@
 .mobile-only-links { display: none; }
 .mobile-burger { display: none; }
 
-.nav-logo-centered { text-decoration: none; text-align: center; }
-.logo-top { font-weight: 800; font-size: 1rem; letter-spacing: 2px; color: var(--espresso); }
-.logo-bottom { font-weight: 500; font-size: 0.65rem; letter-spacing: 4px; color: var(--primary-berry); margin-top: 2px; }
+/* Refined Image Logo Positioning */
+.nav-logo-centered { 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none; 
+}
+
+.nav-logo-img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.nav-logo-centered:hover .nav-logo-img {
+    transform: scale(1.05);
+}
 
 .nav-link {
     text-decoration: none;
@@ -40,26 +55,72 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--espresso);
-    transition: 0.3s;
+    transition: color 0.3s ease;
 }
 
-.nav-cart-minimal { position: relative; display: flex; align-items: center; }
+.nav-link:hover {
+    color: var(--brand-orange);
+}
+
+.nav-cart-minimal { 
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    color: var(--espresso);
+    transition: color 0.3s ease;
+}
+
+.nav-cart-minimal:hover {
+    color: var(--brand-orange);
+}
+
+.cart-icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .cart-badge-minimal {
     position: absolute;
     top: -8px; right: -10px;
-    background: var(--primary-berry);
-    color: white;
+    background: var(--brand-orange);
+    color: var(--white);
     font-size: 0.6rem;
+    font-weight: 700;
     width: 18px; height: 18px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(183, 90, 26, 0.3);
+}
+
+/* Logout Button Actions */
+.logout-btn {
+    background-color: var(--brand-orange);
+    color: var(--white) !important;
+    padding: 8px 20px !important;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(183, 90, 26, 0.2);
+}
+
+.logout-btn:hover {
+    background-color: var(--espresso);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(43, 26, 15, 0.15);
 }
 
 /* --- MOBILE RESPONSIVE LOGIC --- */
-
 @media (max-width: 968px) {
     .nav-container {
-        display: flex; /* Switch from grid to flex */
+        display: flex;
         justify-content: space-between;
     }
 
@@ -81,7 +142,6 @@
         transition: 0.3s;
     }
 
-    /* Transform burger into 'X' when open */
     .line.open:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .line.open:nth-child(2) { opacity: 0; }
     .line.open:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
@@ -93,56 +153,35 @@
         background: var(--bg-cream);
         flex-direction: column;
         padding: 40px 0;
-        gap: 20px;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
+        gap: 25px;
+        border-bottom: 1px solid rgba(45, 27, 20, 0.05);
         transform: translateY(-120%);
-        transition: 0.4s ease-in-out;
+        transition: transform 0.4s ease-in-out;
         z-index: -1;
     }
 
     .nav-group.left.active { transform: translateY(0); }
 
     .desktop-only-group { display: none; }
+    
     .mobile-only-links { 
         display: flex; 
         flex-direction: column; 
         align-items: center; 
-        gap: 20px; 
+        gap: 25px; 
         width: 100%;
         margin-top: 10px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(0,0,0,0.05);
+        padding-top: 25px;
+        border-top: 1px solid rgba(45, 27, 20, 0.05);
     }
 
-    /* Logo scaling for mobile */
-    .logo-top { font-size: 0.9rem; }
-    .logo-bottom { font-size: 0.6rem; }
-}
-
-.logout-btn {
-    background-color: var(--primary-berry); /* Or use #f4511e for that orange look */
-    color: white !important; /* Force text to white */
-    padding: 8px 20px !important;
-    border-radius: 50px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.7rem !important; /* Keep it slightly smaller and elegant */
-    transition: all 0.3s ease;
-    display: inline-block;
-    box-shadow: 0 4px 10px rgba(216, 92, 123, 0.2);
-}
-
-.logout-btn:hover {
-    background-color: var(--espresso); /* Turns dark on hover for contrast */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* Adjustments for Mobile Menu */
-@media (max-width: 968px) {
     .logout-btn {
-        width: 80%; /* Make it wider on mobile for easier tapping */
+        width: 80%;
         text-align: center;
-        margin-top: 10px;
+        margin-top: 5px;
+    }
+
+    .nav-logo-img {
+        height: 50px;
     }
 }

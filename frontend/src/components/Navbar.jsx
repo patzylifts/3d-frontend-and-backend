@@ -1,13 +1,14 @@
-// src/components/Navbar.jsx
+// src/components/Navbar.jsx | DO NOT REMOVE THIS
 import React, { useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { clearTokens, getAccessToken } from "../utils/auth";
+import logoImg from "../assets/images/spc.png";
 import "./Navbar.css";
 
 function Navbar() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false); // State for mobile menu
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { cartItems, clearCart } = useCart();
     const navigate = useNavigate();
     const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -74,10 +75,9 @@ function Navbar() {
                     </div>
                 </div>
 
-                {/* Logo */}
+                {/* Centered Graphic Branding Logo */}
                 <Link to="/" className="nav-logo-centered">
-                    <div className="logo-top">SMILEY PAGE</div>
-                    <div className="logo-bottom">CORNER</div>
+                    <img src={logoImg} alt="Smiley Page Corner" className="nav-logo-img" />
                 </Link>
 
                 {/* Right Group: Cart & Desktop Profile */}
