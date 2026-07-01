@@ -17,6 +17,7 @@ import {
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
+import './BuildBentoPage.css';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -466,6 +467,7 @@ export function CakeModel({ selectedTierIndex }) {
     );
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DraggableTopping
 // ─────────────────────────────────────────────────────────────────────────────
@@ -481,7 +483,7 @@ function DraggableTopping({ topping, layout }) {
         <button
             ref={setNodeRef}
             type="button"
-            className={`topping-marker topping-marker--${layout.size.toLowerCase()} ${isDragging ? "topping-marker--dragging shadow-xl scale-110" : ""} transition-transform duration-100 ease-out`}
+            className={`topping-marker topping-marker--${layout.size.toLowerCase()} ${isDragging ? "topping-marker--dragging" : ""}`}
             style={{
                 left: `${layout.x}%`,
                 top: `${layout.y}%`,
@@ -547,7 +549,7 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div
                 ref={setBoardNode}
-                className={`topping-board ${form === 1 ? "topping-board--round rounded-full" : "topping-board--rectangle rounded-xl"} border border-[#E6CCA2] bg-[#FDF6E2] shadow-inner`}
+                className={`topping-board ${form === 1 ? "topping-board--round" : "topping-board--rectangle"}`}
             >
                 <div className="topping-board__cake">
                     {activeToppings.map((topping) => (
