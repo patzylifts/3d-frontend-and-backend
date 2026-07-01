@@ -1,8 +1,8 @@
+// src/pages/admin/AdminOrdersPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import Navbar from "../../components/Navbar";
-import "./AdminOrdersPage.css";
 
 export default function AdminOrdersPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -29,77 +29,82 @@ export default function AdminOrdersPage() {
   }, []);
 
   const getStatusClass = (status) => {
-    if (status === "pending_review") return "badge-pending";
-    if (status === "completed") return "badge-completed";
-    return "badge-default";
+    if (status === "pending_review") return "bg-amber-100 text-amber-800 border-amber-200";
+    if (status === "completed") return "bg-green-100 text-green-800 border-green-200";
+    return "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   if (loading) return (
-    <div className="orders-page-status">
+    <div className="min-h-screen flex items-center justify-center bg-[#FCF8EE] text-[#6E473B] font-black">
       <p>Loading order vault...</p>
     </div>
   );
 
   return (
-    <div className="orders-page">
+    <div className="min-h-screen bg-[#FCF8EE] pb-10">
       <Navbar />
-      <div className="orders-container">
-        <header className="orders-header">
-          <h1>Customer Orders</h1>
-          <p>Manage incoming requests and cake statuses.</p>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-black text-[#6E473B]">Customer Orders</h1>
+          <p className="text-[#A07060]">Manage incoming requests and cake statuses.</p>
         </header>
 
-        <div className="table-wrapper">
+        <div className="bg-white rounded-2xl border border-[#E6CCA2] shadow-sm overflow-hidden">
           {orders.length === 0 ? (
-            <div className="empty-state-card">
-              <span className="empty-icon">📦</span>
-              <h3>No orders found</h3>
+            <div className="p-12 text-center text-[#A07060]">
+              <span className="text-4xl block mb-4">📦</span>
+              <h3 className="font-black text-[#6E473B] text-lg">No orders found</h3>
               <p>When customers start ordering, they will appear here.</p>
             </div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Contact</th>
-                  <th>Address</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Payment</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td data-label="Order ID" className="font-bold">#{order.id}</td>
-                    <td data-label="Customer">{order.user_name}</td>
-                    <td data-label="Contact">{order.formatted_phone || order.phone || "—"}<br/>{order.customer_email || ""}</td>
-                    <td data-label="Address">{order.full_address || `${order.street || ''} ${order.city || ''}` || "—"}</td>
-                    <td data-label="Total" className="font-bold">₱{Number(order.total_amount).toLocaleString()}</td>
-                    <td data-label="Status">
-                      <span className={`badge ${getStatusClass(order.status)}`}>
-                        {order.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td data-label="Payment">
-                      <span className="badge badge-default">
-                        {order.payment_status}
-                      </span>
-                    </td>
-                    <td data-label="Action">
-                      <button
-                        onClick={() => navigate(`/admin/orders/${order.id}`)}
-                        className="btn-view"
-                      >
-                        View Details
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[#FCF8EE] text-[#A07060] uppercase text-xs font-bold">
+                  <tr>
+                    <th className="p-4">Order ID</th>
+                    <th className="p-4">Customer</th>
+                    <th className="p-4">Contact</th>
+                    <th className="p-4">Address</th>
+                    <th className="p-4">Total</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Payment</th>
+                    <th className="p-4">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#E6CCA2]/20">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-[#FCF8EE]/50 transition-colors">
+                      <td className="p-4 font-black text-[#6E473B]">#{order.id}</td>
+                      <td className="p-4 text-sm font-bold text-[#6E473B]">{order.user_name}</td>
+                      <td className="p-4 text-sm text-[#A07060]">
+                        {order.formatted_phone || order.phone || "—"}<br/>
+                        <span className="text-xs">{order.customer_email || ""}</span>
+                      </td>
+                      <td className="p-4 text-sm text-[#A07060]">{order.full_address || `${order.street || ''} ${order.city || ''}` || "—"}</td>
+                      <td className="p-4 font-black text-[#6E473B]">₱{Number(order.total_amount).toLocaleString()}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 text-[10px] font-black rounded-full border uppercase ${getStatusClass(order.status)}`}>
+                          {order.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2 py-1 text-[10px] font-black rounded-full border bg-gray-50 text-gray-600 border-gray-200 uppercase">
+                          {order.payment_status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                          className="px-4 py-2 bg-[#6E473B] hover:bg-[#5a3a30] text-white text-xs font-bold rounded-lg transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

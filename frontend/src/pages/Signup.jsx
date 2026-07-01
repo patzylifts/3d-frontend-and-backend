@@ -1,7 +1,6 @@
 // src/pages/Signup.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "./Signup.css";
 
 function Signup() {
     const BASE = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -22,19 +21,13 @@ function Signup() {
     const nav = useNavigate();
 
     useEffect(() => {
-
         let interval;
-
         if (step === 2 && otpTimer > 0) {
-
             interval = setInterval(() => {
                 setOtpTimer(prev => prev - 1);
             }, 1000);
-
         }
-
         return () => clearInterval(interval);
-
     }, [step, otpTimer]);
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
@@ -119,102 +112,140 @@ function Signup() {
     };
 
     return (
-        <div className="signup-page-wrapper">
-            <div className="signup-box">
-                <div className="signup-header">
-                    <span className="brand-emoji">✨</span>
-                    <h2>Join the Bakery</h2>
-                    <p>Create an account to start designing your own cakes.</p>
+        <div className="min-h-[calc(100vh-64px)] bg-[#FCF8EE] flex items-center justify-center p-4 antialiased font-sans">
+            <div className="w-full max-w-md bg-white border border-[#E6CCA2] rounded-2xl shadow-sm p-6 md:p-8 flex flex-col gap-6">
+                
+                {/* Header */}
+                <div className="text-center flex flex-col items-center">
+                    <span className="text-3xl mb-2">✨</span>
+                    <h2 className="text-2xl font-black text-[#6E473B]">Join the Bakery</h2>
+                    <p className="text-xs text-[#A07060] mt-1">Create an account to start designing your own cakes.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="signup-form">
-                    <div className="input-group">
-                        <label>Username</label>
-                        <input name="username" onChange={handleChange} value={form.username} placeholder="Username" required />
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">Username</label>
+                        <input 
+                            name="username" 
+                            onChange={handleChange} 
+                            value={form.username} 
+                            placeholder="Username" 
+                            disabled={isLoading}
+                            required 
+                            className="w-full px-4 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60"
+                        />
                     </div>
 
-                    <div className="input-group">
-                        <label>Phone Number</label>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">Phone Number</label>
                         <input
                             name="phone"
                             type="tel"
                             onChange={handleChange}
                             value={form.phone}
                             placeholder="09XXXXXXXXX"
+                            disabled={isLoading || step > 1}
                             required
+                            className="w-full px-4 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60"
                         />
                     </div>
 
                     {/* Name Grid */}
-                    <div className="name-grid">
-                        <div className="input-group">
-                            <label>First Name</label>
-                            <input name="first_name" onChange={handleChange} value={form.first_name} placeholder="First" required />
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-1 flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">First Name</label>
+                            <input name="first_name" onChange={handleChange} value={form.first_name} placeholder="First" disabled={isLoading} required className="w-full px-3 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60" />
                         </div>
-                        <div className="input-group">
-                            <label>M.I.</label>
-                            <input name="middle_name" onChange={handleChange} value={form.middle_name} placeholder="N/A" />
+                        <div className="col-span-1 flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">M.I.</label>
+                            <input name="middle_name" onChange={handleChange} value={form.middle_name} placeholder="N/A" disabled={isLoading} className="w-full px-3 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60" />
                         </div>
-                        <div className="input-group">
-                            <label>Last Name</label>
-                            <input name="last_name" onChange={handleChange} value={form.last_name} placeholder="Last" required />
+                        <div className="col-span-1 flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">Last Name</label>
+                            <input name="last_name" onChange={handleChange} value={form.last_name} placeholder="Last" disabled={isLoading} required className="w-full px-3 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60" />
                         </div>
                     </div>
 
-                    <div className="input-group">
-                        <label>Password</label>
-                        <input name="password" type="password" onChange={handleChange} value={form.password} placeholder="••••••••" required />
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">Password</label>
+                        <input name="password" type="password" onChange={handleChange} value={form.password} placeholder="••••••••" disabled={isLoading} required className="w-full px-4 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60" />
                     </div>
 
-                    <div className="input-group">
-                        <label>Confirm Password</label>
-                        <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="••••••••" required />
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">Confirm Password</label>
+                        <input name="password2" type="password" onChange={handleChange} value={form.password2} placeholder="••••••••" disabled={isLoading} required className="w-full px-4 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60" />
                     </div>
 
                     {step === 1 && (
-                        <button type="button" onClick={sendOtp} className="btn-signup">
-                            Send OTP
+                        <button 
+                            type="button" 
+                            onClick={sendOtp} 
+                            disabled={isLoading}
+                            className="w-full mt-2 py-3 bg-[#C05A11] hover:bg-[#A84E0E] text-white text-sm font-bold rounded-xl shadow-md shadow-[#C05A11]/20 transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                        >
+                            {isLoading ? "Sending..." : "Send OTP"}
                         </button>
                     )}
 
                     {step === 2 && (
-                        <>
-                            <div className="input-group">
-                                <label>OTP Code</label>
+                        <div className="flex flex-col gap-4 border-t border-[#E6CCA2]/40 pt-4 mt-2">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-[#6E473B] tracking-wide uppercase">OTP Code</label>
                                 <input
                                     value={otp}
                                     onChange={e => setOtp(e.target.value)}
                                     placeholder="Enter OTP"
+                                    disabled={isLoading}
+                                    className="w-full px-4 py-2.5 bg-[#FCF8EE]/50 border border-[#E6CCA2] rounded-xl text-sm text-[#6E473B] placeholder-[#CBB294] outline-none focus:border-[#C05A11] focus:bg-white transition-all disabled:opacity-60"
                                 />
-                                <p className="otp-timer">
-                                    OTP expires in:
-                                    {" "}
-                                    {Math.floor(otpTimer / 60)}:
-                                    {(otpTimer % 60).toString().padStart(2, "0")}
+                                <p className="text-xs font-medium text-[#A05A2C] mt-1">
+                                    OTP expires in:{" "}
+                                    <span className="font-bold font-mono">
+                                        {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, "0")}
+                                    </span>
                                 </p>
                             </div>
 
-                            <button type="button" onClick={verifyOtp} className="btn-signup">
-                                Verify OTP
+                            <button 
+                                type="button" 
+                                onClick={verifyOtp} 
+                                disabled={isLoading}
+                                className="w-full py-3 bg-[#A05A2C] hover:bg-[#864A22] text-white text-sm font-bold rounded-xl shadow-md transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                            >
+                                {isLoading ? "Verifying..." : "Verify OTP"}
                             </button>
-                        </>
+                        </div>
                     )}
 
                     {step === 3 && (
-                        <button type="submit" className="btn-signup">
-                            Create Account
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-full mt-2 py-3 bg-[#C05A11] hover:bg-[#A84E0E] text-white text-sm font-bold rounded-xl shadow-md shadow-[#C05A11]/20 transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                        >
+                            {isLoading ? "Creating..." : "Create Account"}
                         </button>
                     )}
                 </form>
 
+                {/* Status Messages */}
                 {msg && (
-                    <div className={`form-alert ${msg.includes('✅') ? 'success' : 'error'}`}>
+                    <div className={`w-full p-3 text-xs font-semibold rounded-xl border ${
+                        msg.includes('✅') 
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                    }`}>
                         {msg}
                     </div>
                 )}
 
-                <div className="signup-footer">
-                    Already have an account? <Link to="/login" className="login-link">Log in</Link>
+                {/* Footer */}
+                <div className="text-center text-xs text-[#A07060] border-t border-[#E6CCA2]/30 pt-4">
+                    Already have an account?{" "}
+                    <Link to="/login" className="font-bold text-[#C05A11] hover:text-[#A84E0E] hover:underline transition-all">
+                        Log in
+                    </Link>
                 </div>
             </div>
         </div>

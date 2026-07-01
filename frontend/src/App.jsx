@@ -11,7 +11,7 @@ import Navbar from './components/Navbar';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PrivateRouter from './components/PrivateRouter';
-import Login from './pages/Login';
+import Login from './pages/Login';  
 import Signup from './pages/Signup';
 
 // Admin Page
@@ -37,6 +37,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/products" element={<><Navbar /><ProductList /></>} />
             <Route path="/product/:id" element={<><Navbar /><ProductDetails /></>} />
+            
             {/* CUSTOMER */}
             <Route element={<PrivateRouter />}>
               <Route path="/build" element={<BuildBentoPage />} />
@@ -46,6 +47,7 @@ function App() {
               <Route path="/orders" element={<><Navbar /><CustomerOrdersPage /></>} />
               <Route path="/orders/:id" element={<><Navbar /><CustomerOrderDetailPage /></>} />
             </Route>
+            
             {/* ADMIN */}
             <Route element={<PrivateRouter adminOnly={true} />}>
               <Route path="/admin" element={<><Navbar /><AdminDashboard /></>} />

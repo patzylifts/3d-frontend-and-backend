@@ -5,7 +5,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { clearTokens, getAccessToken } from "../utils/auth";
 import logoImg from "../assets/images/spc.png";
-import "./Navbar.css";
 
 function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,87 +35,118 @@ function Navbar() {
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     return (
-        <nav className="minimal-nav">
-            <div className="nav-container">
+        <>
+            {/* 1. THE ACTUAL FIXED NAVBAR CONTAINER */}
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#f3e1c6] shadow-sm text-stone-700 h-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between relative">
 
-                {/* Mobile Burger Button */}
-                <button className="mobile-burger" onClick={toggleMenu} aria-label="Toggle Menu">
-                    <div className={`line ${isMenuOpen ? "open" : ""}`}></div>
-                    <div className={`line ${isMenuOpen ? "open" : ""}`}></div>
-                    <div className={`line ${isMenuOpen ? "open" : ""}`}></div>
-                </button>
+                    {/* Mobile Burger Button */}
+                    <button 
+                        className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1.5 z-50 relative" 
+                        onClick={toggleMenu} 
+                        aria-label="Toggle Menu"
+                    >
+                        <div className={`w-6 h-0.5 bg-[#844414] transition-all duration-300 ${isMenuOpen ? "transform rotate-45 translate-y-2" : ""}`}></div>
+                        <div className={`w-6 h-0.5 bg-[#844414] transition-all duration-300 ${isMenuOpen ? "opacity-0" : ""}`}></div>
+                        <div className={`w-6 h-0.5 bg-[#844414] transition-all duration-300 ${isMenuOpen ? "transform -rotate-45 -translate-y-2" : ""}`}></div>
+                    </button>
 
-                {/* Left/Main Group: Navigation Links */}
-                <div className={`nav-group left ${isMenuOpen ? "active" : ""}`}>
-                    {!isAdmin ? (
-                        <>
-                            <Link to="/" className="nav-link" onClick={() => setIsMenuOpen(false)}>Home</Link>
-                            <Link to="/products" className="nav-link" onClick={() => setIsMenuOpen(false)}>Menu</Link>
-                            <Link to="/build" className="nav-link" onClick={() => setIsMenuOpen(false)}>Builder</Link>
-                        </>
-                    ) : (
-                        <>
-                            <Link to="/admin" className="nav-link" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-                            <Link to="/admin/orders" className="nav-link" onClick={() => setIsMenuOpen(false)}>Orders</Link>
-                            <Link to="/admin/products" className="nav-link" onClick={() => setIsMenuOpen(false)}>Products</Link>
-                        </>
-                    )}
+                    {/* Left Group: Links (Responsive Drawer for Mobile) */}
+                    <div className={`
+                        fixed md:static top-0 left-0 bottom-0 w-64 md:w-auto bg-white md:bg-transparent p-6 md:p-0 
+                        shadow-xl md:shadow-none flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6
+                        transition-transform duration-300 z-40 transform
+                        ${isMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+                    `}>
+                        <div className="h-12 md:hidden"></div>
 
-                    {/* Move Right Links into Burger Menu for Mobile */}
-                    <div className="mobile-only-links">
-                        {isLoggedIn ? (
+                        {!isAdmin ? (
                             <>
-                                <Link to="/profile" className="nav-link" onClick={() => setIsMenuOpen(false)}>Profile</Link>
-                                <button onClick={handleLogout} className="nav-link logout-btn">Logout</button>
+                                <Link to="/" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Home</Link>
+                                <Link to="/products" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Menu</Link>
+                                <Link to="/build" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Builder</Link>
                             </>
                         ) : (
-                            <Link to="/login" className="nav-link" onClick={() => setIsMenuOpen(false)}>Login</Link>
-                        )}
-                    </div>
-                </div>
-
-                {/* Centered Graphic Branding Logo */}
-                <Link to="/" className="nav-logo-centered">
-                    <img src={logoImg} alt="Smiley Page Corner" className="nav-logo-img" />
-                </Link>
-
-                {/* Right Group: Cart & Desktop Profile */}
-                <div className="nav-group right">
-                    <div className="desktop-only-group">
-                        {!isLoggedIn ? (
-                            <Link to="/login" className="nav-link">Login</Link>
-                        ) : (
                             <>
-                                <Link to={isAdmin ? "/admin" : "/profile"} className="nav-link">
-                                    {isAdmin ? "Admin" : "Profile"}
-                                </Link>
-
-                                {!isAdmin && (
-                                    <Link to="/orders" className="nav-link">
-                                        My Orders
-                                    </Link>
-                                )}
-
-                                <button onClick={handleLogout} className="nav-link logout-btn">Logout</button>
+                                <Link to="/admin" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                                <Link to="/admin/orders" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Orders</Link>
+                                <Link to="/admin/products" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Products</Link>
                             </>
                         )}
+
+                        {/* Mobile Side Drawer Actions */}
+                        <div className="md:hidden pt-4 border-t border-stone-100 w-full flex flex-col space-y-4">
+                            {isLoggedIn ? (
+                                <>
+                                    <Link to="/profile" className="text-sm font-semibold tracking-wide uppercase text-stone-600" onClick={() => setIsMenuOpen(false)}>Profile</Link>
+                                    <button onClick={handleLogout} className="text-left text-sm font-semibold tracking-wide uppercase text-rose-600">Logout</button>
+                                </>
+                            ) : (
+                                <Link to="/login" className="text-sm font-semibold tracking-wide uppercase text-stone-600" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                            )}
+                        </div>
                     </div>
 
-                    {!isAdmin && (
-                        <Link to="/cart" className="nav-cart-minimal" title="View Cart">
-                            <div className="cart-icon-container">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-svg">
-                                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
-                                </svg>
-                                {cartCount > 0 && <span className="cart-badge-minimal">{cartCount}</span>}
-                            </div>
+                    {/* Center Logo Branding */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center items-center pointer-events-auto">
+                        <Link to="/" className="block">
+                            <img src={logoImg} alt="Smiley Page Corner" className="h-14 w-14 sm:h-16 sm:w-16 object-contain drop-shadow-sm hover:scale-105 transition-transform duration-200" />
                         </Link>
-                    )}
+                    </div>
+
+                    {/* Right Actions Block */}
+                    <div className="flex items-center space-x-4 z-50">
+                        <div className="hidden md:flex items-center space-x-5">
+                            {!isLoggedIn ? (
+                                <Link to="/login" className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">Login</Link>
+                            ) : (
+                                <>
+                                    <Link to={isAdmin ? "/admin" : "/profile"} className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">
+                                        {isAdmin ? "Admin" : "Profile"}
+                                    </Link>
+
+                                    {!isAdmin && (
+                                        <Link to="/orders" className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">
+                                            My Orders
+                                        </Link>
+                                    )}
+
+                                    <button 
+                                        onClick={handleLogout} 
+                                        className="text-xs bg-[#d67b27] hover:bg-[#b56219] text-white font-bold px-4 py-2 rounded-full transition-colors duration-200 shadow-sm"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Cart Icon Element */}
+                        {!isAdmin && (
+                            <Link to="/cart" className="relative p-2 text-[#844414] hover:text-[#d67b27] transition-colors" title="View Cart">
+                                <div className="relative">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                    </svg>
+                                    {cartCount > 0 && (
+                                        <span className="absolute -top-2 -right-2.5 bg-[#d67b27] text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full ring-2 ring-white">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </div>
+                            </Link>
+                        )}
+                    </div>
+
                 </div>
-            </div>
-        </nav>
+            </nav>
+
+            {/* 2. THE PHYSICAL SPACE HOLDER */}
+            {/* This div mimics the 80px height of the navbar so nothing can ever hide behind it! */}
+            <div className="h-20 w-full block clear-both" />
+        </>
     );
 }
 

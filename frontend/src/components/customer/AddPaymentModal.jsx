@@ -4,13 +4,11 @@ import { authFetch } from "../../utils/auth";
 
 export default function AddPaymentModal({ order, onClose, onSuccess }) {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
-
     const [amount, setAmount] = useState("");
     const [tip, setTip] = useState("");
 
     const parsedAmount = amount === "" ? 0 : Number(amount);
     const parsedTip = tip === "" ? 0 : Number(tip);
-
     const remaining = Number(order.remaining_balance);
 
     const isInvalid =
@@ -36,52 +34,51 @@ export default function AddPaymentModal({ order, onClose, onSuccess }) {
             }
 
             const data = await res.json();
-
             localStorage.setItem("last_payment_amount", parsedAmount);
             localStorage.setItem("last_tip_amount", parsedTip);
-
             window.location.href = data.checkout_url;
-
         } catch (err) {
             console.error(err);
         }
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-box">
-                <h2 className="text-xl font-bold mb-4">Add Payment</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border border-[#E6CCA2]">
+                <h2 className="text-xl font-black text-[#6E473B] mb-4">Add Payment</h2>
 
-                <p className="text-sm text-gray-600 mb-2">
-                    Remaining Balance: ₱{remaining.toFixed(2)}
+                <p className="text-sm text-[#A07060] mb-4">
+                    Remaining Balance: <span className="font-bold">₱{remaining.toFixed(2)}</span>
                 </p>
 
-                <input
-                    type="number"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="border px-3 py-2 rounded w-full mb-3"
-                />
+                <div className="space-y-3 mb-4">
+                    <input
+                        type="number"
+                        placeholder="Enter amount"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        className="w-full p-3 bg-[#FCF8EE] border border-[#E6CCA2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E6CCA2]"
+                    />
 
-                <input
-                    type="number"
-                    placeholder="Tip (optional)"
-                    value={tip}
-                    onChange={(e) => setTip(e.target.value)}
-                    className="border px-3 py-2 rounded w-full mb-3"
-                />
+                    <input
+                        type="number"
+                        placeholder="Tip (optional)"
+                        value={tip}
+                        onChange={(e) => setTip(e.target.value)}
+                        className="w-full p-3 bg-[#FCF8EE] border border-[#E6CCA2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E6CCA2]"
+                    />
+                </div>
 
                 {parsedAmount > remaining && (
-                    <p className="text-red-500 text-sm mb-2">
+                    <p className="text-red-500 text-xs mb-4 font-bold">
                         Cannot exceed remaining balance
                     </p>
                 )}
 
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-gray-400 text-white rounded"
+                        className="px-5 py-2 text-[#6E473B] font-bold hover:bg-[#F5EEDD] rounded-lg transition-colors"
                     >
                         Cancel
                     </button>
@@ -89,10 +86,11 @@ export default function AddPaymentModal({ order, onClose, onSuccess }) {
                     <button
                         onClick={handleSubmit}
                         disabled={isInvalid}
-                        className={`px-4 py-2 rounded text-white ${isInvalid
-                                ? "bg-gray-400"
-                                : "bg-green-500 hover:bg-green-600"
-                            }`}
+                        className={`px-6 py-2 rounded-lg text-white font-bold transition-colors ${
+                            isInvalid
+                                ? "bg-gray-300 cursor-not-allowed"
+                                : "bg-[#6E473B] hover:bg-[#5a3a30]"
+                        }`}
                     >
                         Pay
                     </button>

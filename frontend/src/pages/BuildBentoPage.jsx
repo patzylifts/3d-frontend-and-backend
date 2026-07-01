@@ -17,7 +17,7 @@ import {
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
-import "./BuildBentoPage.css";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -75,12 +75,7 @@ const TOPPING_3D_CONFIG = {
     },
 };
 
-const TIER_TOP_Y = [
-    2.30, // tier1
-    1.70, // tier2
-    2.25, // tier3
-    2.70, // tier4
-];
+const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
@@ -119,7 +114,6 @@ const getToppingPosition = (layout, config, selectedTierIndex) => {
 
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
     color: FLAVOR_VISUALS[flavorName]?.color || fallbackColor,
-    // ✅ Reduced roughness for a realistic slight sheen on frosting
     roughness: 0.65,
     metalness: 0.0,
     ...(textureByFlavor[flavorName] || {}),
@@ -135,7 +129,6 @@ const getCakeShape = (name) => {
 function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selectedLayerFlavors = [], textureByFlavor = {} }) {
     if (!scene) return;
 
-    // ✅ Lowered roughness for realistic frosting sheen
     const cakeMatProps = { color: cakeColor.color, roughness: 0.65, metalness: 0.0, ...activeTexture };
     const cakeMeshes = [];
 
@@ -203,7 +196,7 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Error Boundary — catches WebGL / drei loader crashes gracefully
+// Error Boundary
 // ─────────────────────────────────────────────────────────────────────────────
 class CanvasErrorBoundary extends Component {
     constructor(props) {
@@ -222,32 +215,12 @@ class CanvasErrorBoundary extends Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        height: "100%",
-                        color: "#fff",
-                        gap: "12px",
-                        background: "#120020",
-                        borderRadius: "12px",
-                    }}
-                >
-                    <span style={{ fontSize: "3rem" }}>🎂</span>
-                    <p style={{ opacity: 0.8, margin: 0 }}>3D preview couldn't load.</p>
+                <div className="flex flex-col items-center justify-center h-full text-[#6E473B] gap-3 bg-[#FCF8EE] rounded-2xl border border-[#E6CCA2]">
+                    <span className="text-5xl animate-pulse">🎂</span>
+                    <p className="text-sm font-medium text-[#A07060]">3D preview couldn't load.</p>
                     <button
                         onClick={() => this.setState({ hasError: false })}
-                        style={{
-                            padding: "8px 20px",
-                            background: "#c77dff",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                        }}
+                        className="px-5 py-2 text-xs font-semibold bg-[#C05A11] hover:bg-[#A84E0E] text-white rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                     >
                         Retry
                     </button>
@@ -259,35 +232,13 @@ class CanvasErrorBoundary extends Component {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RealisticLighting — product-photography 3-point rig + overhead key
+// RealisticLighting
 // ─────────────────────────────────────────────────────────────────────────────
 function RealisticLighting() {
     return (
         <>
-            {/*
-             * ── AMBIENT ──────────────────────────────────────────────────────
-             * Soft, neutral base so shadows are never pitch-black.
-             * Intentionally kept moderate — we let the key lights do the work.
-             */}
             <ambientLight intensity={0.9} color="#fff8f2" />
-
-            {/*
-             * ── HEMISPHERE (sky/ground bounce) ───────────────────────────────
-             * Warm ivory sky + subtle warm ground bounce imitates a daylight
-             * studio with a warm reflector on the floor.
-             */}
-            <hemisphereLight
-                intensity={0.7}
-                skyColor="#fffbf0"
-                groundColor="#c8956c"
-            />
-
-            {/*
-             * ── KEY LIGHT (main studio softbox, upper-front-right) ───────────
-             * This is the dominant light. Warm white, cast from 45° above and
-             * slightly to the right — classic product-photography angle.
-             * Shadow map at 2048 keeps edges crisp without banding.
-             */}
+            <hemisphereLight intensity={0.7} skyColor="#fffbf0" groundColor="#c8956c" />
             <directionalLight
                 position={[4, 9, 6]}
                 intensity={3.5}
@@ -303,35 +254,8 @@ function RealisticLighting() {
                 shadow-camera-top={6}
                 shadow-camera-bottom={-6}
             />
-
-            {/*
-             * ── FILL LIGHT (opposite side softbox) ───────────────────────────
-             * Softer than the key, from upper-left-back. Lifts shadow areas
-             * without flattening the form — about 40% of key intensity.
-             */}
-            <directionalLight
-                position={[-5, 6, -3]}
-                intensity={1.6}
-                color="#ffeedd"
-            />
-
-            {/*
-             * ── RIM / BACK LIGHT ─────────────────────────────────────────────
-             * Separates the cake from the dark background with a cool-neutral
-             * halo. Essential for product shots on dark BG.
-             */}
-            <directionalLight
-                position={[0, 4, -7]}
-                intensity={1.2}
-                color="#e8f0ff"
-            />
-
-            {/*
-             * ── OVERHEAD SPOT (hero downlight) ───────────────────────────────
-             * Tight spot aimed straight down at the cake top — this is what
-             * makes the frosting & toppings "pop" and look delicious.
-             * penumbra softens the edge so it doesn't look artificial.
-             */}
+            <directionalLight position={[-5, 6, -3]} intensity={1.6} color="#ffeedd" />
+            <directionalLight position={[0, 4, -7]} intensity={1.2} color="#e8f0ff" />
             <spotLight
                 position={[0.5, 9, 1.5]}
                 intensity={5.0}
@@ -344,32 +268,8 @@ function RealisticLighting() {
                 shadow-bias={-0.001}
                 target-position={[0, 1, 0]}
             />
-
-            {/*
-             * ── FRONT ACCENT (camera-side bounce card) ───────────────────────
-             * Small warm point close to the camera side to ensure the front
-             * face of the cake stays bright and appetising.
-             */}
-            <pointLight
-                position={[1, 3, 5]}
-                intensity={1.4}
-                color="#fff8f0"
-                distance={12}
-                decay={2}
-            />
-
-            {/*
-             * ── LEFT ACCENT ──────────────────────────────────────────────────
-             * Subtle left-side fill, very warm, keeps any remaining dark zones
-             * from going fully black.
-             */}
-            <pointLight
-                position={[-3, 4, 3]}
-                intensity={0.9}
-                color="#ffe8cc"
-                distance={10}
-                decay={2}
-            />
+            <pointLight position={[1, 3, 5]} intensity={1.4} color="#fff8f0" distance={12} decay={2} />
+            <pointLight position={[-3, 4, 3]} intensity={0.9} color="#ffe8cc" distance={10} decay={2} />
         </>
     );
 }
@@ -436,7 +336,7 @@ export function CakeModel({ selectedTierIndex }) {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
-    const standColor = new THREE.Color("#2a2424");
+    const standColor = new THREE.Color("#C05A11"); // Matches the main warm logo brand color
     const selectedToppings = { candle, chocolate, balls, nuts };
 
     const renderCustomToppings = () => (
@@ -496,25 +396,18 @@ export function CakeModel({ selectedTierIndex }) {
 
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
-            {/* ── Tier 2 (Mini 2 Tier) ── */}
             {selectedTierIndex === 1 && (
                 <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
             )}
-
-            {/* ── Tier 3 ── */}
             {selectedTierIndex === 2 && (
                 <primitive object={tier3.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
             )}
-
-            {/* ── Tier 4 ── */}
             {selectedTierIndex === 3 && (
                 <primitive object={tier4.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
             )}
 
-            {/* ── Tier 1 (default — inline JSX meshes) ── */}
             {selectedTierIndex === 0 && (
                 <>
-                    {/* Stand */}
                     <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
                         <group position={[0, 0, -27.2]} scale={1.01}>
                             {["Mesh004", "Mesh004_1", "Mesh004_2", "Mesh004_3"].map(
@@ -528,7 +421,6 @@ export function CakeModel({ selectedTierIndex }) {
                         </group>
                     </group>
 
-                    {/* Round Cake — form === 1 */}
                     {nodes.Cake?.geometry && (
                         <mesh
                             geometry={nodes.Cake.geometry}
@@ -538,7 +430,6 @@ export function CakeModel({ selectedTierIndex }) {
                             castShadow
                             receiveShadow
                         >
-                            {/* ✅ roughness 0.65 gives a subtle frosting sheen */}
                             <meshStandardMaterial
                                 {...activeTexture}
                                 color={cakeColor.color}
@@ -548,7 +439,6 @@ export function CakeModel({ selectedTierIndex }) {
                         </mesh>
                     )}
 
-                    {/* Rectangle Cake — form === 2 */}
                     {nodes.Cake_Rectangle?.geometry && (
                         <mesh
                             geometry={nodes.Cake_Rectangle.geometry}
@@ -591,7 +481,7 @@ function DraggableTopping({ topping, layout }) {
         <button
             ref={setNodeRef}
             type="button"
-            className={`topping-marker topping-marker--${layout.size.toLowerCase()} ${isDragging ? "topping-marker--dragging" : ""}`}
+            className={`topping-marker topping-marker--${layout.size.toLowerCase()} ${isDragging ? "topping-marker--dragging shadow-xl scale-110" : ""} transition-transform duration-100 ease-out`}
             style={{
                 left: `${layout.x}%`,
                 top: `${layout.y}%`,
@@ -657,7 +547,7 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div
                 ref={setBoardNode}
-                className={`topping-board ${form === 1 ? "topping-board--round" : "topping-board--rectangle"}`}
+                className={`topping-board ${form === 1 ? "topping-board--round rounded-full" : "topping-board--rectangle rounded-xl"} border border-[#E6CCA2] bg-[#FDF6E2] shadow-inner`}
             >
                 <div className="topping-board__cake">
                     {activeToppings.map((topping) => (
@@ -776,17 +666,24 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     };
 
     return (
-        <aside className="cfg-panel">
-            <h2 className="cfg-title">Design Your Cake</h2>
+        <aside className="w-full lg:w-[400px] h-full overflow-y-auto bg-[#FFFDF9]/95 backdrop-blur-xl border border-[#E6CCA2] rounded-2xl p-6 shadow-xl flex flex-col gap-6 custom-scrollbar">
+            <h2 className="text-xl font-bold tracking-tight text-[#6E473B]">
+                Design Your Cake
+            </h2>
 
             {/* ── Tier & Size ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Tier</h3>
-                <div className="cfg-chips">
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Tier Layout</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
                     {CAKE_SIZES.map((item, idx) => (
                         <button
                             key={item.tier}
-                            className={`chip ${selectedTierIndex === idx ? "chip--active" : ""}`}
+                            type="button"
+                            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
+                                selectedTierIndex === idx
+                                    ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                            }`}
                             onClick={() => {
                                 setSelectedTierIndex(idx);
                                 setSelectedSize(CAKE_SIZES[idx].sizes[0]);
@@ -797,38 +694,63 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     ))}
                 </div>
 
-                <h3 className="cfg-label" style={{ marginTop: "8px" }}>Size</h3>
-                <div className="cfg-select-wrapper">
-                    <select id="size-select" className="cfg-select" value={selectedSize} onChange={handleSizeChange}>
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-2">Base Dimensions</h3>
+                <div className="relative w-full">
+                    <select 
+                        id="size-select" 
+                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer" 
+                        value={selectedSize} 
+                        onChange={handleSizeChange}
+                    >
                         {CAKE_SIZES[selectedTierIndex].sizes.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                            <option key={s} value={s} className="bg-white text-[#6E473B]">{s}</option>
                         ))}
                     </select>
-                    <span className="cfg-select-arrow">▾</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A05A2C] pointer-events-none text-xs">▼</span>
                 </div>
             </section>
 
             {/* ── Shape ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Shape</h3>
-                <div className="cfg-chips">
-                    <button className={`chip ${form === 1 ? "chip--active" : ""}`} onClick={() => setForm(1)}>
-                        Round
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Base Shape</h3>
+                <div className="flex gap-2">
+                    <button 
+                        type="button"
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
+                            form === 1
+                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                        }`} 
+                        onClick={() => setForm(1)}
+                    >
+                        ⭕ Round
                     </button>
-                    <button className={`chip ${form === 2 ? "chip--active" : ""}`} onClick={() => setForm(2)}>
-                        Rectangle
+                    <button 
+                        type="button"
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
+                            form === 2
+                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                        }`} 
+                        onClick={() => setForm(2)}
+                    >
+                        ⬜ Rectangle
                     </button>
                 </div>
             </section>
-
-            {/* ── Cake Color ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Cake Color</h3>
-                <div className="cfg-swatches">
+{/* ── Cake Color ── */}
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Color</h3>
+                <div className="flex flex-wrap gap-2.5">
                     {cakeColors.map((c) => (
                         <button
                             key={c.name}
-                            className={`swatch ${cakeColor.name === c.name ? "swatch--active" : ""}`}
+                            type="button"
+                            className={`w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
+                                cakeColor.name === c.name 
+                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md" 
+                                    : "border-transparent shadow-sm"
+                            }`}
                             style={{ background: c.color }}
                             title={c.name}
                             onClick={() => setCakeColor(c)}
@@ -839,16 +761,21 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </section>
 
             {/* ── Flavor ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">
                     {selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}
                 </h3>
                 {selectedTierIndex === 0 ? (
-                    <div className="cfg-chips">
+                    <div className="flex flex-col gap-2">
                         {flavors.map((f) => (
                             <button
                                 key={f}
-                                className={`chip ${flavor === f ? "chip--active" : ""}`}
+                                type="button"
+                                className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-[0.99] ${
+                                    flavor === f 
+                                        ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20" 
+                                        : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                                }`}
                                 onClick={() => {
                                     setFlavor(f);
                                     if (f === "Choco Moist")
@@ -864,13 +791,13 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         ))}
                     </div>
                 ) : (
-                    <div className="tier-flavor-list">
-                        <p className="cfg-helper">Choose the flavor for each tier in your cake layout.</p>
+                    <div className="flex flex-col gap-3">
+                        <p className="text-xs text-[#A07060] italic">Choose the flavor for each tier in your cake layout.</p>
                         {Array.from({ length: selectedTierIndex + 1 }).map((_, idx) => (
-                            <label className="tier-flavor-row" key={`tier-flavor-${idx}`}>
-                                <span className="tier-flavor-name">
+                            <label className="flex items-center justify-between gap-4 p-3 bg-white rounded-xl border border-[#E6CCA2]" key={`tier-flavor-${idx}`}>
+                                <span className="flex items-center gap-2 text-sm font-medium text-[#6E473B]">
                                     <span
-                                        className="tier-flavor-dot"
+                                        className="w-3 h-3 rounded-full border border-black/10 inline-block shadow-sm"
                                         style={{
                                             backgroundColor:
                                                 FLAVOR_VISUALS[tierFlavors[CAKE_SIZES[selectedTierIndex]?.tierKey]?.[idx]]
@@ -880,7 +807,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                     {activeTierLabels[idx] ?? tierFlavorLabels[idx] ?? `Tier ${idx + 1}`}
                                 </span>
                                 <select
-                                    className="cfg-select tier-flavor-select"
+                                    className="px-3 py-1.5 text-xs rounded-lg bg-[#FFFDF9] border border-[#E6CCA2] text-[#6E473B] focus:outline-none focus:border-[#C05A11] cursor-pointer"
                                     value={tierFlavors[CAKE_SIZES[selectedTierIndex]?.tierKey]?.[idx] || flavors[0]}
                                     onChange={(event) => setTierLayerFlavor(idx, event.target.value)}
                                 >
@@ -895,35 +822,37 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </section>
 
             {/* ── Cake Message ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Cake Message</h3>
-                <input
-                    className="cfg-input"
-                    value={inscriptionText}
-                    maxLength={48}
-                    placeholder="Add text on top"
-                    onChange={(event) => setInscriptionText(event.target.value)}
-                />
-                <div className="cfg-select-wrapper">
-                    <select
-                        className="cfg-select"
-                        value={textFont}
-                        onChange={(event) => setTextFont(event.target.value)}
-                    >
-                        {TEXT_FONT_OPTIONS.map((fontOption) => (
-                            <option key={fontOption.value} value={fontOption.value}>
-                                {fontOption.label}
-                            </option>
-                        ))}
-                    </select>
-                    <span className="cfg-select-arrow">▾</span>
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Message</h3>
+                <div className="flex flex-col gap-2.5">
+                    <input
+                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] placeholder-[#CBB294] focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 transition-all"
+                        value={inscriptionText}
+                        maxLength={48}
+                        placeholder="Add text on top"
+                        onChange={(event) => setInscriptionText(event.target.value)}
+                    />
+                    <div className="relative w-full">
+                        <select
+                            className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer"
+                            value={textFont}
+                            onChange={(event) => setTextFont(event.target.value)}
+                        >
+                            {TEXT_FONT_OPTIONS.map((fontOption) => (
+                                <option key={fontOption.value} value={fontOption.value}>
+                                    {fontOption.label}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A05A2C] pointer-events-none text-xs">▼</span>
+                    </div>
                 </div>
             </section>
 
             {/* ── Decorations ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Decorations</h3>
-                <div className="cfg-toggles">
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Decorations</h3>
+                <div className="grid grid-cols-2 gap-2">
                     {[
                         { label: "🕯️ Candle", value: candle, set: setCandle },
                         { label: "🍫 Chocolate", value: chocolate, set: setChocolate },
@@ -932,44 +861,57 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     ].map(({ label, value, set }) => (
                         <button
                             key={label}
-                            className={`toggle-btn ${value ? "toggle-btn--on" : ""}`}
+                            type="button"
+                            className={`flex justify-between items-center px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
+                                value 
+                                    ? "bg-[#C05A11]/10 border-[#C05A11] text-[#A84E0E] font-semibold shadow-inner" 
+                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                            }`}
                             onClick={() => set(!value)}
                         >
-                            {label}
-                            <span className="toggle-indicator">{value ? "ON" : "OFF"}</span>
+                            <span>{label}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${value ? "bg-[#C05A11] text-white" : "bg-[#E6CCA2] text-[#6E473B]"}`}>
+                                {value ? "ON" : "OFF"}
+                            </span>
                         </button>
                     ))}
                 </div>
             </section>
 
             {/* ── Topping Placement ── */}
-            <section className="cfg-section">
-                <h3 className="cfg-label">Topping Placement</h3>
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Topping Placement</h3>
                 {activeToppings.length > 0 ? (
-                    <>
-                        <ToppingPlacementBoard
-                            form={form}
-                            activeToppings={activeToppings}
-                            toppingLayout={toppingLayout}
-                            onMove={setToppingPosition}
-                        />
+                    <div className="flex flex-col gap-5">
+                        <div className="flex justify-center p-2 bg-[#FFFDF9] rounded-2xl border border-[#E6CCA2]">
+                            <ToppingPlacementBoard
+                                form={form}
+                                activeToppings={activeToppings}
+                                toppingLayout={toppingLayout}
+                                onMove={setToppingPosition}
+                            />
+                        </div>
 
-                        <div className="topping-size-list">
+                        <div className="flex flex-col gap-2.5">
                             {activeToppings.map((topping) => (
-                                <div className="topping-size-row" key={topping.key}>
-                                    <span className="topping-size-name">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm" key={topping.key}>
+                                    <span className="flex items-center gap-2 text-xs font-semibold text-[#6E473B]">
                                         <span
-                                            className="topping-size-dot"
+                                            className="w-2.5 h-2.5 rounded-full inline-block shadow-sm"
                                             style={{ backgroundColor: topping.color }}
                                         />
                                         {topping.label}
                                     </span>
-                                    <div className="topping-size-options" aria-label={`${topping.label} size`}>
+                                    <div className="flex gap-1 bg-[#FDF6E2] p-1 rounded-lg border border-[#ECD9B4]" aria-label={`${topping.label} size`}>
                                         {Object.keys(TOPPING_SIZES).map((size) => (
                                             <button
                                                 key={size}
                                                 type="button"
-                                                className={`size-chip ${toppingLayout[topping.key].size === size ? "size-chip--active" : ""}`}
+                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${
+                                                    toppingLayout[topping.key].size === size 
+                                                        ? "bg-[#C05A11] text-white shadow-sm" 
+                                                        : "text-[#A07060] hover:text-[#6E473B]"
+                                                }`}
                                                 onClick={() => setToppingSize(topping.key, size)}
                                             >
                                                 {size}
@@ -979,32 +921,41 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 </div>
                             ))}
                         </div>
-                    </>
+                    </div>
                 ) : (
-                    <div className="topping-empty">Select a decoration first.</div>
+                    <div className="text-center py-6 text-xs text-[#A07060] italic bg-[#FFFDF9] rounded-xl border border-dashed border-[#E6CCA2]">
+                        Select a decoration first.
+                    </div>
                 )}
             </section>
 
             {/* ── Randomize ── */}
-            <button className="cfg-random-btn" onClick={generateRandomCake}>
+            <button 
+                type="button"
+                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer font-medium" 
+                onClick={generateRandomCake}
+            >
                 🎲 Randomize My Cake!
             </button>
 
             {/* ── Price ── */}
-            {pricingLoading && (
-                <div className="cfg-pricing-note">Loading latest prices...</div>
-            )}
-            {pricingError && (
-                <div className="cfg-pricing-note cfg-pricing-note--error">{pricingError}</div>
-            )}
-            <div className="cfg-price-display">
-                <span className="cfg-price-label">Total Price:</span>
-                <span className="cfg-price-amount">₱{calculatePrice().toFixed(2)}</span>
+            <div className="mt-2 pt-4 border-t border-[#E6CCA2]/60 flex flex-col gap-1.5">
+                {pricingLoading && (
+                    <div className="text-xs text-[#A07060] animate-pulse">Loading latest prices...</div>
+                )}
+                {pricingError && (
+                    <div className="text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200">{pricingError}</div>
+                )}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-[#C05A11]/10 border border-[#C05A11]/20">
+                    <span className="text-sm font-medium text-[#6E473B]">Total Price:</span>
+                    <span className="text-xl font-black text-[#C05A11]">₱{calculatePrice().toFixed(2)}</span>
+                </div>
             </div>
 
             {/* ── Add to Cart ── */}
             <button
-                className="cfg-order-btn"
+                type="button"
+                className="w-full py-3.5 bg-[#C05A11] hover:bg-[#A84E0E] text-white font-bold rounded-xl shadow-md shadow-[#C05A11]/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-base text-center"
                 onClick={handleAddToCart}
                 disabled={isSubmitting || !!pricingError}
             >
@@ -1012,10 +963,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </button>
 
             {orderStatus === "success" && (
-                <div className="cfg-toast cfg-toast--success">✅ Added to cart! Redirecting...</div>
+                <div className="fixed bottom-6 right-6 z-50 bg-[#2E7D32] text-white font-semibold text-sm px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-2 animate-bounce">
+                    ✅ Added to cart! Redirecting...
+                </div>
             )}
             {orderStatus === "error" && (
-                <div className="cfg-toast cfg-toast--error">❌ {errorMessage}</div>
+                <div className="fixed bottom-6 right-6 z-50 bg-[#C62828] text-white font-semibold text-sm px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-2">
+                    ❌ {errorMessage}
+                </div>
             )}
         </aside>
     );
@@ -1033,89 +988,87 @@ function BuildBentoContent() {
     } = useCustomization();
 
     return (
-        <div className="build-page">
+        <div className="min-h-screen bg-[#FCF8EE] flex flex-col antialiased font-sans">
             <Navbar />
 
-            <div className="build-layout">
-                <div className="build-canvas-wrap">
-                    {/* Error boundary isolates WebGL crashes from the rest of the UI */}
-                    <CanvasErrorBoundary>
-                        <Canvas
-                            dpr={[1, 2]}
-                            camera={{ fov: 40, position: [0, 4, 5] }}
-                            shadows
-                            // ✅ Tone mapping for realistic, film-like brightness response
-                            gl={{
-                                toneMapping: THREE.ACESFilmicToneMapping,
-                                toneMappingExposure: 1.15,
-                                outputColorSpace: THREE.SRGBColorSpace,
-                            }}
-                            onCreated={({ gl }) => {
-                                gl.domElement.addEventListener(
-                                    "webglcontextlost",
-                                    (e) => {
-                                        e.preventDefault();
-                                        console.warn("WebGL context lost — will attempt to restore.");
-                                    },
-                                    false
-                                );
-                                gl.domElement.addEventListener(
-                                    "webglcontextrestored",
-                                    () => {
-                                        console.info("WebGL context restored.");
-                                    },
-                                    false
-                                );
-                            }}
-                        >
-                            <color attach="background" args={["#120020"]} />
+            {/* Main responsive wrapper layout */}
+            <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
+                
+                {/* 3D Canvas Box - Slightly bigger for a clearer and more prominent preview */}
+                <div className="flex-1 w-full h-[480px] md:h-[620px] relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-6">
+                    <div className="w-full h-full relative">
+                        <CanvasErrorBoundary>
+                            <Canvas
+                                dpr={[1, 2]}
+                                camera={{ fov: 40, position: [0, 4, 5] }}
+                                shadows
+                                gl={{
+                                    toneMapping: THREE.ACESFilmicToneMapping,
+                                    toneMappingExposure: 1.15,
+                                    outputColorSpace: THREE.SRGBColorSpace,
+                                }}
+                                onCreated={({ gl }) => {
+                                    gl.domElement.addEventListener(
+                                        "webglcontextlost",
+                                        (e) => {
+                                            e.preventDefault();
+                                            console.warn("WebGL context lost — will attempt to restore.");
+                                        },
+                                        false
+                                    );
+                                    gl.domElement.addEventListener(
+                                        "webglcontextrestored",
+                                        () => {
+                                            console.info("WebGL context restored.");
+                                        },
+                                        false
+                                    );
+                                }}
+                            >
+                                <color attach="background" args={["#FCF8EE"]} />
 
-                            {/*
-                             * ✅ Reduced fog density — previous fog was too thick,
-                             * swallowing light and making everything appear dark.
-                             * Far plane moved to 28 so the cake is fully clear.
-                             */}
-                            <fog attach="fog" args={["#1a0030", 16, 28]} />
+                                <fog attach="fog" args={["#FCF8EE", 16, 28]} />
 
-                            {/* ✅ Full realistic lighting rig — replaces old dark colored lights */}
-                            <RealisticLighting />
+                                <RealisticLighting />
 
-                            <Suspense fallback={null}>
-                                <CakeModel selectedTierIndex={selectedTierIndex} />
+                                <Suspense fallback={null}>
+                                    <CakeModel selectedTierIndex={selectedTierIndex} />
 
-                                {/*
-                                 * ✅ ContactShadows opacity reduced slightly so it
-                                 * doesn't make the base look muddy.
-                                 */}
-                                <ContactShadows
-                                    position={[0, -2.3, 0]}
-                                    opacity={0.35}
-                                    scale={6}
-                                    blur={2.5}
-                                    color="#200040"
+                                    <ContactShadows
+                                        position={[0, -2.3, 0]}
+                                        opacity={0.18}
+                                        scale={6}
+                                        blur={2.5}
+                                        color="#5C4033"
+                                    />
+                                </Suspense>
+
+                                <OrbitControls
+                                    enablePan={false}
+                                    minDistance={3}
+                                    maxDistance={12}
+                                    minPolarAngle={Math.PI / 6}
+                                    maxPolarAngle={Math.PI / 2}
+                                    target={[0, 1.2, 0]}
                                 />
-                            </Suspense>
+                            </Canvas>
+                        </CanvasErrorBoundary>
+                    </div>
 
-                            <OrbitControls
-                                enablePan={false}
-                                minDistance={3}
-                                maxDistance={12}
-                                minPolarAngle={Math.PI / 6}
-                                maxPolarAngle={Math.PI / 2}
-                                target={[0, 1.2, 0]}
-                            />
-                        </Canvas>
-                    </CanvasErrorBoundary>
-
-                    <div className="canvas-hint">🖱️ Drag to rotate · Scroll to zoom</div>
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
+                        🖱️ Drag to rotate · Scroll to zoom
+                    </div>
                 </div>
 
-                <Configurator
-                    selectedTierIndex={selectedTierIndex}
-                    setSelectedTierIndex={setSelectedTierIndex}
-                    selectedSize={selectedSize}
-                    setSelectedSize={setSelectedSize}
-                />
+                {/* Configurator Side Column - Flows naturally alongside the enlarged preview */}
+                <div className="w-full lg:w-auto">
+                    <Configurator
+                        selectedTierIndex={selectedTierIndex}
+                        setSelectedTierIndex={setSelectedTierIndex}
+                        selectedSize={selectedSize}
+                        setSelectedSize={setSelectedSize}
+                    />
+                </div>
             </div>
         </div>
     );
