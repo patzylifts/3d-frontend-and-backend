@@ -1,14 +1,24 @@
 // src/components/ProductCard.jsx
 import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext"; 
 
 function ProductCard({ product }) {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const navigate = useNavigate();
+    const { addToCart } = useCart(); // 2. Access the function from context
 
     const handleAddToCart = (e) => {
         // StopPropagation prevents the card's onClick (navigate) from firing
         e.stopPropagation();
-        console.log("Added to cart:", product.name);
+        
+        // 3. Add authentication check 
+        if (!localStorage.getItem('access_token')) {
+            navigate("/login");
+            return;
+        }
+
+        // 4. Perform the action
+        addToCart(product.id);
     };
 
     return (
@@ -16,7 +26,7 @@ function ProductCard({ product }) {
             className="group bg-white border border-[#f3e1c6] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1" 
             onClick={() => navigate(`/product/${product.id}`)}
         >
-            {/* Image Area Container with Aspect Ratio Lock */}
+            {/* Image Area */}
             <div className="relative w-full aspect-square bg-[#fffdf9] rounded-xl border border-stone-100 flex items-center justify-center overflow-hidden">
                 <img
                     src={`${BASEURL}${product.image}`}
@@ -24,7 +34,6 @@ function ProductCard({ product }) {
                     className="max-h-[85%] max-w-[85%] object-contain transition-transform duration-500 group-hover:scale-105" 
                 />
                 
-                {/* Clean Hover Zoom Overlay */}
                 <div className="absolute inset-0 bg-stone-900/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <span className="bg-white/95 text-stone-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm tracking-wide opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-75">
                         View Details
@@ -32,7 +41,7 @@ function ProductCard({ product }) {
                 </div>
             </div>
 
-            {/* Typography Content and Metadata Section */}
+            {/* Typography Content */}
             <div className="flex flex-col flex-1 mt-4 text-center">
                 <h3 className="text-base font-bold text-[#844414] tracking-tight mb-1 truncate px-1">
                     {product.name}
@@ -42,7 +51,7 @@ function ProductCard({ product }) {
                     ₱{Number(product.price).toLocaleString()}
                 </p>
                 
-                {/* Functional Pill Interactive Action Button */}
+                {/* Functional Action Button */}
                 <div className="w-full mt-auto">
                     <button 
                         onClick={handleAddToCart}
