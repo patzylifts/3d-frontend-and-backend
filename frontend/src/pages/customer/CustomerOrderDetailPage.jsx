@@ -19,6 +19,7 @@ export default function CustomerOrderDetailPage() {
     const [payAmount, setPayAmount] = useState(0);
     const [tipAmount, setTipAmount] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
+    const [agreeNoRefund, setAgreeNoRefund] = useState(false);
 
     const fetchOrder = async () => {
         try {
@@ -93,7 +94,7 @@ export default function CustomerOrderDetailPage() {
 
     // Mapping background classes for custom badging variables
     const getStatusColor = (status) => {
-        switch(status) {
+        switch (status) {
             case "completed": case "delivered": return "bg-emerald-50 text-emerald-700 border-emerald-200";
             case "pending_review": case "awaiting_downpayment": return "bg-amber-50 text-amber-700 border-amber-200";
             case "cancelled": case "rejected": return "bg-rose-50 text-rose-700 border-rose-200";
@@ -110,14 +111,14 @@ export default function CustomerOrderDetailPage() {
     return (
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased pb-16">
             <Navbar />
-            
+
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-6">
-                
+
                 {/* Header Back Navigation Section */}
                 <header className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
-                        <button 
-                            className="text-xs font-bold text-[#d67b27] hover:text-[#b56219] transition-colors mb-2 block cursor-pointer" 
+                        <button
+                            className="text-xs font-bold text-[#d67b27] hover:text-[#b56219] transition-colors mb-2 block cursor-pointer"
                             onClick={() => navigate("/orders")}
                         >
                             ← Back to My Orders
@@ -126,7 +127,7 @@ export default function CustomerOrderDetailPage() {
                             Order <span className="text-[#d67b27]">#{order.id}</span>
                         </h1>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2">
                         <span className={`text-xs uppercase font-black tracking-wider px-3 py-1.5 border rounded-full ${getStatusColor(order.status)}`}>
                             {order.status.replace("_", " ")}
@@ -139,27 +140,27 @@ export default function CustomerOrderDetailPage() {
 
                 {/* Two-Column Bento Grid Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    
+
                     {/* LEFT COLUMN: Summary & Payment Inputs (Spans 2 cols on wide viewports) */}
                     <div className="lg:col-span-2 space-y-6">
-                        
+
                         {/* Order Calculation Card */}
                         <div className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm space-y-4">
                             <h3 className="text-lg font-bold text-[#844414] border-b border-stone-100 pb-2">Order Summary</h3>
-                            
+
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
                                     <span className="text-stone-500 font-medium">Total Amount:</span>
                                     <span className="text-base font-black text-[#844414]">₱{Number(order.total_amount).toLocaleString()}</span>
                                 </div>
-                                
+
                                 {order.status !== "rejected" && order.status !== "pending_review" && (
                                     <div className="flex justify-between items-center p-3 bg-[#fdf2e2]/40 rounded-xl border border-[#fdf2e2]">
                                         <span className="text-stone-700 font-bold">Remaining Balance:</span>
                                         <span className="text-base font-black text-[#d67b27]">₱{remainingBalance.toLocaleString()}</span>
                                     </div>
                                 )}
-                                
+
                                 <div className="flex justify-between items-center text-xs text-stone-400 pt-2 border-t border-stone-50">
                                     <span>Placed At:</span>
                                     <span className="font-medium">{new Date(order.created_at).toLocaleDateString()}</span>
@@ -218,13 +219,56 @@ export default function CustomerOrderDetailPage() {
                                     <strong className="text-xl font-black text-[#844414]">₱{totalToCharge.toLocaleString()}</strong>
                                 </div>
 
+
+                                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                    <input
+                                        id="no-refund-agreement"
+                                        type="checkbox"
+                                        checked={agreeNoRefund}
+                                        onChange={(e) => setAgreeNoRefund(e.target.checked)}
+                                        className="mt-1 h-4 w-4 accent-[#d67b27] cursor-pointer"
+                                    />
+
+                                    <label
+                                        htmlFor="no-refund-agreement"
+                                        className="text-sm text-stone-700 leading-relaxed cursor-pointer"
+                                    >
+                                        I understand that once my payment is successfully processed, it is
+                                        <span className="font-bold text-rose-600"> non-refundable</span>. I have reviewed my order details and agree to proceed.
+                                    </label>
+                                </div>
+
                                 <button
                                     onClick={handlePayNow}
-                                    disabled={!isPayable || isInvalid || isTipInvalid}
+                                    disabled={!isPayable || isInvalid || isTipInvalid || !agreeNoRefund}
                                     className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed"
                                 >
                                     Proceed to Secure Checkout
                                 </button>
+                                {(order.status === "pending_review" ||
+                                    (order.status === "awaiting_downpayment" &&
+                                        Number(order.total_paid) === 0)) && (
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm("Cancel this order?")) return;
+
+                                                const res = await authFetch(
+                                                    `${BASEURL}/api/orders/${id}/cancel/`,
+                                                    {
+                                                        method: "POST",
+                                                    }
+                                                );
+
+                                                if (res.ok) {
+                                                    alert("Order cancelled");
+                                                    fetchOrder();
+                                                }
+                                            }}
+                                            className="w-full mt-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold py-3 rounded-full transition-all cursor-pointer"
+                                        >
+                                            Cancel Order
+                                        </button>
+                                    )}
                             </div>
                         )}
 
@@ -239,11 +283,11 @@ export default function CustomerOrderDetailPage() {
 
                     {/* RIGHT COLUMN: Items & Dynamic Logistics Pipeline (Spans 1 col) */}
                     <div className="space-y-6">
-                        
+
                         {/* Items Breakdown Card */}
                         <div className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm space-y-4">
                             <h3 className="text-lg font-bold text-[#844414] border-b border-stone-100 pb-2">Items Ordered</h3>
-                            
+
                             <div className="divide-y divide-stone-100 max-h-[320px] overflow-y-auto pr-1">
                                 {order.items.map((item) => (
                                     <div key={item.id} className="py-3 flex justify-between items-start gap-4 text-sm first:pt-0 last:pb-0">
@@ -260,7 +304,7 @@ export default function CustomerOrderDetailPage() {
                         {/* Delivery Metadata & Logistics Section */}
                         <div className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm space-y-4">
                             <h3 className="text-lg font-bold text-[#844414] border-b border-stone-100 pb-2">Delivery Details</h3>
-                            
+
                             <div className="grid grid-cols-2 gap-4 text-xs bg-stone-50 p-3 rounded-xl border border-stone-100 font-bold text-stone-600">
                                 <div>
                                     <span className="block text-stone-400 uppercase tracking-wider mb-0.5">Date</span>
@@ -271,7 +315,7 @@ export default function CustomerOrderDetailPage() {
                                     <span className="text-stone-800">{order.delivery_time || "TBD"}</span>
                                 </div>
                             </div>
-                            
+
                             <div className="pt-2">
                                 <Logistics order={order} />
                             </div>
@@ -282,22 +326,6 @@ export default function CustomerOrderDetailPage() {
                 {/* Feedback Injection Module */}
                 <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
                     <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
-                </div>
-
-                {/* Footer Administration / Cancellation Actions Block */}
-                <div className="flex justify-end pt-4">
-                    {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
-                        <button 
-                            className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold text-xs uppercase tracking-wider py-2.5 px-6 rounded-full transition-all cursor-pointer shadow-sm"
-                            onClick={async () => {
-                                if (!confirm("Cancel this order?")) return;
-                                const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
-                                if (res.ok) { alert("Order cancelled"); fetchOrder(); }
-                            }}
-                        >
-                            Cancel Order
-                        </button>
-                    )}
                 </div>
             </div>
         </div>
