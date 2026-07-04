@@ -65,7 +65,6 @@ def add_to_cart(request):
         item.save()
     return Response({'message': 'Product added to cart', "cart":CartSerializer(cart).data})
 
-
 def build_customization_snapshot(data, price, customization_id=None):
     snapshot = {
         "shape": data.get("shape", "round"),
@@ -141,9 +140,7 @@ def create_order(request):
         if not cart.items.exists():
             return Response({"error": "Cart is empty"}, status=400)
 
-        # Calculate total properly for both products and customizations
         total = sum(item.subtotal for item in cart.items.all())
-
         order = Order.objects.create(
             user=request.user, 
             full_name=full_name, 

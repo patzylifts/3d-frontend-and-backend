@@ -1,7 +1,7 @@
 // src/components/Logistics.jsx
 import { useMemo } from "react";
 
-export default function Logistics({ order }) {
+export default function Logistics({ order, embedded = false }) {
     if (!order) return null;
 
     const timeline = useMemo(() => {
@@ -19,19 +19,21 @@ export default function Logistics({ order }) {
         if (order.payments?.length > 0) {
             let runningTotal = 0;
 
-            order.payments.forEach((p, index) => {
-                runningTotal += Number(p.amount) + Number(p.tip || 0);
+            order.payments
+                .filter((p) => p.status === "partial" || p.status === "paid")
+                .forEach((p, index) => {
+                    runningTotal += Number(p.amount) + Number(p.tip || 0);
 
-                events.push({
-                    title: `Payment Received #${index + 1}`,
-                    time: p.created_at,
-                    type: "payment",
-                    status: p.status,
-                    amount: Number(p.amount),
-                    tip: Number(p.tip || 0),
-                    totalPaidSoFar: runningTotal,
+                    events.push({
+                        title: `Payment Received #${index + 1}`,
+                        time: p.created_at,
+                        type: "payment",
+                        status: p.status,
+                        amount: Number(p.amount),
+                        tip: Number(p.tip || 0),
+                        totalPaidSoFar: runningTotal,
+                    });
                 });
-            });
         }
 
         // 3. Status flow progression
@@ -39,7 +41,9 @@ export default function Logistics({ order }) {
             "pending_review",
             "awaiting_downpayment",
             "processing",
-            "completed",
+            "ready_for_delivery",
+            "out_for_delivery",
+            "delivered",
         ];
 
         const currentIndex = statusFlow.indexOf(order.status);
@@ -69,7 +73,13 @@ export default function Logistics({ order }) {
     }, [order]);
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
+        <div
+            className={
+                embedded
+                    ? ""
+                    : "bg-white p-6 rounded-lg shadow-lg mt-6"
+            }
+        >
             <h2 className="text-xl font-bold mb-4">Order Timeline</h2>
 
             <div className="relative border-l-2 border-gray-300 ml-3">
@@ -79,10 +89,10 @@ export default function Logistics({ order }) {
                         {/* DOT */}
                         <div
                             className={`absolute -left-[30px] top-1 w-4 h-4 rounded-full ${event.status === "failed"
-                                    ? "bg-red-500"
-                                    : event.status === "done"
-                                        ? "bg-green-500"
-                                        : "bg-gray-400"
+                                ? "bg-red-500"
+                                : event.status === "done"
+                                    ? "bg-green-500"
+                                    : "bg-gray-400"
                                 }`}
                         />
 

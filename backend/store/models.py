@@ -30,7 +30,6 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-
 class CustomCakePricing(models.Model):
     FLAVOR_CHOICES = [
         ("Choco Moist", "Choco Moist"),
@@ -55,7 +54,6 @@ class CustomCakePricing(models.Model):
     def __str__(self):
         return f"{self.tier} - {self.size} - {self.flavor}: {self.price}"
 
-
 class AddonPricing(models.Model):
     ADDON_CHOICES = [
         ("candle", "Candle"),
@@ -73,7 +71,6 @@ class AddonPricing(models.Model):
 
     def __str__(self):
         return f"{self.name}: {self.price}"
-
 
 DEFAULT_CUSTOM_CAKE_PRICES = {
     "1 Tier Cake": {
@@ -117,7 +114,6 @@ DEFAULT_ADDON_PRICES = {
     "nuts": Decimal("75.00"),
 }
 
-
 def get_default_custom_cake_price(*, tier, size, flavor):
     tier_config = DEFAULT_CUSTOM_CAKE_PRICES.get(tier)
     if not tier_config or size not in tier_config["sizes"]:
@@ -127,7 +123,6 @@ def get_default_custom_cake_price(*, tier, size, flavor):
         return tier_config["prices"][flavor]
     except KeyError:
         raise CustomCakePricing.DoesNotExist
-
 
 def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
                                 has_chocolate=False, has_balls=False, has_nuts=False):
@@ -205,6 +200,7 @@ class Order(models.Model):
         ("pending", "Pending"),
         ("partial", "Partial"),
         ("paid", "Paid"),
+        ("cancelled", "Cancelled"),
         ("failed", "Failed"),
     ]
 
@@ -260,7 +256,6 @@ class Cart(models.Model):
     @property
     def total(self):
         return sum(item.subtotal for item in self.items.all())
-    
     
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)

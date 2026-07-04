@@ -40,7 +40,6 @@ def create_checkout_session(request, order_id):
 
         remaining_balance = total_amount - total_paid
 
-        # FIRST PAYMENT → enforce 20%
         if total_paid == 0:
             min_amount = order.total_amount * Decimal("0.2")
             if amount < min_amount:
@@ -49,7 +48,6 @@ def create_checkout_session(request, order_id):
         if amount > remaining_balance:
             return Response({"error": "Amount exceeds remaining balance"}, status=400)
 
-        # ✅ Record payment attempt in backend
         payment = Payment.objects.create(
             order=order,
             user=request.user,
@@ -58,7 +56,6 @@ def create_checkout_session(request, order_id):
             status="pending"
         )
 
-        # 🔐 Encode PayMongo key
         encoded_key = base64.b64encode(f"{settings.PAYMONGO_SECRET_KEY}:".encode()).decode()
         headers = {
             "Authorization": f"Basic {encoded_key}",
@@ -91,7 +88,6 @@ def create_checkout_session(request, order_id):
 
         data = response.json()
 
-        # 🔑 Save PayMongo transaction ID
         payment.transaction_id = data["data"]["id"]
         payment.save()
 
@@ -114,11 +110,9 @@ def paymongo_webhook(request):
         sig_header = request.headers.get("Paymongo-Signature", "")
         secret = settings.PAYMONGO_WEBHOOK_SECRET.encode()
 
-        # Essential debug
         print("🔥 Webhook hit!")
         print(f"Signature header: {sig_header}")
 
-        # Parse header
         try:
             sig_parts = dict(part.split("=") for part in sig_header.split(","))
             timestamp = sig_parts.get("t", "")
@@ -127,11 +121,9 @@ def paymongo_webhook(request):
             print("❌ Invalid signature header format:", str(ex))
             return JsonResponse({"error": "Invalid signature header"}, status=400)
 
-        # Compute expected HMAC
         signed_payload = f"{timestamp}.{payload.decode('utf-8')}".encode()
         expected_sig = hmac.new(secret, signed_payload, hashlib.sha256).hexdigest()
 
-        # Signature debug
         print(f"Timestamp: {timestamp}")
         print(f"Received signature: {received_sig}")
         print(f"Expected signature: {expected_sig}")
@@ -140,10 +132,7 @@ def paymongo_webhook(request):
             print("❌ Signature mismatch! Possible fraud attempt.")
             return JsonResponse({"error": "Invalid signature"}, status=400)
 
-        # JSON parsing
         data = json.loads(payload)
-
-        # Only handle payment.paid events
         event_type = data.get("data", {}).get("attributes", {}).get("type")
         if event_type != "checkout_session.payment.paid":
             return JsonResponse({"message": "Ignored"}, status=200)
@@ -159,12 +148,9 @@ def paymongo_webhook(request):
         order = payment.order
 
         if payment.status != "paid":
-            # Sum up previously successful payments
             previous_paid = sum(p.amount for p in order.payments.filter(status__in=["partial", "paid"]))
-            
-            # 🔥 TOTAL PAID INCLUDING THIS PAYMENT
-            total_paid = previous_paid + payment.amount
 
+            total_paid = previous_paid + payment.amount
             total_amount = Decimal(str(order.total_amount))
 
             if total_paid < total_amount:
