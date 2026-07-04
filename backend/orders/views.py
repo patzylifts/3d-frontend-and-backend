@@ -90,14 +90,12 @@ def submit_feedback(request, order_id):
             status=404
         )
 
-    # ONLY DELIVERED OR COMPLETED ORDERS
     if order.status != "delivered":
         return Response(
             {"error": "You can only review delivered orders"},
             status=400
         )
 
-    # PREVENT DUPLICATE FEEDBACK
     if hasattr(order, "feedback"):
         return Response(
             {"error": "Feedback already submitted"},
