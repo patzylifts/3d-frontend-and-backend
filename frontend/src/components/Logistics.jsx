@@ -1,7 +1,7 @@
 // src/components/Logistics.jsx
 import { useMemo } from "react";
 
-export default function Logistics({ order }) {
+export default function Logistics({ order, embedded = false }) {
     if (!order) return null;
 
     const timeline = useMemo(() => {
@@ -73,7 +73,13 @@ export default function Logistics({ order }) {
     }, [order]);
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
+        <div
+            className={
+                embedded
+                    ? ""
+                    : "bg-white p-6 rounded-lg shadow-lg mt-6"
+            }
+        >
             <h2 className="text-xl font-bold mb-4">Order Timeline</h2>
 
             <div className="relative border-l-2 border-gray-300 ml-3">

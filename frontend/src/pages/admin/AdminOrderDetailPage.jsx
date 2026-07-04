@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
 import Navbar from "../../components/Navbar";
+import Logistics from "../../components/Logistics";
 import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 import { CustomizationProvider } from "../../contexts/Customization";
@@ -63,7 +64,7 @@ export default function AdminOrderDetailPage() {
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
             <Navbar />
             <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 space-y-6">
-                
+
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <button className="text-[#A07060] hover:text-[#6E473B] font-bold" onClick={() => navigate("/admin/orders")}>
                         ← Back to Orders
@@ -88,7 +89,7 @@ export default function AdminOrderDetailPage() {
                             { label: "Delivery Time", val: order.delivery_time }
                         ].map((item, idx) => (
                             <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-[#A07060]">{item.label}:</span> 
+                                <span className="text-[#A07060]">{item.label}:</span>
                                 <strong className="text-[#6E473B]">{item.val || "N/A"}</strong>
                             </div>
                         ))}
@@ -150,7 +151,12 @@ export default function AdminOrderDetailPage() {
                         </table>
                     </div>
                 </div>
-                
+
+                {/* Order Timeline */}
+                <div className="bg-white p-6 rounded-2xl border border-[#E6CCA2]">
+                    <Logistics order={order} embedded />
+                </div>
+
                 <AdminOrderFeedback feedback={order.feedback} />
             </div>
 
@@ -160,7 +166,7 @@ export default function AdminOrderDetailPage() {
                 setShowRejectModal(false);
                 await fetchOrder();
             }} />
-            
+
             <CustomizationProvider>
                 <CustomCakeModal isOpen={showCakeModal} onClose={() => { setShowCakeModal(false); setSelectedCake(null); }} customization={selectedCake} />
             </CustomizationProvider>
