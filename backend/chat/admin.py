@@ -14,13 +14,15 @@ class MessageAdmin(admin.ModelAdmin):
         "sender_type",
         "message_type",
         "created_at",
-        "is_read",
+        "read_by_customer",
+        "read_by_admin",
     )
 
     list_filter = (
         "sender_type",
         "message_type",
-        "is_read",
+        "read_by_customer",
+        "read_by_admin",
     )
 
     search_fields = (

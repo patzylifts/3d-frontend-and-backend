@@ -75,3 +75,43 @@ def send_message(request, order_id):
         serializer.errors,
         status=400
     )
+    
+# READ ENDPOINT
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mark_messages_read(request, order_id):
+
+    try:
+        if request.user.is_staff or request.user.is_superuser:
+            order = Order.objects.get(id=order_id)
+        else:
+            order = Order.objects.get(
+                id=order_id,
+                user=request.user
+            )
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    conversation = order.conversation
+
+    if request.user.is_staff or request.user.is_superuser:
+
+        updated = conversation.messages.filter(
+            sender_type="customer",
+            read_by_admin=False
+        ).update(read_by_admin=True)
+
+    else:
+
+        updated = conversation.messages.filter(
+            sender_type__in=["admin", "system"],
+            read_by_customer=False
+        ).update(read_by_customer=True)
+
+    return Response({
+        "messages_marked_read": updated
+    })

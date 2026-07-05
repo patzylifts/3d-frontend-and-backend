@@ -19,7 +19,8 @@ class MessageSerializer(serializers.ModelSerializer):
             "attachment",
             "metadata",
             "created_at",
-            "is_read",
+            "read_by_customer",
+            "read_by_admin",
         ]
 
         read_only_fields = (
@@ -27,7 +28,8 @@ class MessageSerializer(serializers.ModelSerializer):
             "sender",
             "sender_type",
             "created_at",
-            "is_read",
+            "read_by_customer",
+            "read_by_admin",
         )
 
     def get_sender_name(self, obj):
