@@ -6,6 +6,7 @@ import Logistics from "../../components/Logistics";
 import AddPaymentModal from "../../components/customer/AddPaymentModal";
 import Navbar from "../../components/Navbar";
 import OrderFeedback from "../../components/customer/OrderFeedback";
+import ChatBox from "../../components/chat/ChatBox";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -327,6 +328,10 @@ export default function CustomerOrderDetailPage() {
                 <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
                     <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
                 </div>
+                <ChatBox
+                    orderId={id}
+                    isAdmin={false}
+                />
             </div>
         </div>
     );

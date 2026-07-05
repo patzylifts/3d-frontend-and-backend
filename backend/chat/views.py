@@ -6,7 +6,8 @@ from rest_framework.response import Response
 
 from store.models import Order
 
-from .models import Conversation, Message
+from .models import Conversation
+from .services import ChatService
 from .serializers import ConversationSerializer, MessageSerializer, SendMessageSerializer
 
 @api_view(["GET"])
@@ -63,13 +64,15 @@ def send_message(request, order_id):
     )
 
     if serializer.is_valid():
-        serializer.save(
+        message = ChatService.create_message(
             conversation=conversation,
             sender=request.user,
-            sender_type="admin" if request.user.is_staff else "customer"
+            sender_type="admin" if request.user.is_staff else "customer",
+            content=serializer.validated_data.get("content", ""),
+            attachment=serializer.validated_data.get("attachment"),
         )
 
-        return Response(serializer.data)
+        return Response(MessageSerializer(message).data)
 
     return Response(
         serializer.errors,
