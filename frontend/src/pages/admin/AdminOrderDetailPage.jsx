@@ -7,6 +7,7 @@ import Navbar from "../../components/Navbar";
 import Logistics from "../../components/Logistics";
 import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
+import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 
 export default function AdminOrderDetailPage() {
@@ -156,7 +157,7 @@ export default function AdminOrderDetailPage() {
                 <div className="bg-white p-6 rounded-2xl border border-[#E6CCA2]">
                     <Logistics order={order} embedded />
                 </div>
-
+                <ChatBox orderId={id} isAdmin={true} />
                 <AdminOrderFeedback feedback={order.feedback} />
             </div>
 
