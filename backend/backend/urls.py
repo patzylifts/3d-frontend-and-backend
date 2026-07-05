@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/', include('store.urls')),  # Include URLs from the store app
     path('api/orders/', include('orders.urls')),  # Orders
     path('api/payments/', include('payments.urls')), # Payments
+    path("api/chat/", include("chat.urls")), # Chat
 ] 
 
 if settings.DEBUG:
