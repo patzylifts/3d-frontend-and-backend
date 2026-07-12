@@ -157,9 +157,9 @@ export default function AdminOrderDetailPage() {
                 <div className="bg-white p-6 rounded-2xl border border-[#E6CCA2]">
                     <Logistics order={order} embedded />
                 </div>
-                <ChatBox orderId={id} isAdmin={true} />
                 <AdminOrderFeedback feedback={order.feedback} />
             </div>
+            <ChatBox orderId={id} isAdmin={true} />
 
             <RejectModal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} onSubmit={async (reason) => {
                 const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/review/`, { method: "PATCH", body: JSON.stringify({ status: "rejected", rejection_reason: reason }) });

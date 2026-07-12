@@ -8,8 +8,31 @@ export default function AdminOrdersPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [unreadOrders, setUnreadOrders] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const fetchUnreadOrders = async () => {
+    try {
+      const res = await authFetch(
+        `${BASEURL}/api/chat/unread/orders/`
+      );
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      const map = {};
+
+      data.forEach(item => {
+        map[item.order] = item.unread;
+      });
+
+      setUnreadOrders(map);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -26,6 +49,7 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
+    fetchUnreadOrders();
   }, []);
 
   const getStatusClass = (status) => {
@@ -74,10 +98,23 @@ export default function AdminOrdersPage() {
                 <tbody className="divide-y divide-[#E6CCA2]/20">
                   {orders.map((order) => (
                     <tr key={order.id} className="hover:bg-[#FCF8EE]/50 transition-colors">
-                      <td className="p-4 font-black text-[#6E473B]">#{order.id}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-[#6E473B]">
+                            #{order.id}
+                          </span>
+
+                          {unreadOrders[order.id] > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-[#d67b27] text-white text-[10px] font-black whitespace-nowrap">
+                              {unreadOrders[order.id]}{" "}
+                              {unreadOrders[order.id] === 1 ? "unread" : "unread"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4 text-sm font-bold text-[#6E473B]">{order.user_name}</td>
                       <td className="p-4 text-sm text-[#A07060]">
-                        {order.formatted_phone || order.phone || "—"}<br/>
+                        {order.formatted_phone || order.phone || "—"}<br />
                         <span className="text-xs">{order.customer_email || ""}</span>
                       </td>
                       <td className="p-4 text-sm text-[#A07060]">{order.full_address || `${order.street || ''} ${order.city || ''}` || "—"}</td>

@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { clearTokens, getAccessToken } from "../utils/auth";
+import { useUnread } from "../context/UnreadContext";
 import logoImg from "../assets/images/spc.png";
 
 function Navbar() {
@@ -11,6 +12,7 @@ function Navbar() {
     const { cartItems, clearCart } = useCart();
     const navigate = useNavigate();
     const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+    const { unreadMessages } = useUnread();
     const isLoggedIn = !!getAccessToken();
 
     let isAdmin = false;
@@ -41,9 +43,9 @@ function Navbar() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between relative">
 
                     {/* Mobile Burger Button */}
-                    <button 
-                        className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1.5 z-50 relative" 
-                        onClick={toggleMenu} 
+                    <button
+                        className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1.5 z-50 relative"
+                        onClick={toggleMenu}
                         aria-label="Toggle Menu"
                     >
                         <div className={`w-6 h-0.5 bg-[#844414] transition-all duration-300 ${isMenuOpen ? "transform rotate-45 translate-y-2" : ""}`}></div>
@@ -69,7 +71,19 @@ function Navbar() {
                         ) : (
                             <>
                                 <Link to="/admin" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-                                <Link to="/admin/orders" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Orders</Link>
+                                <Link
+                                    to="/admin/orders"
+                                    className="relative text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Orders
+
+                                    {unreadMessages > 0 && (
+                                        <span className="absolute -top-2 -right-5 min-w-5 h-5 px-1 rounded-full bg-[#d67b27] text-white text-[10px] font-black flex items-center justify-center leading-none">
+                                            {unreadMessages > 99 ? "99+" : unreadMessages}
+                                        </span>
+                                    )}
+                                </Link>
                                 <Link to="/admin/products" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Products</Link>
                             </>
                         )}
@@ -78,8 +92,38 @@ function Navbar() {
                         <div className="md:hidden pt-4 border-t border-stone-100 w-full flex flex-col space-y-4">
                             {isLoggedIn ? (
                                 <>
-                                    <Link to="/profile" className="text-sm font-semibold tracking-wide uppercase text-stone-600" onClick={() => setIsMenuOpen(false)}>Profile</Link>
-                                    <button onClick={handleLogout} className="text-left text-sm font-semibold tracking-wide uppercase text-rose-600">Logout</button>
+                                    {!isAdmin ? (
+                                        <>
+                                            <Link
+                                                to="/profile"
+                                                className="text-sm font-semibold tracking-wide uppercase text-stone-600"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                Profile
+                                            </Link>
+
+                                            <Link
+                                                to="/orders"
+                                                className="relative text-sm font-semibold tracking-wide uppercase text-stone-600"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                My Orders
+
+                                                {unreadMessages > 0 && (
+                                                    <span className="absolute -top-2 right-0 min-w-5 h-5 px-1 rounded-full bg-[#d67b27] text-white text-[10px] font-black flex items-center justify-center leading-none">
+                                                        {unreadMessages > 99 ? "99+" : unreadMessages}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </>
+                                    ) : null}
+
+                                    <button
+                                        onClick={handleLogout}
+                                        className="text-left text-sm font-semibold tracking-wide uppercase text-rose-600"
+                                    >
+                                        Logout
+                                    </button>
                                 </>
                             ) : (
                                 <Link to="/login" className="text-sm font-semibold tracking-wide uppercase text-stone-600" onClick={() => setIsMenuOpen(false)}>Login</Link>
@@ -106,13 +150,22 @@ function Navbar() {
                                     </Link>
 
                                     {!isAdmin && (
-                                        <Link to="/orders" className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">
+                                        <Link
+                                            to="/orders"
+                                            className="relative text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors"
+                                        >
                                             My Orders
+
+                                            {unreadMessages > 0 && (
+                                                <span className="absolute -top-2 -right-5 min-w-5 h-5 px-1 rounded-full bg-[#d67b27] text-white text-[10px] font-black flex items-center justify-center leading-none">
+                                                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                                                </span>
+                                            )}
                                         </Link>
                                     )}
 
-                                    <button 
-                                        onClick={handleLogout} 
+                                    <button
+                                        onClick={handleLogout}
                                         className="text-xs bg-[#d67b27] hover:bg-[#b56219] text-white font-bold px-4 py-2 rounded-full transition-colors duration-200 shadow-sm"
                                     >
                                         Logout
@@ -142,9 +195,6 @@ function Navbar() {
 
                 </div>
             </nav>
-
-            {/* 2. THE PHYSICAL SPACE HOLDER */}
-            {/* This div mimics the 80px height of the navbar so nothing can ever hide behind it! */}
             <div className="h-20 w-full block clear-both" />
         </>
     );
