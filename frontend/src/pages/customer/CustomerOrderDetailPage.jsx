@@ -328,11 +328,11 @@ export default function CustomerOrderDetailPage() {
                 <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
                     <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
                 </div>
-                <ChatBox
-                    orderId={id}
-                    isAdmin={false}
-                />
             </div>
+            <ChatBox
+                orderId={id}
+                isAdmin={false}
+            />
         </div>
     );
 }

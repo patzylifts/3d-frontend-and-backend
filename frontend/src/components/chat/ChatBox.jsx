@@ -9,6 +9,7 @@ export default function ChatBox({ orderId, isAdmin }) {
         .replace("https://", "wss://");
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
     const socket = useRef(null);
     const bottomRef = useRef(null);
 
@@ -90,50 +91,74 @@ export default function ChatBox({ orderId, isAdmin }) {
     }
 
     return (
-        <div className="border rounded-xl p-4 bg-white">
-            <div className="h-80 overflow-y-auto space-y-2">
-                {messages.map(msg => (
-                    <div
-                        key={msg.id}
-                        className={
-                            msg.sender_type === (isAdmin ? "admin" : "customer")
-                                ? "text-right"
-                                : "text-left"
-                        }
-                    >
-                        <div
-                            className={`inline-block px-3 py-2 rounded-lg max-w-[80%] break-words ${msg.sender_type === (isAdmin ? "admin" : "customer")
-                                    ? "bg-orange-500 text-white"
-                                    : "bg-stone-100 text-stone-800"
-                                }`}
+        <>
+            {/* Floating Toggle Button */}
+            <button
+                onClick={() => setIsOpen(prev => !prev)}
+                className={`fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-orange-500 text-white shadow-lg flex items-center justify-center hover:bg-orange-600 transition ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+            >
+                {isOpen ? "✕" : "💬"}
+            </button>
+
+            <div
+                className={`fixed top-20 bottom-0 right-0 bg-white border-l shadow-2xl z-30 flex flex-col transition-transform duration-300 ${isOpen ? "translate-x-0 w-full md:w-[380px]" : "translate-x-full w-full md:w-[380px]"}`}
+            >
+                <div className="flex flex-col h-full min-h-0">
+                    <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+                        <h3 className="font-bold text-stone-700">Order Chat</h3>
+
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-2xl leading-none text-stone-500 hover:text-orange-500 transition"
                         >
-                            {msg.content}
-                        </div>
+                            ×
+                        </button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+                        {messages.map(msg => (
+                            <div
+                                key={msg.id}
+                                className={
+                                    msg.sender_type === (isAdmin ? "admin" : "customer")
+                                        ? "text-right"
+                                        : "text-left"
+                                }
+                            >
+                                <div
+                                    className={`inline-block px-3 py-2 rounded-lg max-w-[80%] break-words ${msg.sender_type === (isAdmin ? "admin" : "customer")
+                                        ? "bg-orange-500 text-white"
+                                        : "bg-stone-100 text-stone-800"
+                                        }`}
+                                >
+                                    {msg.content}
+                                </div>
+                            </div>
+
+                        ))}
+                        <div ref={bottomRef}></div>
                     </div>
 
-                ))}
-                <div ref={bottomRef}></div>
-            </div>
+                    <div className="flex gap-2 p-4 border-t bg-white">
+                        <input
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    sendMessage();
+                                }
+                            }}
+                            className="flex-1 border rounded-lg px-3 py-2 outline-none focus:border-orange-500"
+                        />
 
-            <div className="flex gap-2 mt-4">
-                <input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            sendMessage();
-                        }
-                    }}
-                    className="flex-1 border rounded-lg px-3 py-2"
-                />
-
-                <button
-                    onClick={sendMessage}
-                    className="px-4 rounded-lg bg-orange-500 text-white"
-                >
-                    Send
-                </button>
+                        <button
+                            onClick={sendMessage}
+                            className="px-4 rounded-lg bg-orange-500 text-white"
+                        >
+                            Send
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
