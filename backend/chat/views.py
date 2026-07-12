@@ -9,6 +9,7 @@ from store.models import Order
 from .models import Conversation
 from .services import ChatService
 from .serializers import ConversationSerializer, MessageSerializer, SendMessageSerializer
+from django.db.models import Count, Q
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -118,3 +119,90 @@ def mark_messages_read(request, order_id):
     return Response({
         "messages_marked_read": updated
     })
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def unread_count(request):
+
+    if request.user.is_staff or request.user.is_superuser:
+        total = (
+            Conversation.objects
+            .filter(order__isnull=False)
+            .aggregate(
+                total=Count(
+                    "messages",
+                    filter=Q(
+                        messages__sender_type="customer",
+                        messages__read_by_admin=False
+                    )
+                )
+            )["total"]
+            or 0
+        )
+
+    else:
+
+        total = (
+            Conversation.objects
+            .filter(order__user=request.user)
+            .aggregate(
+                total=Count(
+                    "messages",
+                    filter=Q(
+                        messages__sender_type__in=["admin", "system"],
+                        messages__read_by_customer=False
+                    )
+                )
+            )["total"]
+            or 0
+        )
+
+    return Response({
+        "total_unread": total
+    })
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def unread_per_order(request):
+
+    if request.user.is_staff or request.user.is_superuser:
+
+        conversations = Conversation.objects.filter(
+            order__isnull=False
+        )
+
+        result = []
+
+        for convo in conversations:
+
+            unread = convo.messages.filter(
+                sender_type="customer",
+                read_by_admin=False
+            ).count()
+
+            result.append({
+                "order": convo.order.id,
+                "unread": unread,
+            })
+
+    else:
+
+        conversations = Conversation.objects.filter(
+            order__user=request.user
+        )
+
+        result = []
+
+        for convo in conversations:
+
+            unread = convo.messages.filter(
+                sender_type__in=["admin", "system"],
+                read_by_customer=False
+            ).count()
+
+            result.append({
+                "order": convo.order.id,
+                "unread": unread,
+            })
+
+    return Response(result)

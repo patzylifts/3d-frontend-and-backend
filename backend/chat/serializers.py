@@ -23,14 +23,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "read_by_admin",
         ]
 
-        read_only_fields = (
-            "conversation",
-            "sender",
-            "sender_type",
-            "created_at",
-            "read_by_customer",
-            "read_by_admin",
-        )
+        read_only_fields = ("conversation", "sender", "sender_type", "created_at", "read_by_customer", "read_by_admin")
 
     def get_sender_name(self, obj):
         if obj.sender:
@@ -57,7 +50,4 @@ class SendMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = [
-            "content",
-            "attachment",
-        ]
+        fields = ["content", "attachment"]

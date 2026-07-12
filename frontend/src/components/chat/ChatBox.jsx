@@ -1,6 +1,7 @@
 // src/components/chat/ChatBox.jsx
 import { useEffect, useRef, useState } from "react";
 import { authFetch, getAccessToken } from "../../utils/auth";
+import { useUnread } from "../../context/UnreadContext";
 
 export default function ChatBox({ orderId, isAdmin }) {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -12,6 +13,7 @@ export default function ChatBox({ orderId, isAdmin }) {
     const [isOpen, setIsOpen] = useState(false);
     const socket = useRef(null);
     const bottomRef = useRef(null);
+    const { refreshUnread } = useUnread();
 
     useEffect(() => {
         loadConversation();
@@ -27,6 +29,12 @@ export default function ChatBox({ orderId, isAdmin }) {
 
     }, [orderId]);
 
+    useEffect(() => {
+        if (isOpen) {
+            markConversationRead();
+        }
+    }, [isOpen]);
+
     const firstLoad = useRef(true);
 
     useEffect(() => {
@@ -40,20 +48,25 @@ export default function ChatBox({ orderId, isAdmin }) {
         });
     }, [messages]);
 
+    async function markConversationRead() {
+        await authFetch(
+            `${BASEURL}/api/chat/orders/${orderId}/read/`,
+            {
+                method: "POST",
+            }
+        );
+
+        refreshUnread();
+    }
+
     async function loadConversation() {
         const res = await authFetch(
             `${BASEURL}/api/chat/orders/${orderId}/`
         );
+
         const data = await res.json();
 
         setMessages(data.messages);
-
-        await authFetch(
-            `${BASEURL}/api/chat/orders/${orderId}/read/`,
-            {
-                method: "POST"
-            }
-        );
     }
 
     function connectSocket() {
@@ -75,6 +88,11 @@ export default function ChatBox({ orderId, isAdmin }) {
                     created_at: data.created_at
                 }
             ]);
+            if (isOpen) {
+                markConversationRead();
+            } else {
+                refreshUnread();
+            }
         };
     }
 
@@ -94,7 +112,13 @@ export default function ChatBox({ orderId, isAdmin }) {
         <>
             {/* Floating Toggle Button */}
             <button
-                onClick={() => setIsOpen(prev => !prev)}
+                onClick={async () => {
+                    const opening = !isOpen;
+                    setIsOpen(opening);
+                    if (opening) {
+                        await markConversationRead();
+                    }
+                }}
                 className={`fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-orange-500 text-white shadow-lg flex items-center justify-center hover:bg-orange-600 transition ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
             >
                 {isOpen ? "✕" : "💬"}
