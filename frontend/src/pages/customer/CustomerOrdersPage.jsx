@@ -8,8 +8,32 @@ export default function CustomerOrdersPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
+    const [unreadOrders, setUnreadOrders] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const fetchUnreadOrders = async () => {
+        try {
+            const res = await authFetch(
+                `${BASEURL}/api/chat/unread/orders/`
+            );
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            const map = {};
+
+            data.forEach(item => {
+                map[item.order] = item.unread;
+            });
+
+            setUnreadOrders(map);
+
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchOrders = async () => {
         try {
@@ -26,6 +50,7 @@ export default function CustomerOrdersPage() {
 
     useEffect(() => {
         fetchOrders();
+        fetchUnreadOrders();
     }, []);
 
     if (loading) return (
@@ -55,6 +80,7 @@ export default function CustomerOrdersPage() {
                             <OrderCard
                                 key={order.id}
                                 order={order}
+                                unreadCount={unreadOrders[order.id] || 0}
                                 onView={(id) => navigate(`/orders/${id}`)}
                             />
                         ))}
