@@ -24,11 +24,13 @@ import './BuildBentoPage.css';
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 const TIER_MODEL_URLS = {
-    tier1: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf",
+    tier1: "/models/tier1/tier1.gltf",
     tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier2/tier2.gltf",
     tier3: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier3/tier3.gltf",
     tier4: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier4/tier4.gltf",
 };
+
+const TIER1_CHERRY_TEXTURE = "/models/tier1/Cherry.jpg";
 
 const TEXTURE_URLS = {
     choco: {
@@ -78,6 +80,8 @@ const TOPPING_3D_CONFIG = {
 
 const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
+const CANDLE_DIGIT_SPACING = 0.16;
+const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
     2: ["Bottom Tier", "Top Tier"],
@@ -127,10 +131,47 @@ const getCakeShape = (name) => {
     return null;
 };
 
-function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selectedLayerFlavors = [], textureByFlavor = {} }) {
+const getNodeRotationArray = (node) => {
+    if (!node?.rotation) return [0, 0, 0];
+    return [node.rotation.x, node.rotation.y, node.rotation.z];
+};
+
+const getNodeScaleArray = (node, multiplier = 1) => {
+    if (!node?.scale) {
+        const fallback = CANDLE_DIGIT_FALLBACK_SCALE * multiplier;
+        return [fallback, fallback, fallback];
+    }
+
+    return [
+        node.scale.x * multiplier,
+        node.scale.y * multiplier,
+        node.scale.z * multiplier,
+    ];
+};
+
+function applyMaterialsToScene(scene, {
+    cakeColor,
+    activeTexture,
+    form,
+    selectedLayerFlavors = [],
+    textureByFlavor = {},
+    icingColor,
+    cherryTexture,
+}) {
     if (!scene) return;
 
     const cakeMatProps = { color: cakeColor.color, roughness: 0.65, metalness: 0.0, ...activeTexture };
+    const icingMatProps = {
+        color: icingColor?.color || "#3B1F18",
+        roughness: 0.28,
+        metalness: 0.0,
+    };
+    const cherryMatProps = {
+        color: "#FFFFFF",
+        roughness: 0.42,
+        metalness: 0.0,
+        ...(cherryTexture ? { map: cherryTexture } : {}),
+    };
     const cakeMeshes = [];
 
     scene.traverse((child) => {
@@ -142,6 +183,27 @@ function applyMaterialsToScene(scene, { cakeColor, activeTexture, form, selected
         if (lname.includes("nut")) { child.visible = false; return; }
         if (lname.includes("bar")) { child.visible = false; return; }
         if (lname.includes("ball")) { child.visible = false; return; }
+
+        if (lname.includes("icing")) {
+            const isRectangleIcing = lname.includes("rectangle") || lname.includes("rect");
+            const isRoundIcing = lname.includes("round");
+            child.visible =
+                (!isRectangleIcing && !isRoundIcing) ||
+                (isRoundIcing && form === 1) ||
+                (isRectangleIcing && form === 2);
+            child.material = new THREE.MeshStandardMaterial(icingMatProps);
+            child.castShadow = true;
+            child.receiveShadow = true;
+            return;
+        }
+
+        if (lname.includes("cherry")) {
+            child.visible = true;
+            child.material = new THREE.MeshStandardMaterial(cherryMatProps);
+            child.castShadow = true;
+            child.receiveShadow = true;
+            return;
+        }
 
         const shape = getCakeShape(child.name);
         if (shape) {
@@ -288,10 +350,12 @@ export function CakeModel({ selectedTierIndex }) {
     const {
         form,
         cakeColor,
+        icingColor,
         flavor,
         flavorTextureMap,
         selectedTierFlavors,
         candle,
+        candleNumber,
         chocolate,
         balls,
         nuts,
@@ -304,6 +368,7 @@ export function CakeModel({ selectedTierIndex }) {
     const chocoTexture = useTexture(TEXTURE_URLS.choco);
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture = useTexture(TEXTURE_URLS.ube);
+    const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
 
     const texturesByKey = {
         choco: chocoTexture,
@@ -327,8 +392,17 @@ export function CakeModel({ selectedTierIndex }) {
         form,
         selectedLayerFlavors: selectedTierFlavors,
         textureByFlavor,
+        icingColor,
+        cherryTexture,
     };
 
+    useEffect(() => {
+        if (!cherryTexture) return;
+        cherryTexture.colorSpace = THREE.SRGBColorSpace;
+        cherryTexture.needsUpdate = true;
+    }, [cherryTexture]);
+
+    useEffect(() => { applyMaterialsToScene(tier1?.scene, matProps); }, [tier1, cakeColor, icingColor, form, selectedTierFlavors, textureByFlavor, cherryTexture]);
     useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, cakeColor, form, selectedTierFlavors, textureByFlavor]);
@@ -337,20 +411,52 @@ export function CakeModel({ selectedTierIndex }) {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
-    const standColor = new THREE.Color("#C05A11"); // Matches the main warm logo brand color
     const selectedToppings = { candle, chocolate, balls, nuts };
 
-    const renderCustomToppings = () => (
-        <>
-            {selectedToppings.candle && nodes.chandel?.geometry && (
+    const renderCandleNumber = () => {
+        const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
+        const digitScaleMultiplier = TOPPING_SIZES[toppingLayout.candle.size] || 1;
+        const spacing = CANDLE_DIGIT_SPACING * digitScaleMultiplier * (TIER_TOP_RADIUS[selectedTierIndex] ?? 1);
+        const digitMaterial = materials.Candle_White_Default || materials.chandel;
+        const hasDigitMeshes = digits.every((digit) => nodes[`candle_${digit}`]?.geometry);
+
+        if (!hasDigitMeshes) {
+            return nodes.chandel?.geometry ? (
                 <mesh
                     geometry={nodes.chandel.geometry}
                     material={materials.chandel}
                     position={getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex)}
                     rotation={TOPPING_3D_CONFIG.candle.rotation}
-                    scale={TOPPING_3D_CONFIG.candle.scale * TOPPING_SIZES[toppingLayout.candle.size]}
+                    scale={TOPPING_3D_CONFIG.candle.scale * digitScaleMultiplier}
                 />
-            )}
+            ) : null;
+        }
+
+        return (
+            <group position={getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex)}>
+                {digits.map((digit, idx) => {
+                    const node = nodes[`candle_${digit}`];
+                    const xOffset = (idx - (digits.length - 1) / 2) * spacing;
+
+                    return (
+                        <mesh
+                            key={`${digit}-${idx}`}
+                            geometry={node.geometry}
+                            material={node.material || digitMaterial}
+                            position={[xOffset, 0, 0]}
+                            rotation={getNodeRotationArray(node)}
+                            scale={getNodeScaleArray(node, digitScaleMultiplier)}
+                            castShadow
+                        />
+                    );
+                })}
+            </group>
+        );
+    };
+
+    const renderCustomToppings = () => (
+        <>
+            {selectedToppings.candle && renderCandleNumber()}
 
             {selectedToppings.nuts && nodes.nuts?.geometry && (
                 <mesh
@@ -408,57 +514,7 @@ export function CakeModel({ selectedTierIndex }) {
             )}
 
             {selectedTierIndex === 0 && (
-                <>
-                    <group rotation={[Math.PI / 2, 0, 0]} scale={0.07}>
-                        <group position={[0, 0, -27.2]} scale={1.01}>
-                            {["Mesh004", "Mesh004_1", "Mesh004_2", "Mesh004_3"].map(
-                                (name) =>
-                                    nodes[name]?.geometry && (
-                                        <mesh key={name} geometry={nodes[name].geometry} castShadow>
-                                            <meshStandardMaterial color={standColor} roughness={0.55} metalness={0.1} />
-                                        </mesh>
-                                    )
-                            )}
-                        </group>
-                    </group>
-
-                    {nodes.Cake?.geometry && (
-                        <mesh
-                            geometry={nodes.Cake.geometry}
-                            position={[0, 1.89, 0]}
-                            scale={[0.95, 0.92, 0.95]}
-                            visible={form === 1}
-                            castShadow
-                            receiveShadow
-                        >
-                            <meshStandardMaterial
-                                {...activeTexture}
-                                color={cakeColor.color}
-                                roughness={0.65}
-                                metalness={0.0}
-                            />
-                        </mesh>
-                    )}
-
-                    {nodes.Cake_Rectangle?.geometry && (
-                        <mesh
-                            geometry={nodes.Cake_Rectangle.geometry}
-                            position={[0, 0.21, 0]}
-                            scale={[0.95, 0.92, 0.95]}
-                            visible={form === 2}
-                            castShadow
-                            receiveShadow
-                        >
-                            <meshStandardMaterial
-                                {...activeTexture}
-                                color={cakeColor.color}
-                                roughness={0.65}
-                                metalness={0.0}
-                                displacementScale={0.01}
-                            />
-                        </mesh>
-                    )}
-                </>
+                <primitive object={tier1.scene} />
             )}
 
             {renderCustomToppings()}
@@ -571,9 +627,11 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
 function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
         cakeColors, cakeColor, setCakeColor,
+        icingColors, icingColor, setIcingColor,
         form, setForm,
         flavors, flavor, setFlavor,
         candle, setCandle,
+        candleNumber, setCandleNumber,
         chocolate, setChocolate,
         balls, setBalls,
         nuts, setNuts,
@@ -633,6 +691,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         const payload = {
             shape: form === 1 ? "round" : "rectangle",
             cake_color: cakeColor.color,
+            icing_color: icingColor.color,
             flavor: activeTierFlavors[0] || flavor,
             tier: selectedTier.tier,
             size: selectedSize,
@@ -640,6 +699,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             inscription_text: inscriptionText.trim(),
             text_font: textFont,
             has_candle: candle,
+            candle_number: candleNumber,
             has_chocolate: chocolate,
             has_balls: balls,
             has_nuts: nuts,

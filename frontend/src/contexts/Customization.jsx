@@ -17,6 +17,15 @@ const cakeColors = [
     { color: "#f3e5ab", name: "vanilla" },
 ];
 
+const icingColors = [
+    { color: "#3B1F18", name: "chocolate" },
+    { color: "#FFF7EA", name: "vanilla cream" },
+    { color: "#F7A8C8", name: "pink" },
+    { color: "#B980F0", name: "ube" },
+    { color: "#AEE8D5", name: "mint" },
+    { color: "#F3C96B", name: "caramel" },
+];
+
 const flavors = ["Choco Moist", "Vanilla Chiffon", "Ube Chiffon"];
 
 const flavorTextureMap = {
@@ -120,6 +129,12 @@ const hydrateToppingLayout = (initialState) => {
     );
 };
 
+const normalizeCandleNumber = (value) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) return 1;
+    return Math.max(1, Math.min(100, parsed));
+};
+
 const DEFAULT_CAKE_PRICES = {
     tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
     tier2: { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
@@ -154,11 +169,17 @@ export const CustomizationProvider = (props) => {
         () => initialState?.size || CAKE_SIZES[0].sizes[0]
     );
     const [candle, setCandle] = useState(!!initialState?.has_candle);
+    const [candleNumber, setCandleNumberState] = useState(
+        () => normalizeCandleNumber(initialState?.candle_number)
+    );
     const [chocolate, setChocolate] = useState(!!initialState?.has_chocolate);
     const [balls, setBalls] = useState(!!initialState?.has_balls);
     const [nuts, setNuts] = useState(!!initialState?.has_nuts);
     const [cakeColor, setCakeColor] = useState(
         () => cakeColors.find(c => c.color === initialState?.cake_color) || cakeColors[0]
+    );
+    const [icingColor, setIcingColor] = useState(
+        () => icingColors.find(c => c.color === initialState?.icing_color) || icingColors[0]
     );
     const [flavor, setFlavor] = useState(
         () => initialState?.flavor || flavors[0]
@@ -219,6 +240,10 @@ export const CustomizationProvider = (props) => {
             ...prev,
             [tierKey]: prev[tierKey].map((f, idx) => (idx === layerIdx ? newFlavor : f)),
         }));
+    };
+
+    const setCandleNumber = (value) => {
+        setCandleNumberState(normalizeCandleNumber(value));
     };
 
     useEffect(() => {
@@ -299,7 +324,9 @@ export const CustomizationProvider = (props) => {
         setSelectedTierIndex(randomTierIdx);
         setSelectedSize(CAKE_SIZES[randomTierIdx].sizes[0]);
         setCakeColor(randomCakeColor);
+        setIcingColor(icingColors[Math.floor(Math.random() * icingColors.length)]);
         setFlavor(randomFlavor);
+        setCandleNumber(Math.floor(Math.random() * 100) + 1);
         setTierFlavors({
             tier2: Array.from({ length: 2 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
             tier3: Array.from({ length: 3 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
@@ -340,6 +367,9 @@ export const CustomizationProvider = (props) => {
                 cakeColors,
                 cakeColor,
                 setCakeColor,
+                icingColors,
+                icingColor,
+                setIcingColor,
                 flavors,
                 flavor,
                 setFlavor,
@@ -349,6 +379,8 @@ export const CustomizationProvider = (props) => {
                 selectedTierFlavors,
                 candle,
                 setCandle,
+                candleNumber,
+                setCandleNumber,
                 chocolate,
                 setChocolate,
                 balls,
