@@ -76,6 +76,12 @@ const TOPPING_3D_CONFIG = {
         scale: 0.18,
         radius: 0.92,
     },
+    cherry: {
+        yOffset: 0.01,
+        rotation: [0, 0, 0],
+        scale: 0.039,
+        radius: 0.85,
+    },
 };
 
 const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
@@ -157,15 +163,11 @@ function applyMaterialsToScene(scene, {
     textureByFlavor = {},
     icingColor,
     cherryTexture,
+    cherryVisible = false,
 }) {
     if (!scene) return;
 
     const cakeMatProps = { color: cakeColor.color, roughness: 0.65, metalness: 0.0, ...activeTexture };
-    const icingMatProps = {
-        color: icingColor?.color || "#3B1F18",
-        roughness: 0.28,
-        metalness: 0.0,
-    };
     const cherryMatProps = {
         color: "#FFFFFF",
         roughness: 0.42,
@@ -191,14 +193,40 @@ function applyMaterialsToScene(scene, {
                 (!isRectangleIcing && !isRoundIcing) ||
                 (isRoundIcing && form === 1) ||
                 (isRectangleIcing && form === 2);
-            child.material = new THREE.MeshStandardMaterial(icingMatProps);
+
+            // Create realistic icing material
+            const icingMat = new THREE.MeshPhysicalMaterial({
+                color: icingColor?.color || "#3B1F18",
+                roughness: 0.12,
+                metalness: 0.0,
+                clearcoat: 0.6,
+                clearcoatRoughness: 0.15,
+                sheen: 0.3,
+                sheenRoughness: 0.4,
+                sheenColor: new THREE.Color(icingColor?.color || "#3B1F18").multiplyScalar(1.3),
+                envMapIntensity: 1.5,
+                side: THREE.DoubleSide,
+            });
+            child.material = icingMat;
+
+            // Use GLTF model's original positions — these are authored to fit the cake side
+            // Round icing: position from GLTF node (-0.0119, -0.7735, 0.0015), scale (1.235, 1.013, 1.235)
+            // Rectangle icing: position from GLTF node (0.008, -1.249, -0.0005), scale (1.259, 1.146, 1.259)
+            if (isRoundIcing && child.visible) {
+                child.position.set(-0.0119, -0.7735, 0.0015);
+                child.scale.set(1.235, 1.013, 1.235);
+            } else if (isRectangleIcing && child.visible) {
+                child.position.set(0.008, -1.249, -0.0005);
+                child.scale.set(1.259, 1.146, 1.259);
+            }
+
             child.castShadow = true;
             child.receiveShadow = true;
             return;
         }
 
         if (lname.includes("cherry")) {
-            child.visible = true;
+            child.visible = cherryVisible;
             child.material = new THREE.MeshStandardMaterial(cherryMatProps);
             child.castShadow = true;
             child.receiveShadow = true;
@@ -359,6 +387,7 @@ export function CakeModel({ selectedTierIndex }) {
         chocolate,
         balls,
         nuts,
+        cherry,
         toppingLayout,
         inscriptionText,
         textFont,
@@ -394,6 +423,7 @@ export function CakeModel({ selectedTierIndex }) {
         textureByFlavor,
         icingColor,
         cherryTexture,
+        cherryVisible: cherry,
     };
 
     useEffect(() => {
@@ -402,7 +432,7 @@ export function CakeModel({ selectedTierIndex }) {
         cherryTexture.needsUpdate = true;
     }, [cherryTexture]);
 
-    useEffect(() => { applyMaterialsToScene(tier1?.scene, matProps); }, [tier1, cakeColor, icingColor, form, selectedTierFlavors, textureByFlavor, cherryTexture]);
+    useEffect(() => { applyMaterialsToScene(tier1?.scene, matProps); }, [tier1, cakeColor, icingColor, form, selectedTierFlavors, textureByFlavor, cherryTexture, cherry]);
     useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, cakeColor, form, selectedTierFlavors, textureByFlavor]);
     useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, cakeColor, form, selectedTierFlavors, textureByFlavor]);
@@ -411,7 +441,7 @@ export function CakeModel({ selectedTierIndex }) {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
-    const selectedToppings = { candle, chocolate, balls, nuts };
+    const selectedToppings = { candle, chocolate, balls, nuts, cherry };
 
     const renderCandleNumber = () => {
         const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
@@ -444,7 +474,7 @@ export function CakeModel({ selectedTierIndex }) {
                             geometry={node.geometry}
                             material={node.material || digitMaterial}
                             position={[xOffset, 0, 0]}
-                            rotation={getNodeRotationArray(node)}
+                            rotation={[0, 0, 0]}
                             scale={getNodeScaleArray(node, digitScaleMultiplier)}
                             castShadow
                         />
@@ -496,6 +526,17 @@ export function CakeModel({ selectedTierIndex }) {
                     position={getToppingPosition(toppingLayout.balls, TOPPING_3D_CONFIG.balls, selectedTierIndex)}
                     rotation={TOPPING_3D_CONFIG.balls.rotation}
                     scale={TOPPING_3D_CONFIG.balls.scale * TOPPING_SIZES[toppingLayout.balls.size]}
+                />
+            )}
+
+            {selectedToppings.cherry && nodes.cherry?.geometry && (
+                <mesh
+                    geometry={nodes.cherry.geometry}
+                    material={materials.cherry || materials.Default}
+                    position={getToppingPosition(toppingLayout.cherry, TOPPING_3D_CONFIG.cherry, selectedTierIndex)}
+                    rotation={TOPPING_3D_CONFIG.cherry.rotation}
+                    scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[toppingLayout.cherry.size]}
+                    castShadow
                 />
             )}
         </>
@@ -822,6 +863,30 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                 </div>
             </section>
 
+            {/* ── Icing Color ── */}
+            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Icing Color</h3>
+                <div className="flex flex-wrap gap-2.5">
+                    {icingColors.map((c) => (
+                        <button
+                            key={c.name}
+                            type="button"
+                            className={`group relative w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
+                                icingColor.name === c.name
+                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                    : "border-transparent shadow-sm"
+                            }`}
+                            style={{ background: c.color }}
+                            title={c.name}
+                            onClick={() => setIcingColor(c)}
+                            aria-label={`Icing color ${c.name}`}
+                        >
+                            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-medium text-[#A07060] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none capitalize">{c.name}</span>
+                        </button>
+                    ))}
+                </div>
+            </section>
+
             {/* ── Flavor ── */}
             <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">
@@ -938,6 +1003,63 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         </button>
                     ))}
                 </div>
+
+                {/* ── Candle Number (1-100) ── */}
+                {candle && (
+                    <div className="mt-3 p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm">
+                        <label className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-semibold text-[#6E473B] flex items-center gap-1.5">
+                                🕯️ Number of Candles
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
+                                    onClick={() => setCandleNumber(Math.max(1, candleNumber - 1))}
+                                    disabled={candleNumber <= 1}
+                                >
+                                    −
+                                </button>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={candleNumber}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        if (!isNaN(val)) setCandleNumber(Math.max(1, Math.min(100, val)));
+                                    }}
+                                    className="w-14 text-center px-2 py-1.5 text-sm font-bold rounded-lg bg-[#FFFDF9] border border-[#E6CCA2] text-[#6E473B] focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                                <button
+                                    type="button"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
+                                    onClick={() => setCandleNumber(Math.min(100, candleNumber + 1))}
+                                    disabled={candleNumber >= 100}
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </label>
+                        <div className="mt-2">
+                            <input
+                                type="range"
+                                min="1"
+                                max="100"
+                                value={candleNumber}
+                                onChange={(e) => setCandleNumber(parseInt(e.target.value, 10))}
+                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#C05A11] bg-[#E6CCA2]"
+                            />
+                            <div className="flex justify-between text-[9px] text-[#A07060] mt-0.5 font-medium">
+                                <span>1</span>
+                                <span>25</span>
+                                <span>50</span>
+                                <span>75</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* ── Topping Placement ── */}

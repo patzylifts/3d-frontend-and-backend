@@ -6,17 +6,19 @@ import AppsIcon from '@mui/icons-material/Apps'; // Импортируем ик�
 
 const Configurator = () => {
     const {
-        material,
-        materials,
-        setMaterial,
+        flavor,
+        flavors,
+        setFlavor,
         form,
         setForm,
         cakeColors,
         cakeColor,
         setCakeColor,
-        creamColors,
-        creamColor,
-        setCreamColor,
+        icingColors,
+        icingColor,
+        setIcingColor,
+        candleNumber,
+        setCandleNumber,
         setCandle,
         candle,
         setBalls,
@@ -105,24 +107,24 @@ const Configurator = () => {
                     </Box>
                 </Box>
 
-                {/* Section: Cake Material */}
+                {/* Section: Cake Flavor */}
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" color="white" gutterBottom>
-                        Cake Material
+                        Cake Flavor
                     </Typography>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {materials.map((item) => (
+                        {flavors && flavors.map((item) => (
                             <Button
                                 key={item}
-                                onClick={() => setMaterial(item)}
+                                onClick={() => setFlavor(item)}
                                 sx={{
-                                    bgcolor: material === item ? "white" : "transparent",
-                                    color: material === item ? "#4a306d" : "white",
-                                    fontWeight: material === item ? "bold" : "normal",
-                                    border: material === item ? "2px solid white" : "1px solid #aaa",
+                                    bgcolor: flavor === item ? "white" : "transparent",
+                                    color: flavor === item ? "#4a306d" : "white",
+                                    fontWeight: flavor === item ? "bold" : "normal",
+                                    border: flavor === item ? "2px solid white" : "1px solid #aaa",
                                     textTransform: "capitalize",
                                     borderRadius: 1,
-                                    flex: "1 0 45%", // Две кнопки в ряд
+                                    flex: "1 0 45%",
                                 }}
                             >
                                 {item.replace("_", " ")}
@@ -162,38 +164,35 @@ const Configurator = () => {
                     </Box>
                 </Box>
 
-                {/* Section: Cream Color (Отображается только при форме Heart) */}
-                {form === 2 && (
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="h6" color="white" gutterBottom>
-                            Cream Color
-                        </Typography>
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                            {creamColors.map((item, index) => (
-                                <Button
-                                    key={index}
-                                    onClick={() => setCreamColor(item)}
-                                    sx={{
-                                        bgcolor: item.color === creamColor.color ? "white" : "transparent",
-                                        color: item.color === creamColor.color ? "#4a306d" : "white",
-                                        fontWeight: item.color === creamColor.color ? "bold" : "normal",
-                                        borderRadius: "50%",
-                                        width: 40,
-                                        height: 40,
-                                        border: `2px solid ${item.color}`,
-                                        minWidth: 40,
-                                        padding: 0,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    {/* Опционально можно добавить значок или текст */}
-                                </Button>
-                            ))}
-                        </Box>
+                {/* Section: Icing Color */}
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" color="white" gutterBottom>
+                        Icing Color
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {icingColors && icingColors.map((item, index) => (
+                            <Button
+                                key={index}
+                                onClick={() => setIcingColor(item)}
+                                sx={{
+                                    bgcolor: item.color === icingColor.color ? "white" : "transparent",
+                                    color: item.color === icingColor.color ? "#4a306d" : "white",
+                                    fontWeight: item.color === icingColor.color ? "bold" : "normal",
+                                    borderRadius: "50%",
+                                    width: 40,
+                                    height: 40,
+                                    border: `2px solid ${item.color}`,
+                                    minWidth: 40,
+                                    padding: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                            </Button>
+                        ))}
                     </Box>
-                )}
+                </Box>
 
                 {/* Section: Filling */}
                 <Box sx={{ mb: 3 }}>
@@ -201,7 +200,7 @@ const Configurator = () => {
                         Filling
                     </Typography>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {fillings.map((item) => (
+                        {fillings && fillings.map((item) => (
                             <Button
                                 key={item}
                                 onClick={() => setFilling(item)}
@@ -227,7 +226,7 @@ const Configurator = () => {
                         Dough Type
                     </Typography>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {doughTypes.map((item) => (
+                        {doughTypes && doughTypes.map((item) => (
                             <Button
                                 key={item}
                                 onClick={() => setDough(item)}
@@ -383,46 +382,61 @@ const Configurator = () => {
                         </Box>
 
                         {/* Candle */}
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <label className="checkBox" style={{ marginRight: 8 }}>
-                                <input
-                                    id="ch_candle"
-                                    type="checkbox"
-                                    checked={candle}
-                                    onChange={(event) => setCandle(event.target.checked)}
-                                    style={{ display: "none" }}
-                                />
-                                <Box
-                                    sx={{
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: "50%",
-                                        border: "2px solid #fff",
-                                        position: "relative",
-                                        cursor: "pointer",
-                                        bgcolor: candle ? "#4a306d" : "transparent",
-                                        transition: "background-color 0.3s",
-                                    }}
-                                >
-                                    {candle && (
-                                        <Box
-                                            sx={{
-                                                position: "absolute",
-                                                top: "50%",
-                                                left: "50%",
-                                                transform: "translate(-50%, -50%)",
-                                                width: 12,
-                                                height: 12,
-                                                bgcolor: "#fff",
-                                                borderRadius: "50%",
-                                            }}
-                                        />
-                                    )}
+                        <Box sx={{ display: "flex", flexDirection: "column" }}>
+                            <Box sx={{ display: "flex", alignItems: "center" }}>
+                                <label className="checkBox" style={{ marginRight: 8 }}>
+                                    <input
+                                        id="ch_candle"
+                                        type="checkbox"
+                                        checked={candle}
+                                        onChange={(event) => setCandle(event.target.checked)}
+                                        style={{ display: "none" }}
+                                    />
+                                    <Box
+                                        sx={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: "50%",
+                                            border: "2px solid #fff",
+                                            position: "relative",
+                                            cursor: "pointer",
+                                            bgcolor: candle ? "#4a306d" : "transparent",
+                                            transition: "background-color 0.3s",
+                                        }}
+                                    >
+                                        {candle && (
+                                            <Box
+                                                sx={{
+                                                    position: "absolute",
+                                                    top: "50%",
+                                                    left: "50%",
+                                                    transform: "translate(-50%, -50%)",
+                                                    width: 12,
+                                                    height: 12,
+                                                    bgcolor: "#fff",
+                                                    borderRadius: "50%",
+                                                }}
+                                            />
+                                        )}
+                                    </Box>
+                                </label>
+                                <Typography variant="body1" color="white">
+                                    Candle
+                                </Typography>
+                            </Box>
+                            {candle && (
+                                <Box sx={{ mt: 1, ml: 4, display: "flex", alignItems: "center" }}>
+                                    <Typography variant="body2" color="white" sx={{ mr: 1 }}>Number:</Typography>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="100" 
+                                        value={candleNumber} 
+                                        onChange={(e) => setCandleNumber(e.target.value)} 
+                                        style={{ width: "60px", padding: "4px", borderRadius: "4px", border: "1px solid #aaa", backgroundColor: "transparent", color: "white" }} 
+                                    />
                                 </Box>
-                            </label>
-                            <Typography variant="body1" color="white">
-                                Candle
-                            </Typography>
+                            )}
                         </Box>
                     </Box>
                 </Box>

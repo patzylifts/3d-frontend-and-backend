@@ -14,7 +14,8 @@ import * as THREE from "three";
 export function Cake(props) {
     const { nodes, materials } = useGLTF('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/sus.gltf');
     const plate = useGLTF('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/scene.gltf');
-    const { material, form, cakeColor, creamColor, nuts, chocolate, balls, candle } = useCustomization();
+    const { flavor, flavorTextureMap, form, cakeColor, icingColor, nuts, chocolate, balls, candle, candleNumber } = useCustomization();
+    const material = flavorTextureMap?.[flavor] || flavor;
     const { gl } = useThree();
 
     // ✅ Fix 1 — Clone stand materials instead of mutating
@@ -32,15 +33,25 @@ export function Cake(props) {
         return cloned;
     }, [nodes]);
 
-    // ✅ Fix 2 — Clone cream material instead of mutating in useEffect
+    // ✅ Fix 2 — Realistic icing material with MeshPhysicalMaterial
     const creamMaterial = useMemo(() => {
-        if (nodes.cream?.material) {
-            const mat = nodes.cream.material.clone();
-            mat.color = new THREE.Color(creamColor.color);
+        if (materials?.icing) {
+            const mat = new THREE.MeshPhysicalMaterial({
+                color: new THREE.Color(icingColor.color),
+                roughness: 0.12,
+                metalness: 0.0,
+                clearcoat: 0.6,
+                clearcoatRoughness: 0.15,
+                sheen: 0.3,
+                sheenRoughness: 0.4,
+                sheenColor: new THREE.Color(icingColor.color).multiplyScalar(1.3),
+                envMapIntensity: 1.5,
+                side: THREE.DoubleSide,
+            });
             return mat;
         }
         return null;
-    }, [nodes, creamColor]);
+    }, [materials, icingColor]);
 
     //Choco
     const coffeeTextureProps = useTexture({
@@ -143,29 +154,47 @@ export function Cake(props) {
                 </group>
             )}
 
-            {/* ✅ Cream — uses cloned creamMaterial */}
-            {nodes.cream?.geometry && (
+            {/* ✅ Cream — uses realistic creamMaterial with side-drape positioning */}
+            {nodes.icing_round?.geometry && (
                 <mesh
-                    geometry={nodes.cream.geometry}
+                    geometry={nodes.icing_round.geometry}
                     material={creamMaterial}
-                    position={[0, 1.41, 0]}
-                    rotation={[1.57, 0, 0]}
-                    scale={0.1}
+                    position={[-0.012, -0.35, 0.001]}
+                    scale={[1.02, 1.85, 1.02]}
+                    visible={form === 1}
+                    castShadow
+                />
+            )}
+            {nodes.icing_rectangle?.geometry && (
+                <mesh
+                    geometry={nodes.icing_rectangle.geometry}
+                    material={creamMaterial}
+                    position={[0.008, -0.75, -0.0005]}
+                    scale={[1.02, 1.75, 1.02]}
                     visible={form === 2}
                     castShadow
                 />
             )}
 
             {/* Candle */}
-            {nodes.chandel?.geometry && (
-                <mesh
-                    geometry={nodes.chandel.geometry}
-                    material={materials.chandel}
-                    position={[0, 2.33, 0]}
-                    rotation={[-Math.PI / 2, 0, 0]}
-                    scale={-0.03}
-                    visible={candle}
-                />
+            {candle && (
+                <group position={[0, 2.35, 0.05]} scale={0.6}>
+                    {String(candleNumber).split('').map((digit, index, arr) => {
+                        const nodeName = `candle_${digit}`;
+                        const offset = (index - (arr.length - 1) / 2) * 0.15; // spacing between digits
+                        return nodes[nodeName]?.geometry ? (
+                            <mesh
+                                key={`${digit}-${index}`}
+                                geometry={nodes[nodeName].geometry}
+                                material={materials.Candle_White_Default || materials.Default}
+                                position={[offset, 0, 0]}
+                                rotation={nodes[nodeName].rotation}
+                                scale={nodes[nodeName].scale}
+                                castShadow
+                            />
+                        ) : null;
+                    })}
+                </group>
             )}
 
             {/* Nuts */}

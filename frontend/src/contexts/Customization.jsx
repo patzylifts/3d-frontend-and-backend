@@ -51,6 +51,7 @@ export const TOPPING_OPTIONS = [
     { key: "chocolate", label: "Chocolate", color: "#8B4513" },
     { key: "balls", label: "Balls", color: "#D4AF37" },
     { key: "nuts", label: "Nuts", color: "#A0522D" },
+    { key: "cherry", label: "Cherry", color: "#DC143C" },
 ];
 
 export const TOPPING_SIZES = {
@@ -64,6 +65,7 @@ const DEFAULT_TOPPING_LAYOUT = {
     chocolate: { x: 50, y: 50, size: "medium" },
     balls: { x: 50, y: 50, size: "medium" },
     nuts: { x: 50, y: 50, size: "medium" },
+    cherry: { x: 60, y: 40, size: "medium" },
 };
 
 export const CAKE_SIZES = [
@@ -147,6 +149,7 @@ const DEFAULT_ADDON_PRICES = {
     chocolate: 200,
     balls: 100,
     nuts: 75,
+    cherry: 50,
 };
 
 const CustomizationContext = createContext({});
@@ -175,6 +178,7 @@ export const CustomizationProvider = (props) => {
     const [chocolate, setChocolate] = useState(!!initialState?.has_chocolate);
     const [balls, setBalls] = useState(!!initialState?.has_balls);
     const [nuts, setNuts] = useState(!!initialState?.has_nuts);
+    const [cherry, setCherry] = useState(!!initialState?.has_cherry);
     const [cakeColor, setCakeColor] = useState(
         () => cakeColors.find(c => c.color === initialState?.cake_color) || cakeColors[0]
     );
@@ -303,6 +307,7 @@ export const CustomizationProvider = (props) => {
         if (chocolate) addonsPrice += getAddonPrice("chocolate");
         if (balls) addonsPrice += getAddonPrice("balls");
         if (nuts) addonsPrice += getAddonPrice("nuts");
+        if (cherry) addonsPrice += getAddonPrice("cherry");
 
         return getBasePrice() + addonsPrice;
     };
@@ -317,7 +322,7 @@ export const CustomizationProvider = (props) => {
         const randomTierIdx = Math.floor(Math.random() * CAKE_SIZES.length);
         const randomCakeColor = cakeColors[Math.floor(Math.random() * cakeColors.length)];
         const randomFlavor = flavors[Math.floor(Math.random() * flavors.length)];
-        const decorationOptions = ["candle", "chocolate", "balls", "nuts"];
+        const decorationOptions = ["candle", "chocolate", "balls", "nuts", "cherry"];
         const randomDecoration = decorationOptions[Math.floor(Math.random() * decorationOptions.length)];
 
         setForm(randomForm);
@@ -337,6 +342,7 @@ export const CustomizationProvider = (props) => {
         setChocolate(false);
         setBalls(false);
         setNuts(false);
+        setCherry(false);
         switch (randomDecoration) {
             case "candle":
                 setCandle(true);
@@ -349,6 +355,9 @@ export const CustomizationProvider = (props) => {
                 break;
             case "nuts":
                 setNuts(true);
+                break;
+            case "cherry":
+                setCherry(true);
                 break;
             default:
                 break;
@@ -387,6 +396,8 @@ export const CustomizationProvider = (props) => {
                 setBalls,
                 nuts,
                 setNuts,
+                cherry,
+                setCherry,
                 generateRandomCake,
                 calculatePrice,
                 pricingLoading,
