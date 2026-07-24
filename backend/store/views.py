@@ -69,6 +69,7 @@ def build_customization_snapshot(data, price, customization_id=None):
     snapshot = {
         "shape": data.get("shape", "round"),
         "cake_color": data.get("cake_color", "#683434"),
+        "icing_color": data.get("icing_color", "#FFF7EA"),
         "flavor": data.get("flavor", "Choco Moist"),
         "tier": data.get("tier"),
         "size": data.get("size"),
@@ -76,10 +77,13 @@ def build_customization_snapshot(data, price, customization_id=None):
         "inscription_text": data.get("inscription_text") or "",
         "text_font": data.get("text_font") or "",
         "topping_layout": data.get("topping_layout") or {},
+        "candle_number": int(data.get("candle_number", 1)),
         "has_candle": bool(data.get("has_candle", False)),
         "has_chocolate": bool(data.get("has_chocolate", False)),
         "has_balls": bool(data.get("has_balls", False)),
         "has_nuts": bool(data.get("has_nuts", False)),
+        "has_cherry": bool(data.get("has_cherry", False)),
+        "has_sprinkles": bool(data.get("has_sprinkles", False)),
         "price": str(price),
     }
     if customization_id is not None:
@@ -244,6 +248,8 @@ def add_custom_cake_to_cart(request):
                 has_chocolate=data.get("has_chocolate", False),
                 has_balls=data.get("has_balls", False),
                 has_nuts=data.get("has_nuts", False),
+                has_cherry=data.get("has_cherry", False),
+                has_sprinkles=data.get("has_sprinkles", False),
             )
         except CustomCakePricing.DoesNotExist:
             return Response({

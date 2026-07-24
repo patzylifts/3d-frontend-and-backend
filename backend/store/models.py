@@ -112,6 +112,8 @@ DEFAULT_ADDON_PRICES = {
     "chocolate": Decimal("200.00"),
     "balls": Decimal("100.00"),
     "nuts": Decimal("75.00"),
+    "cherry": Decimal("50.00"),
+    "sprinkles": Decimal("50.00"),
 }
 
 def get_default_custom_cake_price(*, tier, size, flavor):
@@ -125,7 +127,8 @@ def get_default_custom_cake_price(*, tier, size, flavor):
         raise CustomCakePricing.DoesNotExist
 
 def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
-                                has_chocolate=False, has_balls=False, has_nuts=False):
+                                has_chocolate=False, has_balls=False, has_nuts=False,
+                                has_cherry=False, has_sprinkles=False):
     try:
         base_price = CustomCakePricing.objects.get(
             tier=tier,
@@ -148,6 +151,10 @@ def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
         selected_addons.append("balls")
     if has_nuts:
         selected_addons.append("nuts")
+    if has_cherry:
+        selected_addons.append("cherry")
+    if has_sprinkles:
+        selected_addons.append("sprinkles")
 
     configured_addon_prices = dict(
         AddonPricing.objects
@@ -309,10 +316,14 @@ class CakeCustomization(models.Model):
     inscription_font = models.CharField(max_length=50, blank=True, default="")  # ← ADD THIS
     text_font = models.CharField(max_length=50, blank=True, default="")
     topping_layout = models.JSONField(blank=True, default=dict)
+    icing_color = models.CharField(max_length=20, default="#FFF7EA")
+    candle_number = models.PositiveIntegerField(default=1)
     has_candle = models.BooleanField(default=False)
     has_chocolate = models.BooleanField(default=False)
     has_balls = models.BooleanField(default=False)
     has_nuts = models.BooleanField(default=False)
+    has_cherry = models.BooleanField(default=False)
+    has_sprinkles = models.BooleanField(default=False)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=500.00)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -334,10 +345,14 @@ class CakeCustomization(models.Model):
             "inscription_font": self.inscription_font,  # ← ADD THIS
             "text_font": self.text_font,
             "topping_layout": self.topping_layout,
+            "icing_color": self.icing_color,
+            "candle_number": self.candle_number,
             "has_candle": self.has_candle,
             "has_chocolate": self.has_chocolate,
             "has_balls": self.has_balls,
             "has_nuts": self.has_nuts,
+            "has_cherry": self.has_cherry,
+            "has_sprinkles": self.has_sprinkles,
             "price": str(self.price),
         }
         

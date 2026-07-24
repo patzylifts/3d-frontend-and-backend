@@ -67,6 +67,8 @@ function CartPage() {
                                                     d.has_chocolate && { label: "🍫 Chocolate" },
                                                     d.has_balls     && { label: "🔮 Balls" },
                                                     d.has_nuts      && { label: "🥜 Nuts" },
+                                                    d.has_cherry    && { label: "🍒 Cherry" },
+                                                    d.has_sprinkles && { label: "✨ Sprinkles" },
                                                 ].filter(Boolean);
 
                                                 return (

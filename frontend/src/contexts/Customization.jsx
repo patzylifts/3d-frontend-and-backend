@@ -52,6 +52,7 @@ export const TOPPING_OPTIONS = [
     { key: "balls", label: "Balls", color: "#D4AF37" },
     { key: "nuts", label: "Nuts", color: "#A0522D" },
     { key: "cherry", label: "Cherry", color: "#DC143C" },
+    { key: "sprinkles", label: "Sprinkles", color: "#F4D35E" },
 ];
 
 export const TOPPING_SIZES = {
@@ -66,6 +67,7 @@ const DEFAULT_TOPPING_LAYOUT = {
     balls: { x: 50, y: 50, size: "medium" },
     nuts: { x: 50, y: 50, size: "medium" },
     cherry: { x: 60, y: 40, size: "medium" },
+    sprinkles: { x: 50, y: 50, size: "medium" },
 };
 
 export const CAKE_SIZES = [
@@ -150,6 +152,7 @@ const DEFAULT_ADDON_PRICES = {
     balls: 100,
     nuts: 75,
     cherry: 50,
+    sprinkles: 50,
 };
 
 const CustomizationContext = createContext({});
@@ -179,6 +182,7 @@ export const CustomizationProvider = (props) => {
     const [balls, setBalls] = useState(!!initialState?.has_balls);
     const [nuts, setNuts] = useState(!!initialState?.has_nuts);
     const [cherry, setCherry] = useState(!!initialState?.has_cherry);
+    const [sprinkles, setSprinkles] = useState(!!initialState?.has_sprinkles);
     const [cakeColor, setCakeColor] = useState(
         () => cakeColors.find(c => c.color === initialState?.cake_color) || cakeColors[0]
     );
@@ -308,6 +312,7 @@ export const CustomizationProvider = (props) => {
         if (balls) addonsPrice += getAddonPrice("balls");
         if (nuts) addonsPrice += getAddonPrice("nuts");
         if (cherry) addonsPrice += getAddonPrice("cherry");
+        if (sprinkles) addonsPrice += getAddonPrice("sprinkles");
 
         return getBasePrice() + addonsPrice;
     };
@@ -343,6 +348,7 @@ export const CustomizationProvider = (props) => {
         setBalls(false);
         setNuts(false);
         setCherry(false);
+        setSprinkles(false);
         switch (randomDecoration) {
             case "candle":
                 setCandle(true);
@@ -358,6 +364,9 @@ export const CustomizationProvider = (props) => {
                 break;
             case "cherry":
                 setCherry(true);
+                break;
+            case "sprinkles":
+                setSprinkles(true);
                 break;
             default:
                 break;
@@ -398,6 +407,8 @@ export const CustomizationProvider = (props) => {
                 setNuts,
                 cherry,
                 setCherry,
+                sprinkles,
+                setSprinkles,
                 generateRandomCake,
                 calculatePrice,
                 pricingLoading,

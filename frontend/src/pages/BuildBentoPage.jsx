@@ -82,6 +82,12 @@ const TOPPING_3D_CONFIG = {
         scale: 0.039,
         radius: 0.85,
     },
+    sprinkles: {
+        yOffset: 0.01,
+        rotation: [0, 0, 0],
+        scale: 0.09,
+        radius: 0.88,
+    },
 };
 
 const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
@@ -185,6 +191,7 @@ function applyMaterialsToScene(scene, {
         if (lname.includes("nut")) { child.visible = false; return; }
         if (lname.includes("bar")) { child.visible = false; return; }
         if (lname.includes("ball")) { child.visible = false; return; }
+        if (lname.includes("sprinkle")) { child.visible = false; return; }
 
         if (lname.includes("icing")) {
             const isRectangleIcing = lname.includes("rectangle") || lname.includes("rect");
@@ -388,6 +395,7 @@ export function CakeModel({ selectedTierIndex }) {
         balls,
         nuts,
         cherry,
+        sprinkles,
         toppingLayout,
         inscriptionText,
         textFont,
@@ -441,7 +449,7 @@ export function CakeModel({ selectedTierIndex }) {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
     });
 
-    const selectedToppings = { candle, chocolate, balls, nuts, cherry };
+    const selectedToppings = { candle, chocolate, balls, nuts, cherry, sprinkles };
 
     const renderCandleNumber = () => {
         const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
@@ -536,6 +544,28 @@ export function CakeModel({ selectedTierIndex }) {
                     position={getToppingPosition(toppingLayout.cherry, TOPPING_3D_CONFIG.cherry, selectedTierIndex)}
                     rotation={TOPPING_3D_CONFIG.cherry.rotation}
                     scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[toppingLayout.cherry.size]}
+                    castShadow
+                />
+            )}
+
+            {selectedToppings.sprinkles && form === 1 && nodes.Sprinkles_Round?.geometry && (
+                <mesh
+                    geometry={nodes.Sprinkles_Round.geometry}
+                    material={nodes.Sprinkles_Round.material || materials.Default}
+                    position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
+                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
+                    scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
+                    castShadow
+                />
+            )}
+
+            {selectedToppings.sprinkles && form === 2 && nodes.Sprinkles_Rectangle?.geometry && (
+                <mesh
+                    geometry={nodes.Sprinkles_Rectangle.geometry}
+                    material={nodes.Sprinkles_Rectangle.material || materials.Default}
+                    position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
+                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
+                    scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
                     castShadow
                 />
             )}
@@ -676,6 +706,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         chocolate, setChocolate,
         balls, setBalls,
         nuts, setNuts,
+        cherry, setCherry,
+        sprinkles, setSprinkles,
         generateRandomCake,
         calculatePrice,
         pricingLoading,
@@ -699,7 +731,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSizeChange = (e) => setSelectedSize(e.target.value);
-    const toppingEnabled = { candle, chocolate, balls, nuts };
+    const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
     const activeToppings = TOPPING_OPTIONS.filter((topping) => toppingEnabled[topping.key]);
     const activeTierLabels = TIER_FLAVOR_LABELS[selectedTierIndex + 1] || TIER_FLAVOR_LABELS[1];
 
@@ -744,9 +776,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             has_chocolate: chocolate,
             has_balls: balls,
             has_nuts: nuts,
-            topping_layout: Object.fromEntries(
-                activeToppings.map((topping) => [topping.key, toppingLayout[topping.key]])
-            ),
+            has_cherry: cherry,
+            has_sprinkles: sprinkles,
         };
 
         const result = await addCustomCakeToCart(payload);
@@ -985,6 +1016,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         { label: "🍫 Chocolate", value: chocolate, set: setChocolate },
                         { label: "🔮 Balls", value: balls, set: setBalls },
                         { label: "🥜 Nuts", value: nuts, set: setNuts },
+                        { label: "🍒 Cherry", value: cherry, set: setCherry },
+                        { label: "✨ Sprinkles", value: sprinkles, set: setSprinkles },
                     ].map(({ label, value, set }) => (
                         <button
                             key={label}
