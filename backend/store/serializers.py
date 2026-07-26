@@ -3,16 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from .models import (
-    AddonPricing,
-    CakeCustomization,
-    Cart,
-    CartItem,
-    Category,
-    CustomCakePricing,
-    Product,
-    UserProfile,
-)
+from .models import ( AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Product, UserProfile, UploadedCakeRequest, )
 
 phone_validator = RegexValidator(
     regex=r'^09\d{9}$',
@@ -138,8 +129,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']
 
-# store/serializers.py
-
 class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
     customer_name = serializers.SerializerMethodField()
     customer_username = serializers.SerializerMethodField()
@@ -158,3 +147,18 @@ class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
 
     def get_customer_username(self, obj):
         return obj.user.username if obj.user else None
+
+class UploadedCakeRequestSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UploadedCakeRequest
+        fields = [
+            "id",
+            "image",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+        ]

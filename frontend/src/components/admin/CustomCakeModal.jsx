@@ -17,9 +17,30 @@ export function CustomCakeModal({ isOpen, onClose, customization }) {
 
                 <h2>Custom Cake Preview</h2>
 
-                <CakePreview3D
-                    customization={customization}
-                />
+                {customization?.uploaded_cake ? (
+                    <div className="uploaded-cake-preview">
+
+                        <img
+                            src={`${import.meta.env.VITE_DJANGO_BASE_URL}${customization.image}`}
+                            alt="Uploaded cake inspiration"
+                        />
+
+                        <div className="uploaded-cake-notes">
+                            <strong>Customer Notes</strong>
+
+                            <p>
+                                {customization.notes?.trim()
+                                    ? customization.notes
+                                    : "No notes provided."}
+                            </p>
+                        </div>
+
+                    </div>
+                ) : (
+                    <CakePreview3D
+                        customization={customization}
+                    />
+                )}
 
             </div>
         </div>

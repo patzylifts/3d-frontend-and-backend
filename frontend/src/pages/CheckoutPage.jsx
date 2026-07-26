@@ -2,12 +2,15 @@
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { authFetch } from "../utils/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { regions, provinces, cities, barangays } from "phil-address";
 
 function CheckoutPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const uploadOrderId = searchParams.get("upload_order_id");
+    const isUploadedCake = !!uploadOrderId;
     const { clearCart } = useCart();
     const [useProfileAddress, setUseProfileAddress] = useState(true);
     const [profileAddress, setProfileAddress] = useState({
@@ -50,7 +53,7 @@ function CheckoutPage() {
         const fetchRegions = async () => {
             try {
                 const regionData = await regions();
-                const filteredRegions = regionData.filter(reg => 
+                const filteredRegions = regionData.filter(reg =>
                     ALLOWED_REGIONS.includes(reg.name)
                 );
                 setRegionList(filteredRegions);
@@ -154,6 +157,47 @@ function CheckoutPage() {
             notes,
         };
 
+        if (uploadOrderId) {
+
+            try {
+
+                const res = await authFetch(
+                    `${BASEURL}/api/orders/${uploadOrderId}/update-upload-order/`,
+                    {
+                        method: "POST",
+                        body: JSON.stringify(payload),
+                    }
+                );
+
+                const data = await res.json();
+
+                if (res.ok) {
+
+                    setMessage("Sweet! Order submitted for review! 🎂");
+
+                    setTimeout(() => {
+                        navigate(`/orders/${uploadOrderId}`);
+                    }, 1500);
+
+                } else {
+
+                    setMessage(data.error || "Unable to continue.");
+
+                }
+
+            } catch {
+
+                setMessage("Server error. Please try again.");
+
+            } finally {
+
+                setLoading(false);
+
+            }
+
+            return;
+        }
+
         try {
             const res = await authFetch(`${BASEURL}/api/orders/create/`, {
                 method: "POST",
@@ -182,7 +226,7 @@ function CheckoutPage() {
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased py-12 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
             <div className="max-w-3xl w-full mx-auto">
                 <form onSubmit={handleSubmit} className="bg-white border border-[#f3e1c6] rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
-                    
+
                     <header className="text-center pb-4 border-b border-stone-100">
                         <h1 className="text-3xl font-black text-[#844414] tracking-tight">Finalize Your Order</h1>
                         <div className="w-12 h-1 bg-[#d67b27] mx-auto rounded-full mt-3" />
@@ -196,11 +240,10 @@ function CheckoutPage() {
 
                         <div className="space-y-3">
                             {/* Saved Address Selection */}
-                            <label className={`flex items-start gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${
-                                useProfileAddress 
-                                    ? "border-[#d67b27] bg-[#fdf2e2]/40" 
-                                    : "border-stone-200 hover:border-stone-300"
-                            }`}>
+                            <label className={`flex items-start gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${useProfileAddress
+                                ? "border-[#d67b27] bg-[#fdf2e2]/40"
+                                : "border-stone-200 hover:border-stone-300"
+                                }`}>
                                 <input
                                     type="radio"
                                     checked={useProfileAddress}
@@ -209,7 +252,7 @@ function CheckoutPage() {
                                 />
                                 <div className="flex-1 text-sm">
                                     <span className="font-bold text-stone-800 block mb-2">Use Saved Profile Address</span>
-                                    
+
                                     {useProfileAddress && (
                                         <div className="bg-white border border-[#fdf2e2] rounded-xl p-3 mt-1 space-y-1 shadow-inner text-stone-600">
                                             <strong className="text-[#844414]">{profileAddress.full_name}</strong>
@@ -222,11 +265,10 @@ function CheckoutPage() {
                             </label>
 
                             {/* Custom Address Selection */}
-                            <label className={`flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${
-                                !useProfileAddress 
-                                    ? "border-[#d67b27] bg-[#fdf2e2]/40" 
-                                    : "border-stone-200 hover:border-stone-300"
-                            }`}>
+                            <label className={`flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${!useProfileAddress
+                                ? "border-[#d67b27] bg-[#fdf2e2]/40"
+                                : "border-stone-200 hover:border-stone-300"
+                                }`}>
                                 <input
                                     type="radio"
                                     checked={!useProfileAddress}
@@ -251,12 +293,12 @@ function CheckoutPage() {
                                         className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
                                     />
                                 </div>
-                                
+
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Region *</label>
-                                        <select 
-                                            value={customAddress.region} 
+                                        <select
+                                            value={customAddress.region}
                                             onChange={(e) => setCustomAddress({ ...customAddress, region: e.target.value })}
                                             disabled={regionList.length === 0}
                                             required={!useProfileAddress}
@@ -271,8 +313,8 @@ function CheckoutPage() {
 
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Province *</label>
-                                        <select 
-                                            value={customAddress.province} 
+                                        <select
+                                            value={customAddress.province}
                                             onChange={(e) => setCustomAddress({ ...customAddress, province: e.target.value })}
                                             disabled={!customAddress.region || provinceList.length === 0}
                                             required={!useProfileAddress}
@@ -287,8 +329,8 @@ function CheckoutPage() {
 
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">City/Municipality *</label>
-                                        <select 
-                                            value={customAddress.city} 
+                                        <select
+                                            value={customAddress.city}
                                             onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
                                             disabled={!customAddress.province || cityList.length === 0}
                                             required={!useProfileAddress}
@@ -303,8 +345,8 @@ function CheckoutPage() {
 
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Barangay *</label>
-                                        <select 
-                                            value={customAddress.barangay} 
+                                        <select
+                                            value={customAddress.barangay}
                                             onChange={(e) => setCustomAddress({ ...customAddress, barangay: e.target.value })}
                                             disabled={!customAddress.city || barangayList.length === 0}
                                             required={!useProfileAddress}
@@ -378,9 +420,9 @@ function CheckoutPage() {
 
                     {/* Form Submit Button */}
                     <div className="pt-4">
-                        <button 
-                            type="submit" 
-                            disabled={loading} 
+                        <button
+                            type="submit"
+                            disabled={loading}
                             className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-4 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed"
                         >
                             {loading ? "Sending Order..." : "Confirm & Place Order"}
@@ -389,11 +431,10 @@ function CheckoutPage() {
 
                     {/* Status Feedback Message Handling */}
                     {message && (
-                        <div className={`p-4 rounded-xl text-sm font-bold text-center border transition-all ${
-                            message.includes("Sweet") 
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700" 
-                                : "bg-rose-50 border-rose-200 text-rose-700"
-                        }`}>
+                        <div className={`p-4 rounded-xl text-sm font-bold text-center border transition-all ${message.includes("Sweet")
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : "bg-rose-50 border-rose-200 text-rose-700"
+                            }`}>
                             {message}
                         </div>
                     )}

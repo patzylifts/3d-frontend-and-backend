@@ -5,24 +5,12 @@ import { useGLTF, useTexture, OrbitControls, ContactShadows, SpotLight } from "@
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
-import {
-    CAKE_SIZES,
-    CustomizationProvider,
-    FLAVOR_VISUALS,
-    TEXT_FONT_OPTIONS,
-    TOPPING_OPTIONS,
-    TOPPING_SIZES,
-    useCustomization,
-} from "../contexts/Customization";
+import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
 import './BuildBentoPage.css';
 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
 const TIER_MODEL_URLS = {
     tier1: "/models/tier1/tier1.gltf",
     tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier2/tier2.gltf",
@@ -107,9 +95,7 @@ const FLAVOR_LABELS = {
     "Ube Chiffon": "Ube",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────── Helpers ────────────
 const getTierTopY = (selectedTierIndex) => {
     switch (selectedTierIndex) {
         case 0: return 2.33;
@@ -293,9 +279,7 @@ function applyMaterialsToScene(scene, {
         });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Error Boundary
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────── Error Boundary ──────────────
 class CanvasErrorBoundary extends Component {
     constructor(props) {
         super(props);
@@ -329,9 +313,7 @@ class CanvasErrorBoundary extends Component {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RealisticLighting
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────── RealisticLighting ───────────────
 function RealisticLighting() {
     return (
         <>
@@ -372,9 +354,7 @@ function RealisticLighting() {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CakeModel
-// ─────────────────────────────────────────────────────────────────────────────
+// ───── CakeModel ─────
 export function CakeModel({ selectedTierIndex }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
@@ -595,9 +575,7 @@ export function CakeModel({ selectedTierIndex }) {
 }
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DraggableTopping
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────── DraggableTopping ────────
 function DraggableTopping({ topping, layout }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: topping.key,
@@ -626,9 +604,7 @@ function DraggableTopping({ topping, layout }) {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ToppingPlacementBoard
-// ─────────────────────────────────────────────────────────────────────────────
+// ────── ToppingPlacementBoard ──────
 function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) {
     const boardRef = useRef(null);
     const { setNodeRef } = useDroppable({ id: "cake-placement" });
@@ -692,9 +668,7 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Configurator
-// ─────────────────────────────────────────────────────────────────────────────
+// ────── Configurator ──────
 function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
         cakeColors, cakeColor, setCakeColor,
@@ -1193,9 +1167,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BuildBentoContent
-// ─────────────────────────────────────────────────────────────────────────────
+// ────── BuildBentoContent ──────
 function BuildBentoContent() {
     const {
         selectedTierIndex,
@@ -1291,9 +1263,7 @@ function BuildBentoContent() {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Default export
-// ─────────────────────────────────────────────────────────────────────────────
+// ────── Default export ──────
 export default function BuildBentoPage() {
     return (
         <CustomizationProvider>

@@ -7,6 +7,8 @@ import AddPaymentModal from "../../components/customer/AddPaymentModal";
 import Navbar from "../../components/Navbar";
 import OrderFeedback from "../../components/customer/OrderFeedback";
 import ChatBox from "../../components/chat/ChatBox";
+import { CustomizationProvider } from "../../contexts/Customization";
+import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -21,6 +23,8 @@ export default function CustomerOrderDetailPage() {
     const [tipAmount, setTipAmount] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
     const [agreeNoRefund, setAgreeNoRefund] = useState(false);
+    const [showCakeModal, setShowCakeModal] = useState(false);
+    const [selectedCake, setSelectedCake] = useState(null);
 
     const fetchOrder = async () => {
         try {
@@ -167,6 +171,16 @@ export default function CustomerOrderDetailPage() {
                                     <span className="font-medium">{new Date(order.created_at).toLocaleDateString()}</span>
                                 </div>
                             </div>
+                            {order.order_notes && (
+                                <div className="rounded-xl bg-[#fff7eb] border border-[#f3e1c6] p-4">
+                                    <p className="text-xs uppercase font-bold text-stone-500 mb-1">
+                                        Your Notes
+                                    </p>
+                                    <p className="text-sm text-stone-700 whitespace-pre-wrap">
+                                        {order.order_notes}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Interactive Secure Payment Gate Card */}
@@ -294,6 +308,17 @@ export default function CustomerOrderDetailPage() {
                                     <div key={item.id} className="py-3 flex justify-between items-start gap-4 text-sm first:pt-0 last:pb-0">
                                         <div className="space-y-0.5 flex-1">
                                             <p className="font-bold text-stone-800 leading-tight">{item.product_name}</p>
+                                            {item.customization && (
+                                                <button
+                                                    className="text-xs text-[#d67b27] font-semibold underline mt-1 hover:text-[#b56219]"
+                                                    onClick={() => {
+                                                        setSelectedCake(item.customization);
+                                                        setShowCakeModal(true);
+                                                    }}
+                                                >
+                                                    View Customization
+                                                </button>
+                                            )}
                                             <p className="text-xs text-stone-400 font-semibold">Qty: {item.quantity} × ₱{item.price}</p>
                                         </div>
                                         <div className="font-extrabold text-[#844414] text-right">₱{item.subtotal}</div>
@@ -325,14 +350,26 @@ export default function CustomerOrderDetailPage() {
                 </div>
 
                 {/* Feedback Injection Module */}
-                <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
-                    <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
-                </div>
+                {(order.status === "delivered" || order.feedback) && (
+                    <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
+                        <OrderFeedback
+                            order={order}
+                            onFeedbackSubmitted={fetchOrder}
+                        />
+                    </div>
+                )}
             </div>
-            <ChatBox
-                orderId={id}
-                isAdmin={false}
-            />
+            <ChatBox orderId={id} isAdmin={false} />
+            <CustomizationProvider>
+                <CustomCakeModal
+                    isOpen={showCakeModal}
+                    onClose={() => {
+                        setShowCakeModal(false);
+                        setSelectedCake(null);
+                    }}
+                    customization={selectedCake}
+                />
+            </CustomizationProvider>
         </div>
     );
 }

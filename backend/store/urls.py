@@ -44,4 +44,6 @@ urlpatterns = [
 
     path('orders/create/', views.create_order),
     path('cake-customization/', views.add_custom_cake_to_cart),
+    path("upload-sample-cake/", views.upload_sample_cake),
+    path("orders/<int:order_id>/update-upload-order/", views.update_uploaded_order),
 ]
