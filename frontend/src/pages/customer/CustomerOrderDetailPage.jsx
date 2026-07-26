@@ -350,9 +350,14 @@ export default function CustomerOrderDetailPage() {
                 </div>
 
                 {/* Feedback Injection Module */}
-                <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
-                    <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
-                </div>
+                {(order.status === "delivered" || order.feedback) && (
+                    <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
+                        <OrderFeedback
+                            order={order}
+                            onFeedbackSubmitted={fetchOrder}
+                        />
+                    </div>
+                )}
             </div>
             <ChatBox orderId={id} isAdmin={false} />
             <CustomizationProvider>
