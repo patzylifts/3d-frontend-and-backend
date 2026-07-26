@@ -1,16 +1,21 @@
 // src/components/Navbar.jsx | DO NOT REMOVE THIS
 import React, { useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { clearTokens, getAccessToken } from "../utils/auth";
 import { useUnread } from "../context/UnreadContext";
 import logoImg from "../assets/images/spc.png";
+import BuilderChoiceModal from "./BuilderChoiceModal";
+import UploadSampleCakeModal from "./UploadSampleCakeModal";
 
 function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showBuilderModal, setShowBuilderModal] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
     const { cartItems, clearCart } = useCart();
     const navigate = useNavigate();
+    const location = useLocation();
     const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
     const { unreadMessages } = useUnread();
     const isLoggedIn = !!getAccessToken();
@@ -25,6 +30,14 @@ function Navbar() {
         } catch (err) {
             console.error("Invalid token");
         }
+    }
+
+    const hideNavbarRoutes = [
+        "/build",
+    ];
+
+    if (hideNavbarRoutes.includes(location.pathname)) {
+        return null;
     }
 
     const handleLogout = () => {
@@ -66,7 +79,16 @@ function Navbar() {
                             <>
                                 <Link to="/" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Home</Link>
                                 <Link to="/products" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Menu</Link>
-                                <Link to="/build" className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors" onClick={() => setIsMenuOpen(false)}>Builder</Link>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        setShowBuilderModal(true);
+                                    }}
+                                    className="text-sm font-semibold tracking-wide uppercase text-stone-600 hover:text-[#d67b27] transition-colors"
+                                >
+                                    Builder
+                                </button>
                             </>
                         ) : (
                             <>
@@ -196,6 +218,20 @@ function Navbar() {
                 </div>
             </nav>
             <div className="h-20 w-full block clear-both" />
+            <BuilderChoiceModal
+                isOpen={showBuilderModal}
+                onClose={() => setShowBuilderModal(false)}
+                onUploadClick={() => setShowUploadModal(true)}
+            />
+
+            <UploadSampleCakeModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onSuccess={(orderId) => {
+                    setShowUploadModal(false);
+                    navigate(`/checkout?upload_order_id=${orderId}`);
+                }}
+            />
         </>
     );
 }

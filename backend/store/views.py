@@ -5,9 +5,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .token_serializers import MyTokenObtainPairSerializer
-from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Order, OrderItem, Product, UserProfile, calculate_custom_cake_price,)
+from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Order, OrderItem, Product, UserProfile, calculate_custom_cake_price, UploadedCakeRequest,)
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
-from .serializers import (AddonPricingSerializer, CakeCustomizationSerializer, CustomCakePricingSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer)
+from .serializers import (AddonPricingSerializer, CakeCustomizationSerializer, CustomCakePricingSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer, UploadedCakeRequestSerializer,)
 from .models_verification import SMSVerification
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -279,3 +279,95 @@ def add_custom_cake_to_cart(request):
         }, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_sample_cake(request):
+
+    serializer = UploadedCakeRequestSerializer(data=request.data)
+
+    if serializer.is_valid():
+
+        upload = serializer.save(
+            user=request.user
+        )
+
+        profile = request.user.userprofile
+
+        order = Order.objects.create(
+            user=request.user,
+            full_name=f"{request.user.first_name} {request.user.last_name}",
+            phone=profile.phone,
+            street=profile.street,
+            city=profile.city,
+            province=profile.province,
+            postal_code=profile.postal_code,
+
+            delivery_date=request.data.get("delivery_date"),
+            delivery_time=request.data.get("delivery_time"),
+            order_notes=request.data.get("notes"),
+
+            total_amount=0,
+            quoted_price=None,
+
+            status="pending_review",
+            payment_status="pending",
+
+            is_uploaded_cake=True,
+        )
+
+        OrderItem.objects.create(
+            order=order,
+            quantity=1,
+            price=0,
+            customization={
+                "uploaded_cake": True,
+                "upload_id": upload.id,
+                "image": upload.image.url,
+                "notes": upload.notes,
+                "price_pending": True,
+            },
+        )
+
+        return Response({
+            "message": "Cake uploaded successfully.",
+            "order_id": order.id,
+        })
+
+    return Response(serializer.errors, status=400)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_uploaded_order(request, order_id):
+
+    try:
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user,
+            is_uploaded_cake=True,
+        )
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Uploaded order not found."},
+            status=404,
+        )
+
+    profile = request.user.userprofile
+    data = request.data
+
+    order.street = data.get("street") or profile.street
+    order.city = data.get("city") or profile.city
+    order.province = data.get("province") or profile.province
+    order.postal_code = data.get("postal_code") or profile.postal_code
+
+    order.delivery_date = data.get("delivery_date")
+    order.delivery_time = data.get("delivery_time")
+    order.order_notes = data.get("notes")
+
+    order.save()
+
+    return Response({
+        "message": "Uploaded cake order updated.",
+        "order_id": order.id,
+    })
