@@ -94,6 +94,19 @@ export default function AdminOrderDetailPage() {
                                 <strong className="text-[#6E473B]">{item.val || "N/A"}</strong>
                             </div>
                         ))}
+                        {order.order_notes && (
+                            <>
+                                <div className="border-t border-[#E6CCA2]/30 pt-4 mt-2">
+                                    <p className="text-xs font-bold uppercase tracking-wide text-[#A07060] mb-2">
+                                        Special Instructions
+                                    </p>
+
+                                    <div className="bg-[#FCF8EE] border border-[#E6CCA2] rounded-xl p-3 text-sm text-[#6E473B] whitespace-pre-wrap break-words">
+                                        {order.order_notes}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Actions & Summary */}
