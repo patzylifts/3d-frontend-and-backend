@@ -284,13 +284,42 @@ def add_custom_cake_to_cart(request):
 @permission_classes([IsAuthenticated])
 def upload_sample_cake(request):
 
-    serializer = UploadedCakeRequestSerializer(data=request.data)
+    images = request.FILES.getlist("images")
+    notes = request.data.get("notes", "")
 
-    if serializer.is_valid():
-
-        upload = serializer.save(
-            user=request.user
+    if not images:
+        return Response(
+            {"error": "Please upload at least one image."},
+            status=status.HTTP_400_BAD_REQUEST
         )
+
+    # Prevent an excessive number of reference images in one upload.
+    if len(images) > 10:
+        return Response(
+            {"error": "You can upload a maximum of 10 images."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    uploaded_requests = []
+
+    try:
+        # Save every uploaded image as its own UploadedCakeRequest record.
+        for image in images:
+            serializer = UploadedCakeRequestSerializer(
+                data={
+                    "image": image,
+                    "notes": notes,
+                }
+            )
+
+            if not serializer.is_valid():
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            upload = serializer.save(user=request.user)
+            uploaded_requests.append(upload)
 
         profile = request.user.userprofile
 
@@ -302,19 +331,23 @@ def upload_sample_cake(request):
             city=profile.city,
             province=profile.province,
             postal_code=profile.postal_code,
-
             delivery_date=request.data.get("delivery_date"),
             delivery_time=request.data.get("delivery_time"),
-            order_notes=request.data.get("notes"),
-
+            order_notes=notes,
             total_amount=0,
             quoted_price=None,
-
             status="pending_review",
             payment_status="pending",
-
             is_uploaded_cake=True,
         )
+
+        images_data = [
+            {
+                "upload_id": upload.id,
+                "image": upload.image.url,
+            }
+            for upload in uploaded_requests
+        ]
 
         OrderItem.objects.create(
             order=order,
@@ -322,9 +355,9 @@ def upload_sample_cake(request):
             price=0,
             customization={
                 "uploaded_cake": True,
-                "upload_id": upload.id,
-                "image": upload.image.url,
-                "notes": upload.notes,
+                "upload_ids": [upload.id for upload in uploaded_requests],
+                "images": images_data,
+                "notes": notes,
                 "price_pending": True,
             },
         )
@@ -332,10 +365,120 @@ def upload_sample_cake(request):
         return Response({
             "message": "Cake uploaded successfully.",
             "order_id": order.id,
+            "images": images_data,
         })
 
-    return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_uploaded_cake_samples(request, order_id):
+
+    images = request.FILES.getlist("images")
+
+    if not images:
+        return Response(
+            {"error": "Please upload at least one image."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if len(images) > 10:
+        return Response(
+            {"error": "You can upload a maximum of 10 images at a time."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user,
+            is_uploaded_cake=True,
+        )
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Uploaded cake order not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if order.status in ["delivered", "cancelled", "rejected"]:
+        return Response(
+            {"error": "Reference images can no longer be added to this order."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    order_item = order.items.filter(
+        product=None,
+        customization__uploaded_cake=True
+    ).first()
+
+    if not order_item:
+        return Response(
+            {"error": "Uploaded cake customization not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    customization = order_item.customization or {}
+    existing_images = customization.get("images", [])
+    existing_upload_ids = customization.get("upload_ids", [])
+
+    if not existing_images and customization.get("image"):
+        existing_images = [{
+            "upload_id": customization.get("upload_id"),
+            "image": customization.get("image"),
+        }]
+
+    new_images = []
+
+    for image in images:
+        serializer = UploadedCakeRequestSerializer(
+            data={
+                "image": image,
+                "notes": customization.get("notes", ""),
+            }
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        upload = serializer.save(user=request.user)
+
+        image_data = {
+            "upload_id": upload.id,
+            "image": upload.image.url,
+        }
+
+        new_images.append(image_data)
+        existing_images.append(image_data)
+        existing_upload_ids.append(upload.id)
+
+    customization["uploaded_cake"] = True
+    customization["upload_ids"] = existing_upload_ids
+    customization["images"] = existing_images
+    customization["price_pending"] = customization.get("price_pending", True)
+
+    # Keep the old singular fields for compatibility with existing frontend code.
+    if existing_images:
+        customization["upload_id"] = existing_images[0]["upload_id"]
+        customization["image"] = existing_images[0]["image"]
+
+    order_item.customization = customization
+    order_item.save(update_fields=["customization"])
+
+    return Response({
+        "message": "Reference images added successfully.",
+        "order_id": order.id,
+        "images": existing_images,
+        "new_images": new_images,
+    })
+    
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def update_uploaded_order(request, order_id):
@@ -371,3 +514,4 @@ def update_uploaded_order(request, order_id):
         "message": "Uploaded cake order updated.",
         "order_id": order.id,
     })
+    

@@ -182,7 +182,14 @@ export default function AdminOrderDetailPage() {
             }} />
 
             <CustomizationProvider>
-                <CustomCakeModal isOpen={showCakeModal} onClose={() => { setShowCakeModal(false); setSelectedCake(null); }} customization={selectedCake} />
+                <CustomCakeModal
+                    isOpen={showCakeModal}
+                    onClose={() => {
+                        setShowCakeModal(false);
+                        setSelectedCake(null);
+                    }}
+                    customization={selectedCake}
+                />
             </CustomizationProvider>
         </div>
     );
