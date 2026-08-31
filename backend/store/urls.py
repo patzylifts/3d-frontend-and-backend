@@ -47,7 +47,7 @@ urlpatterns = [
     path("upload-sample-cake/", views.upload_sample_cake),
     path("orders/<int:order_id>/add-upload-samples/", views.add_uploaded_cake_samples),
     path("orders/<int:order_id>/update-upload-order/", views.update_uploaded_order),
-    path("orders/<int:order_id>/update-upload-order/", views.update_uploaded_order),
     path("orders/<int:order_id>/uploaded-cake/samples/", views.add_uploaded_cake_samples, name="add_uploaded_cake_samples"),
+    path("orders/<int:order_id>/uploaded-cake/samples/<int:upload_id>/", views.remove_uploaded_cake_sample, name="remove_uploaded_cake_sample"),
     
 ]

@@ -11,6 +11,8 @@ export function CustomCakeModal({ isOpen, onClose, customization, orderId, canAd
     const [modalImages, setModalImages] = useState([]);
     const [addingImages, setAddingImages] = useState(false);
     const [error, setError] = useState("");
+    const [slideDirection, setSlideDirection] = useState("next");
+    const [isAnimating, setIsAnimating] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -39,14 +41,31 @@ export function CustomCakeModal({ isOpen, onClose, customization, orderId, canAd
         return url.startsWith("http://") || url.startsWith("https://") ? url : `${BASEURL}${url}`;
     };
 
+    const changeImage = (direction) => {
+        if (images.length <= 1 || isAnimating) return;
+
+        setSlideDirection(direction);
+        setIsAnimating(true);
+
+        setTimeout(() => {
+            setCurrentIndex((current) => {
+                if (direction === "next") {
+                    return (current + 1) % images.length;
+                }
+
+                return (current - 1 + images.length) % images.length;
+            });
+
+            setIsAnimating(false);
+        }, 180);
+    };
+
     const nextImage = () => {
-        if (images.length <= 1) return;
-        setCurrentIndex((current) => (current + 1) % images.length);
+        changeImage("next");
     };
 
     const previousImage = () => {
-        if (images.length <= 1) return;
-        setCurrentIndex((current) => (current - 1 + images.length) % images.length);
+        changeImage("previous");
     };
 
     const closeModal = () => {
@@ -120,6 +139,73 @@ export function CustomCakeModal({ isOpen, onClose, customization, orderId, canAd
         }
     };
 
+    const handleRemoveImage = async (uploadId) => {
+        if (!uploadId) {
+            setError("Image ID is missing.");
+            return;
+        }
+
+        if (!orderId) {
+            setError("Order ID is missing.");
+            return;
+        }
+
+        setError("");
+
+        try {
+            const res = await authFetch(
+                `${BASEURL}/api/orders/${orderId}/uploaded-cake/samples/${uploadId}/`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || "Failed to remove image.");
+                return;
+            }
+
+            const removedIndex = images.findIndex(
+                (image) => String(image.upload_id) === String(uploadId)
+            );
+
+            setModalImages(data.images || []);
+
+            setCurrentIndex((currentIndex) => {
+                const remainingImages = data.images || [];
+
+                if (remainingImages.length === 0) {
+                    return 0;
+                }
+
+                if (removedIndex === -1) {
+                    return Math.min(currentIndex, remainingImages.length - 1);
+                }
+
+                if (removedIndex < currentIndex) {
+                    return currentIndex - 1;
+                }
+
+                if (currentIndex >= remainingImages.length) {
+                    return remainingImages.length - 1;
+                }
+
+                return currentIndex;
+            });
+
+            onImagesAdded?.({
+                ...data,
+                removed_upload_id: uploadId,
+            });
+
+        } catch (err) {
+            console.error(err);
+            setError("Unable to remove image.");
+        }
+    };
+
     return (
         <div className="custom-cake-overlay" onClick={closeModal}>
             <div className="custom-cake-modal" onClick={(e) => e.stopPropagation()}>
@@ -132,18 +218,18 @@ export function CustomCakeModal({ isOpen, onClose, customization, orderId, canAd
                         {images.length > 0 ? (
                             <>
                                 <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                                    <div className="relative w-full h-full min-h-[280px] flex items-center justify-center bg-stone-50 rounded-2xl border border-stone-200 overflow-hidden">
-                                        <img src={getImageUrl(images[currentIndex]?.image)} alt={`Uploaded cake inspiration ${currentIndex + 1}`} className="max-w-full max-h-full w-auto h-auto object-contain rounded-2xl" />
+                                    <div className="cake-image-viewport">
+                                        <img key={images[currentIndex]?.upload_id || currentIndex} src={getImageUrl(images[currentIndex]?.image)} alt={`Uploaded cake inspiration ${currentIndex + 1}`} className={`cake-main-image ${isAnimating ? slideDirection === "next" ? "cake-slide-next" : "cake-slide-previous" : "" }`} />
 
                                         {images.length > 1 && (
                                             <>
-                                                <button type="button" onClick={previousImage} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer shadow-lg" aria-label="Previous image">
+                                                <button type="button" onClick={previousImage} className="cake-carousel-button cake-carousel-button-left" aria-label="Previous image">
                                                     <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M15 18l-6-6 6-6" />
                                                     </svg>
                                                 </button>
 
-                                                <button type="button" onClick={nextImage} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer shadow-lg" aria-label="Next image">
+                                                <button type="button" onClick={nextImage} className="cake-carousel-button cake-carousel-button-right" aria-label="Next image">
                                                     <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M9 18l6-6-6-6" />
                                                     </svg>
@@ -152,23 +238,31 @@ export function CustomCakeModal({ isOpen, onClose, customization, orderId, canAd
                                         )}
 
                                         {images.length > 1 && (
-                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                                            <div className="cake-image-counter">
                                                 {currentIndex + 1} / {images.length}
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2 mt-3 overflow-x-auto pb-1 shrink-0">
+                                <div className="flex gap-2 mt-3 pt-1 overflow-x-auto pb-1 shrink-0">
                                     {images.map((image, index) => (
-                                        <button key={image.upload_id || index} type="button" onClick={() => setCurrentIndex(index)} className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer ${index === currentIndex ? "border-[#d67b27]" : "border-stone-200"}`}>
-                                            <img src={getImageUrl(image.image)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
-                                        </button>
+                                        <div key={image.upload_id || index} className="cake-thumbnail-wrapper">
+                                            <button type="button" onClick={() => setCurrentIndex(index)} className={`cake-thumbnail ${index === currentIndex ? "cake-thumbnail-selected" : "" }`} >
+                                                <img src={getImageUrl(image.image)} alt={`Thumbnail ${index + 1}`} />
+                                            </button>
+
+                                            {canAddImages && (
+                                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveImage(image.upload_id); }} disabled={addingImages} className="cake-thumbnail-delete" aria-label={`Remove image ${index + 1}`} title={`Remove image ${index + 1}`} >
+                                                    <span>−</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
 
                                     {canAddImages && images.length < 10 && (
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={addingImages} className="shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-stone-300 hover:border-[#d67b27] hover:bg-[#fffaf3] text-stone-400 hover:text-[#d67b27] flex items-center justify-center transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title={`Add images (${10 - images.length} remaining)`} >
-                                            <span className="flex items-center justify-center w-full h-full text-2xl font-bold leading-none">
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={addingImages} className="cake-add-image rounded-lg border-2 border-dashed border-stone-300 hover:border-[#d67b27] hover:bg-[#fffaf3] text-stone-400 hover:text-[#d67b27] flex items-center justify-center transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title={`Add images (${10 - images.length} remaining)`} >
+                                            <span className="flex items-center justify-center w-full h-full text-2xl font-bold leading-none -translate-y-[3px]">
                                                 {addingImages ? "…" : "+"}
                                             </span>
                                         </button>
