@@ -7,6 +7,7 @@
     justify-content: center;
     align-items: center;
     z-index: 999999;
+    padding: 20px;
 }
 
 .custom-cake-modal {
@@ -24,7 +25,7 @@
 }
 
 .custom-cake-modal h2 {
-    margin-bottom: 15px;
+    margin: 0 0 15px;
 }
 
 .close-btn {
@@ -38,37 +39,212 @@
     cursor: pointer;
     font-size: 20px;
     font-weight: bold;
+    z-index: 20;
 }
 
 .close-btn:hover {
     opacity: 0.8;
 }
 
-.uploaded-cake-preview{
+.uploaded-cake-preview {
     flex: 1;
+    min-height: 0;
     width: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
-.uploaded-cake-preview img{
-    flex: 1;
+.cake-image-viewport {
+    position: relative;
+    width: 100%;
+    height: min(62vh, 620px);
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #faf9f7;
+    border: 1px solid #e7e2dc;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.cake-main-image {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: #f8f8f8;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    object-position: center;
+    padding: 12px;
+    border-radius: 1rem;
+    transition:
+        opacity 180ms ease,
+        transform 180ms ease;
 }
 
-.uploaded-cake-notes{
-    margin-top: 16px;
-    padding: 14px 16px;
-    background: #faf7f2;
-    border: 1px solid #ece2d4;
-    border-radius: 12px;
-    color: #5b4636;
-    font-size: 15px;
-    line-height: 1.5;
+.cake-slide-next {
+    animation: cakeSlideNext 180ms ease;
+}
+
+.cake-slide-previous {
+    animation: cakeSlidePrevious 180ms ease;
+}
+
+@keyframes cakeSlideNext {
+    0% {
+        opacity: 0;
+        transform: translateX(25px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes cakeSlidePrevious {
+    0% {
+        opacity: 0;
+        transform: translateX(-25px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.cake-carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.58);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transition:
+        background 150ms ease,
+        transform 150ms ease;
+}
+
+.cake-carousel-button:hover {
+    background: rgba(0, 0, 0, 0.78);
+}
+
+.cake-carousel-button:active {
+    transform: translateY(-50%) scale(0.94);
+}
+
+.cake-carousel-button-left {
+    left: 14px;
+}
+
+.cake-carousel-button-right {
+    right: 14px;
+}
+
+.cake-image-counter {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.68);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.cake-thumbnail-wrapper {
+    position: relative;
+    flex: 0 0 64px;
+    width: 64px;
+    height: 72px;
+    padding-top: 8px;
+}
+
+.cake-add-image {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    margin-top: 8px;
+}
+
+.cake-thumbnail {
+    width: 64px;
+    height: 64px;
+    display: block;
+    padding: 0;
+    border: 2px solid #e7e2dc;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #faf9f7;
+    cursor: pointer;
+    transition:
+        border-color 150ms ease,
+        transform 150ms ease;
+}
+
+.cake-thumbnail:hover {
+    transform: translateY(-2px);
+}
+
+.cake-thumbnail-selected {
+    border-color: #d67b27;
+}
+
+.cake-thumbnail img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.cake-thumbnail-delete {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    z-index: 20;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 2px solid white;
+    border-radius: 999px;
+    background: #e11d48;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition:
+        background 150ms ease,
+        transform 150ms ease;
+}
+
+.cake-thumbnail-delete:hover {
+    background: #be123c;
+    transform: scale(1.08);
+}
+
+.cake-thumbnail-delete:active {
+    transform: scale(0.94);
+}
+
+.cake-thumbnail-delete span {
+    display: block;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    transform: translateY(-1px);
 }

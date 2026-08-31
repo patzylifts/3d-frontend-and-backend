@@ -39,11 +39,29 @@ def customer_orders(request):
 @permission_classes([IsAuthenticated])
 def customer_order_detail(request, order_id):
     try:
-        order = Order.objects.get(id=order_id, user=request.user)
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        order = Order.objects.get(id=order_id)
+
     except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+        return Response(
+            {
+                "error": "Order does not exist",
+                "order_id": order_id,
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if order.user_id != request.user.id:
+        return Response(
+            {
+                "error": "You do not have access to this order",
+                "order_id": order_id,
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    serializer = OrderSerializer(order)
+
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
