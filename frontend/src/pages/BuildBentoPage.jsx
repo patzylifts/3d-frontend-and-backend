@@ -12,10 +12,13 @@ import CakeInscription from "../components/CakeInscription";
 import './BuildBentoPage.css';
 
 const TIER_MODEL_URLS = {
-    tier1: "/models/tier1/tier1.gltf",
+    tier1: "https://cake-assets-decc.patrickticoy78.workers.dev/tier1/tier1.gltf",
+    tier2: "https://cake-assets-decc.patrickticoy78.workers.dev/tier2/tier2.gltf",
+    tier3: "https://cake-assets-decc.patrickticoy78.workers.dev/tier3/tier3.gltf",
+    tier4: "https://cake-assets-decc.patrickticoy78.workers.dev/tier4/tier4.gltf",
 };
 
-const TIER1_CHERRY_TEXTURE = "/models/tier1/Cherry.jpg";
+const TIER1_CHERRY_TEXTURE = "https://cake-assets-decc.patrickticoy78.workers.dev/tier1/Cherry.jpg";
 
 const TEXTURE_URLS = {
     choco: {
@@ -944,11 +947,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <button
                             key={item.tier}
                             type="button"
-                            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                                selectedTierIndex === idx
-                                    ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                            }`}
+                            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${selectedTierIndex === idx
+                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                                }`}
                             onClick={() => {
                                 setSelectedTierIndex(idx);
                                 setSelectedSize(CAKE_SIZES[idx].sizes[0]);
@@ -961,10 +963,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-2">Base Dimensions</h3>
                 <div className="relative w-full">
-                    <select 
-                        id="size-select" 
-                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer" 
-                        value={selectedSize} 
+                    <select
+                        id="size-select"
+                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer"
+                        value={selectedSize}
                         onChange={handleSizeChange}
                     >
                         {CAKE_SIZES[selectedTierIndex].sizes.map((s) => (
@@ -979,31 +981,29 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Base Shape</h3>
                 <div className="flex gap-2">
-                    <button 
+                    <button
                         type="button"
-                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                            form === 1
-                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                        }`} 
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${form === 1
+                            ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                            : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                            }`}
                         onClick={() => setForm(1)}
                     >
                         ⭕ Round
                     </button>
-                    <button 
+                    <button
                         type="button"
-                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                            form === 2
-                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                        }`} 
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${form === 2
+                            ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                            : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                            }`}
                         onClick={() => setForm(2)}
                     >
                         ⬜ Rectangle
                     </button>
                 </div>
             </section>
-{/* ── Cake Color ── */}
+            {/* ── Cake Color ── */}
             <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Color</h3>
                 <div className="flex flex-wrap gap-2.5">
@@ -1011,11 +1011,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <button
                             key={c.name}
                             type="button"
-                            className={`w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
-                                cakeColor.name === c.name 
-                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md" 
-                                    : "border-transparent shadow-sm"
-                            }`}
+                            className={`w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${cakeColor.name === c.name
+                                ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                : "border-transparent shadow-sm"
+                                }`}
                             style={{ background: c.color }}
                             title={c.name}
                             onClick={() => setCakeColor(c)}
@@ -1033,11 +1032,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <button
                             key={c.name}
                             type="button"
-                            className={`group relative w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
-                                icingColor.name === c.name
-                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
-                                    : "border-transparent shadow-sm"
-                            }`}
+                            className={`group relative w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${icingColor.name === c.name
+                                ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                : "border-transparent shadow-sm"
+                                }`}
                             style={{ background: c.color }}
                             title={c.name}
                             onClick={() => setIcingColor(c)}
@@ -1060,11 +1058,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             <button
                                 key={f}
                                 type="button"
-                                className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-[0.99] ${
-                                    flavor === f 
-                                        ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20" 
-                                        : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
-                                }`}
+                                className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-[0.99] ${flavor === f
+                                    ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                                    }`}
                                 onClick={() => {
                                     setFlavor(f);
                                     if (f === "Choco Moist")
@@ -1153,11 +1150,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <button
                             key={label}
                             type="button"
-                            className={`flex justify-between items-center px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                                value 
-                                    ? "bg-[#C05A11]/10 border-[#C05A11] text-[#A84E0E] font-semibold shadow-inner" 
-                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
-                            }`}
+                            className={`flex justify-between items-center px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${value
+                                ? "bg-[#C05A11]/10 border-[#C05A11] text-[#A84E0E] font-semibold shadow-inner"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                                }`}
                             onClick={() => set(!value)}
                         >
                             <span>{label}</span>
@@ -1179,11 +1175,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 <button
                                     key={option.value}
                                     type="button"
-                                    className={`px-3 py-2 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                                        candleMode === option.value
-                                            ? "bg-[#C05A11] text-white shadow-sm"
-                                            : "text-[#A07060] hover:text-[#6E473B]"
-                                    }`}
+                                    className={`px-3 py-2 text-xs font-bold rounded-md transition-all cursor-pointer ${candleMode === option.value
+                                        ? "bg-[#C05A11] text-white shadow-sm"
+                                        : "text-[#A07060] hover:text-[#6E473B]"
+                                        }`}
                                     onClick={() => setCandleMode(option.value)}
                                 >
                                     {option.label}
@@ -1279,11 +1274,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                             <button
                                                 key={size}
                                                 type="button"
-                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${
-                                                    toppingLayout[topping.key].size === size 
-                                                        ? "bg-[#C05A11] text-white shadow-sm" 
-                                                        : "text-[#A07060] hover:text-[#6E473B]"
-                                                }`}
+                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${toppingLayout[topping.key].size === size
+                                                    ? "bg-[#C05A11] text-white shadow-sm"
+                                                    : "text-[#A07060] hover:text-[#6E473B]"
+                                                    }`}
                                                 onClick={() => setToppingSize(topping.key, size)}
                                             >
                                                 {size}
@@ -1302,9 +1296,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </section>
 
             {/* ── Randomize ── */}
-            <button 
+            <button
                 type="button"
-                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer font-medium" 
+                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer font-medium"
                 onClick={generateRandomCake}
             >
                 🎲 Randomize My Cake!
@@ -1363,7 +1357,7 @@ function BuildBentoContent() {
 
             {/* Main responsive wrapper layout */}
             <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
-                
+
                 {/* 3D Canvas Box - Slightly bigger for a clearer and more prominent preview */}
                 <div className="flex-1 w-full h-[480px] md:h-[620px] relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-6">
                     <div className="w-full h-full relative">
@@ -1443,6 +1437,8 @@ function BuildBentoContent() {
         </div>
     );
 }
+
+Object.values(TIER_MODEL_URLS).forEach((url) => useGLTF.preload(url));
 
 // ────── Default export ──────
 export default function BuildBentoPage() {
