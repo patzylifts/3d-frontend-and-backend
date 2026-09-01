@@ -1,5 +1,5 @@
 // src/pages/BuildBentoPage.jsx
-import { useRef, Suspense, useState, useEffect, Component } from "react";
+import { useRef, Suspense, useState, useEffect, useMemo, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, ContactShadows, SpotLight } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
@@ -13,9 +13,6 @@ import './BuildBentoPage.css';
 
 const TIER_MODEL_URLS = {
     tier1: "/models/tier1/tier1.gltf",
-    tier2: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier2/tier2.gltf",
-    tier3: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier3/tier3.gltf",
-    tier4: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/revise/tier4/tier4.gltf",
 };
 
 const TIER1_CHERRY_TEXTURE = "/models/tier1/Cherry.jpg";
@@ -78,8 +75,30 @@ const TOPPING_3D_CONFIG = {
     },
 };
 
-const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
-const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
+const TIER_LAYER_LAYOUTS = [
+    [{ y: 1.35, height: 1.75, radius: 1.02, width: 1.95, depth: 1.55 }],
+    [
+        { y: 0.95, height: 1.20, radius: 1.10, width: 2.10, depth: 1.60 },
+        { y: 1.85, height: 0.78, radius: 0.74, width: 1.42, depth: 1.12 },
+    ],
+    [
+        { y: 0.78, height: 1.02, radius: 1.15, width: 2.22, depth: 1.70 },
+        { y: 1.58, height: 0.76, radius: 0.84, width: 1.62, depth: 1.26 },
+        { y: 2.24, height: 0.58, radius: 0.58, width: 1.12, depth: 0.88 },
+    ],
+    [
+        { y: 0.62, height: 0.88, radius: 1.20, width: 2.32, depth: 1.78 },
+        { y: 1.32, height: 0.64, radius: 0.94, width: 1.82, depth: 1.40 },
+        { y: 1.90, height: 0.54, radius: 0.68, width: 1.32, depth: 1.02 },
+        { y: 2.40, height: 0.44, radius: 0.46, width: 0.90, depth: 0.70 },
+    ],
+];
+
+const TIER_TOP_Y = TIER_LAYER_LAYOUTS.map((layers) => {
+    const topLayer = layers[layers.length - 1];
+    return topLayer.y + topLayer.height / 2;
+});
+const TIER_TOP_RADIUS = [1.02, 0.74, 0.58, 0.46];
 const CANDLE_DIGIT_SPACING = 0.16;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
 const TIER_FLAVOR_LABELS = {
@@ -354,13 +373,191 @@ function RealisticLighting() {
     );
 }
 
+function CakeStand() {
+    return (
+        <group position={[0, 0.02, 0]}>
+            <mesh position={[0, -0.12, 0]} receiveShadow>
+                <cylinderGeometry args={[1.55, 1.65, 0.18, 96]} />
+                <meshStandardMaterial color="#E9D8B5" roughness={0.38} metalness={0.12} />
+            </mesh>
+            <mesh position={[0, -0.03, 0]}>
+                <torusGeometry args={[1.45, 0.055, 16, 96]} />
+                <meshStandardMaterial color="#C8A766" roughness={0.28} metalness={0.45} />
+            </mesh>
+        </group>
+    );
+}
+
+function ProceduralCakeBody({ selectedTierIndex, form, selectedTierFlavors, textureByFlavor, cakeColor, icingColor }) {
+    const layers = TIER_LAYER_LAYOUTS[selectedTierIndex] ?? TIER_LAYER_LAYOUTS[0];
+
+    return (
+        <group>
+            <CakeStand />
+            {layers.map((layer, idx) => {
+                const flavorName = selectedTierFlavors[idx] ?? selectedTierFlavors[0];
+                const materialProps = getFlavorMaterialProps(flavorName, textureByFlavor, cakeColor.color);
+                const topY = layer.y + layer.height / 2;
+
+                return (
+                    <group key={`tier-layer-${idx}`}>
+                        {form === 1 ? (
+                            <>
+                                <mesh position={[0, layer.y, 0]} castShadow receiveShadow>
+                                    <cylinderGeometry args={[layer.radius, layer.radius, layer.height, 96]} />
+                                    <meshStandardMaterial {...materialProps} />
+                                </mesh>
+                                <mesh position={[0, topY + 0.035, 0]} castShadow>
+                                    <cylinderGeometry args={[layer.radius + 0.035, layer.radius + 0.035, 0.07, 96]} />
+                                    <meshPhysicalMaterial
+                                        color={icingColor.color}
+                                        roughness={0.18}
+                                        metalness={0}
+                                        clearcoat={0.45}
+                                        clearcoatRoughness={0.18}
+                                    />
+                                </mesh>
+                                <mesh position={[0, topY - 0.02, 0]}>
+                                    <torusGeometry args={[layer.radius - 0.02, 0.04, 14, 96]} />
+                                    <meshPhysicalMaterial color={icingColor.color} roughness={0.2} />
+                                </mesh>
+                            </>
+                        ) : (
+                            <>
+                                <mesh position={[0, layer.y, 0]} castShadow receiveShadow>
+                                    <boxGeometry args={[layer.width, layer.height, layer.depth]} />
+                                    <meshStandardMaterial {...materialProps} />
+                                </mesh>
+                                <mesh position={[0, topY + 0.035, 0]} castShadow>
+                                    <boxGeometry args={[layer.width + 0.07, 0.07, layer.depth + 0.07]} />
+                                    <meshPhysicalMaterial
+                                        color={icingColor.color}
+                                        roughness={0.18}
+                                        metalness={0}
+                                        clearcoat={0.45}
+                                        clearcoatRoughness={0.18}
+                                    />
+                                </mesh>
+                            </>
+                        )}
+                    </group>
+                );
+            })}
+        </group>
+    );
+}
+
+function ProceduralGoldCandle({ position, sizeMultiplier = 1 }) {
+    return (
+        <group position={position} scale={sizeMultiplier}>
+            <mesh position={[0, 0.18, 0]} castShadow>
+                <cylinderGeometry args={[0.035, 0.035, 0.36, 24]} />
+                <meshStandardMaterial color="#D4AF37" roughness={0.18} metalness={0.75} />
+            </mesh>
+            <mesh position={[0, 0.39, 0]} castShadow>
+                <coneGeometry args={[0.055, 0.16, 24]} />
+                <meshStandardMaterial color="#FFB12A" emissive="#FF8A00" emissiveIntensity={0.45} />
+            </mesh>
+            <pointLight position={[0, 0.45, 0]} intensity={0.35} color="#FFD891" distance={1.5} />
+        </group>
+    );
+}
+
+function ProceduralNumberCandle({ value, position, sizeMultiplier = 1 }) {
+    const digits = String(Math.max(1, Math.min(100, Number(value) || 1)));
+    const flamePositions = Array.from({ length: digits.length }, (_, idx) => (
+        (idx - (digits.length - 1) / 2) * 0.22
+    ));
+    const numberTexture = useMemo(() => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 384;
+        canvas.height = 192;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "900 128px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = "#8B6A16";
+        ctx.fillStyle = "#D4AF37";
+        ctx.strokeText(digits, canvas.width / 2, canvas.height / 2 + 4);
+        ctx.fillText(digits, canvas.width / 2, canvas.height / 2 + 4);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        return texture;
+    }, [digits]);
+
+    useEffect(() => () => numberTexture.dispose(), [numberTexture]);
+
+    return (
+        <group position={position} scale={sizeMultiplier}>
+            <mesh position={[0, 0.25, 0.045]} castShadow>
+                <planeGeometry args={[Math.max(0.42, digits.length * 0.24), 0.34]} />
+                <meshBasicMaterial map={numberTexture} transparent side={THREE.DoubleSide} toneMapped={false} />
+            </mesh>
+            {flamePositions.map((x, idx) => (
+                <group key={`number-flame-${idx}`} position={[x, 0.48, 0.02]}>
+                    <mesh castShadow>
+                        <coneGeometry args={[0.035, 0.11, 18]} />
+                        <meshStandardMaterial color="#FFB12A" emissive="#FF8A00" emissiveIntensity={0.4} />
+                    </mesh>
+                    <pointLight intensity={0.14} color="#FFD891" distance={1.1} />
+                </group>
+            ))}
+        </group>
+    );
+}
+
+function ProceduralCherry({ position, sizeMultiplier = 1 }) {
+    return (
+        <group position={position} scale={sizeMultiplier}>
+            <mesh position={[0, 0.07, 0]} castShadow>
+                <sphereGeometry args={[0.09, 28, 20]} />
+                <meshPhysicalMaterial color="#C81532" roughness={0.32} clearcoat={0.8} clearcoatRoughness={0.12} />
+            </mesh>
+            <mesh position={[0.045, 0.18, 0]} rotation={[0.45, 0.1, -0.4]} castShadow>
+                <cylinderGeometry args={[0.01, 0.014, 0.22, 12]} />
+                <meshStandardMaterial color="#376B2C" roughness={0.45} />
+            </mesh>
+        </group>
+    );
+}
+
+function ProceduralSprinkles({ selectedTierIndex, form, position, sizeMultiplier = 1 }) {
+    const sprinkles = useMemo(() => {
+        const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? 1;
+        return Array.from({ length: 44 }, (_, idx) => {
+            const angle = idx * 2.399963;
+            const ring = Math.sqrt(((idx * 37) % 100) / 100);
+            const x = Math.cos(angle) * radius * 0.58 * ring;
+            const z = Math.sin(angle) * radius * 0.58 * ring;
+            return {
+                x: form === 1 ? x : Math.max(-radius * 0.6, Math.min(radius * 0.6, x)),
+                z: form === 1 ? z : Math.max(-radius * 0.45, Math.min(radius * 0.45, z)),
+                rotation: [Math.PI / 2, 0, angle],
+                color: ["#E83F6F", "#F6D55C", "#3CAEA3", "#20639B", "#F26B38"][idx % 5],
+            };
+        });
+    }, [selectedTierIndex, form]);
+
+    return (
+        <group position={position} scale={sizeMultiplier}>
+            {sprinkles.map((item, idx) => (
+                <mesh key={`sprinkle-${idx}`} position={[item.x, 0.035, item.z]} rotation={item.rotation} castShadow>
+                    <boxGeometry args={[0.12, 0.018, 0.018]} />
+                    <meshStandardMaterial color={item.color} roughness={0.35} />
+                </mesh>
+            ))}
+        </group>
+    );
+}
+
 // ───── CakeModel ─────
 export function CakeModel({ selectedTierIndex }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
-    const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
-    const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
-    const tier4 = useGLTF(TIER_MODEL_URLS.tier4);
-
     const { nodes, materials } = tier1;
     const {
         form,
@@ -370,6 +567,7 @@ export function CakeModel({ selectedTierIndex }) {
         flavorTextureMap,
         selectedTierFlavors,
         candle,
+        candleMode,
         candleNumber,
         chocolate,
         balls,
@@ -386,6 +584,9 @@ export function CakeModel({ selectedTierIndex }) {
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture = useTexture(TEXTURE_URLS.ube);
     const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
+    const goldMaterial = useMemo(() => (
+        new THREE.MeshStandardMaterial({ color: "#D4AF37", roughness: 0.18, metalness: 0.75 })
+    ), []);
 
     const texturesByKey = {
         choco: chocoTexture,
@@ -393,9 +594,6 @@ export function CakeModel({ selectedTierIndex }) {
         ube: abstractTexture,
     };
 
-    const baseFlavor = selectedTierFlavors?.[0] || flavor;
-    const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
-    const activeTexture = texturesByKey[activeTextureKey];
     const textureByFlavor = Object.fromEntries(
         Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
             flavorName,
@@ -403,27 +601,11 @@ export function CakeModel({ selectedTierIndex }) {
         ])
     );
 
-    const matProps = {
-        cakeColor,
-        activeTexture,
-        form,
-        selectedLayerFlavors: selectedTierFlavors,
-        textureByFlavor,
-        icingColor,
-        cherryTexture,
-        cherryVisible: cherry,
-    };
-
     useEffect(() => {
         if (!cherryTexture) return;
         cherryTexture.colorSpace = THREE.SRGBColorSpace;
         cherryTexture.needsUpdate = true;
     }, [cherryTexture]);
-
-    useEffect(() => { applyMaterialsToScene(tier1?.scene, matProps); }, [tier1, cakeColor, icingColor, form, selectedTierFlavors, textureByFlavor, cherryTexture, cherry]);
-    useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, cakeColor, form, selectedTierFlavors, textureByFlavor]);
-    useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, cakeColor, form, selectedTierFlavors, textureByFlavor]);
-    useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, cakeColor, form, selectedTierFlavors, textureByFlavor]);
 
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
@@ -431,50 +613,39 @@ export function CakeModel({ selectedTierIndex }) {
 
     const selectedToppings = { candle, chocolate, balls, nuts, cherry, sprinkles };
 
-    const renderCandleNumber = () => {
-        const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
-        const digitScaleMultiplier = TOPPING_SIZES[toppingLayout.candle.size] || 1;
-        const spacing = CANDLE_DIGIT_SPACING * digitScaleMultiplier * (TIER_TOP_RADIUS[selectedTierIndex] ?? 1);
-        const digitMaterial = materials.Candle_White_Default || materials.chandel;
-        const hasDigitMeshes = digits.every((digit) => nodes[`candle_${digit}`]?.geometry);
+    const renderGoldCandle = () => {
+        const sizeMultiplier = TOPPING_SIZES[toppingLayout.candle.size] || 1;
+        const position = getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex);
 
-        if (!hasDigitMeshes) {
-            return nodes.chandel?.geometry ? (
+        if (nodes.chandel?.geometry) {
+            return (
                 <mesh
                     geometry={nodes.chandel.geometry}
-                    material={materials.chandel}
-                    position={getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex)}
+                    material={goldMaterial}
+                    position={position}
                     rotation={TOPPING_3D_CONFIG.candle.rotation}
-                    scale={TOPPING_3D_CONFIG.candle.scale * digitScaleMultiplier}
+                    scale={Math.abs(TOPPING_3D_CONFIG.candle.scale) * sizeMultiplier}
+                    castShadow
                 />
-            ) : null;
+            );
         }
 
-        return (
-            <group position={getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex)}>
-                {digits.map((digit, idx) => {
-                    const node = nodes[`candle_${digit}`];
-                    const xOffset = (idx - (digits.length - 1) / 2) * spacing;
+        return <ProceduralGoldCandle position={position} sizeMultiplier={sizeMultiplier} />;
+    };
 
-                    return (
-                        <mesh
-                            key={`${digit}-${idx}`}
-                            geometry={node.geometry}
-                            material={node.material || digitMaterial}
-                            position={[xOffset, 0, 0]}
-                            rotation={[0, 0, 0]}
-                            scale={getNodeScaleArray(node, digitScaleMultiplier)}
-                            castShadow
-                        />
-                    );
-                })}
-            </group>
+    const renderCandleNumber = () => {
+        return (
+            <ProceduralNumberCandle
+                value={candleNumber}
+                position={getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex)}
+                sizeMultiplier={TOPPING_SIZES[toppingLayout.candle.size] || 1}
+            />
         );
     };
 
     const renderCustomToppings = () => (
         <>
-            {selectedToppings.candle && renderCandleNumber()}
+            {selectedToppings.candle && (candleMode === "number" ? renderCandleNumber() : renderGoldCandle())}
 
             {selectedToppings.nuts && nodes.nuts?.geometry && (
                 <mesh
@@ -517,36 +688,19 @@ export function CakeModel({ selectedTierIndex }) {
                 />
             )}
 
-            {selectedToppings.cherry && nodes.cherry?.geometry && (
-                <mesh
-                    geometry={nodes.cherry.geometry}
-                    material={materials.cherry || materials.Default}
+            {selectedToppings.cherry && (
+                <ProceduralCherry
                     position={getToppingPosition(toppingLayout.cherry, TOPPING_3D_CONFIG.cherry, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.cherry.rotation}
-                    scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[toppingLayout.cherry.size]}
-                    castShadow
+                    sizeMultiplier={TOPPING_SIZES[toppingLayout.cherry.size] || 1}
                 />
             )}
 
-            {selectedToppings.sprinkles && form === 1 && nodes.Sprinkles_Round?.geometry && (
-                <mesh
-                    geometry={nodes.Sprinkles_Round.geometry}
-                    material={nodes.Sprinkles_Round.material || materials.Default}
+            {selectedToppings.sprinkles && (
+                <ProceduralSprinkles
+                    selectedTierIndex={selectedTierIndex}
+                    form={form}
                     position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
-                    scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
-                    castShadow
-                />
-            )}
-
-            {selectedToppings.sprinkles && form === 2 && nodes.Sprinkles_Rectangle?.geometry && (
-                <mesh
-                    geometry={nodes.Sprinkles_Rectangle.geometry}
-                    material={nodes.Sprinkles_Rectangle.material || materials.Default}
-                    position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
-                    scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
-                    castShadow
+                    sizeMultiplier={TOPPING_SIZES[toppingLayout.sprinkles.size] || 1}
                 />
             )}
         </>
@@ -554,19 +708,14 @@ export function CakeModel({ selectedTierIndex }) {
 
     return (
         <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
-            {selectedTierIndex === 1 && (
-                <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-            {selectedTierIndex === 2 && (
-                <primitive object={tier3.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-            {selectedTierIndex === 3 && (
-                <primitive object={tier4.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-
-            {selectedTierIndex === 0 && (
-                <primitive object={tier1.scene} />
-            )}
+            <ProceduralCakeBody
+                selectedTierIndex={selectedTierIndex}
+                form={form}
+                selectedTierFlavors={selectedTierFlavors?.length ? selectedTierFlavors : [flavor]}
+                textureByFlavor={textureByFlavor}
+                cakeColor={cakeColor}
+                icingColor={icingColor}
+            />
 
             {renderCustomToppings()}
             <CakeInscription selectedTierIndex={selectedTierIndex} text={inscriptionText} font={textFont} />
@@ -676,6 +825,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         form, setForm,
         flavors, flavor, setFlavor,
         candle, setCandle,
+        candleMode, setCandleMode,
         candleNumber, setCandleNumber,
         chocolate, setChocolate,
         balls, setBalls,
@@ -745,6 +895,13 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             tier_flavors: tierFlavorPayload,
             inscription_text: inscriptionText.trim(),
             text_font: textFont,
+            topping_layout: {
+                ...toppingLayout,
+                candle: {
+                    ...toppingLayout.candle,
+                    mode: candleMode,
+                },
+            },
             has_candle: candle,
             candle_number: candleNumber,
             has_chocolate: chocolate,
@@ -1011,60 +1168,84 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     ))}
                 </div>
 
-                {/* ── Candle Number (1-100) ── */}
+                {/* ── Candle Mode ── */}
                 {candle && (
-                    <div className="mt-3 p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm">
-                        <label className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-semibold text-[#6E473B] flex items-center gap-1.5">
-                                🕯️ Number of Candles
-                            </span>
-                            <div className="flex items-center gap-2">
+                    <div className="mt-3 p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-2 bg-[#FDF6E2] p-1 rounded-lg border border-[#ECD9B4]">
+                            {[
+                                { value: "gold", label: "Gold Chandel" },
+                                { value: "number", label: "Number" },
+                            ].map((option) => (
                                 <button
+                                    key={option.value}
                                     type="button"
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
-                                    onClick={() => setCandleNumber(Math.max(1, candleNumber - 1))}
-                                    disabled={candleNumber <= 1}
+                                    className={`px-3 py-2 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                                        candleMode === option.value
+                                            ? "bg-[#C05A11] text-white shadow-sm"
+                                            : "text-[#A07060] hover:text-[#6E473B]"
+                                    }`}
+                                    onClick={() => setCandleMode(option.value)}
                                 >
-                                    −
+                                    {option.label}
                                 </button>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    value={candleNumber}
-                                    onChange={(e) => {
-                                        const val = parseInt(e.target.value, 10);
-                                        if (!isNaN(val)) setCandleNumber(Math.max(1, Math.min(100, val)));
-                                    }}
-                                    className="w-14 text-center px-2 py-1.5 text-sm font-bold rounded-lg bg-[#FFFDF9] border border-[#E6CCA2] text-[#6E473B] focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                                <button
-                                    type="button"
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
-                                    onClick={() => setCandleNumber(Math.min(100, candleNumber + 1))}
-                                    disabled={candleNumber >= 100}
-                                >
-                                    +
-                                </button>
-                            </div>
-                        </label>
-                        <div className="mt-2">
-                            <input
-                                type="range"
-                                min="1"
-                                max="100"
-                                value={candleNumber}
-                                onChange={(e) => setCandleNumber(parseInt(e.target.value, 10))}
-                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#C05A11] bg-[#E6CCA2]"
-                            />
-                            <div className="flex justify-between text-[9px] text-[#A07060] mt-0.5 font-medium">
-                                <span>1</span>
-                                <span>25</span>
-                                <span>50</span>
-                                <span>75</span>
-                                <span>100</span>
-                            </div>
+                            ))}
                         </div>
+
+                        {candleMode === "number" && (
+                            <div>
+                                <label className="flex items-center justify-between gap-3">
+                                    <span className="text-xs font-semibold text-[#6E473B] flex items-center gap-1.5">
+                                        Candle Number
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
+                                            onClick={() => setCandleNumber(Math.max(1, candleNumber - 1))}
+                                            disabled={candleNumber <= 1}
+                                        >
+                                            -
+                                        </button>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            value={candleNumber}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value, 10);
+                                                if (!isNaN(val)) setCandleNumber(Math.max(1, Math.min(100, val)));
+                                            }}
+                                            className="w-14 text-center px-2 py-1.5 text-sm font-bold rounded-lg bg-[#FFFDF9] border border-[#E6CCA2] text-[#6E473B] focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#FDF6E2] border border-[#ECD9B4] text-[#6E473B] font-bold text-sm hover:bg-[#C05A11] hover:text-white hover:border-[#C05A11] transition-all cursor-pointer active:scale-90"
+                                            onClick={() => setCandleNumber(Math.min(100, candleNumber + 1))}
+                                            disabled={candleNumber >= 100}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </label>
+                                <div className="mt-2">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="100"
+                                        value={candleNumber}
+                                        onChange={(e) => setCandleNumber(parseInt(e.target.value, 10))}
+                                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#C05A11] bg-[#E6CCA2]"
+                                    />
+                                    <div className="flex justify-between text-[9px] text-[#A07060] mt-0.5 font-medium">
+                                        <span>1</span>
+                                        <span>25</span>
+                                        <span>50</span>
+                                        <span>75</span>
+                                        <span>100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

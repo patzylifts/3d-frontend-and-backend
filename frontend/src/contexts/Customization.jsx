@@ -62,7 +62,7 @@ export const TOPPING_SIZES = {
 };
 
 const DEFAULT_TOPPING_LAYOUT = {
-    candle: { x: 50, y: 50, size: "medium" },
+    candle: { x: 50, y: 50, size: "medium", mode: "gold" },
     chocolate: { x: 50, y: 50, size: "medium" },
     balls: { x: 50, y: 50, size: "medium" },
     nuts: { x: 50, y: 50, size: "medium" },
@@ -139,6 +139,8 @@ const normalizeCandleNumber = (value) => {
     return Math.max(1, Math.min(100, parsed));
 };
 
+const normalizeCandleMode = (value) => value === "number" ? "number" : "gold";
+
 const DEFAULT_CAKE_PRICES = {
     tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
     tier2: { "Choco Moist": 1800, "Vanilla Chiffon": 1600, "Ube Chiffon": 1600 },
@@ -177,6 +179,9 @@ export const CustomizationProvider = (props) => {
     const [candle, setCandle] = useState(!!initialState?.has_candle);
     const [candleNumber, setCandleNumberState] = useState(
         () => normalizeCandleNumber(initialState?.candle_number)
+    );
+    const [candleMode, setCandleModeState] = useState(
+        () => normalizeCandleMode(initialState?.topping_layout?.candle?.mode)
     );
     const [chocolate, setChocolate] = useState(!!initialState?.has_chocolate);
     const [balls, setBalls] = useState(!!initialState?.has_balls);
@@ -254,6 +259,17 @@ export const CustomizationProvider = (props) => {
         setCandleNumberState(normalizeCandleNumber(value));
     };
 
+    const setCandleMode = (value) => {
+        setCandleModeState(normalizeCandleMode(value));
+        setToppingLayout((prev) => ({
+            ...prev,
+            candle: {
+                ...prev.candle,
+                mode: normalizeCandleMode(value),
+            },
+        }));
+    };
+
     useEffect(() => {
         let isMounted = true;
 
@@ -327,7 +343,7 @@ export const CustomizationProvider = (props) => {
         const randomTierIdx = Math.floor(Math.random() * CAKE_SIZES.length);
         const randomCakeColor = cakeColors[Math.floor(Math.random() * cakeColors.length)];
         const randomFlavor = flavors[Math.floor(Math.random() * flavors.length)];
-        const decorationOptions = ["candle", "chocolate", "balls", "nuts", "cherry"];
+        const decorationOptions = ["candle", "chocolate", "balls", "nuts", "cherry", "sprinkles"];
         const randomDecoration = decorationOptions[Math.floor(Math.random() * decorationOptions.length)];
 
         setForm(randomForm);
@@ -337,6 +353,7 @@ export const CustomizationProvider = (props) => {
         setIcingColor(icingColors[Math.floor(Math.random() * icingColors.length)]);
         setFlavor(randomFlavor);
         setCandleNumber(Math.floor(Math.random() * 100) + 1);
+        setCandleMode(Math.random() < 0.5 ? "gold" : "number");
         setTierFlavors({
             tier2: Array.from({ length: 2 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
             tier3: Array.from({ length: 3 }, () => flavors[Math.floor(Math.random() * flavors.length)]),
@@ -397,6 +414,8 @@ export const CustomizationProvider = (props) => {
                 selectedTierFlavors,
                 candle,
                 setCandle,
+                candleMode,
+                setCandleMode,
                 candleNumber,
                 setCandleNumber,
                 chocolate,
