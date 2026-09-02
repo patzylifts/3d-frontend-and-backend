@@ -60,6 +60,8 @@ class AddonPricing(models.Model):
         ("chocolate", "Chocolate"),
         ("balls", "Balls"),
         ("nuts", "Nuts"),
+        ("cherry", "Cherry"),
+        ("sprinkles", "Sprinkles"),
     ]
 
     key = models.CharField(max_length=30, choices=ADDON_CHOICES, unique=True)

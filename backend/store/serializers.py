@@ -136,7 +136,10 @@ class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CakeCustomization
         fields = [
-            'id', 'customer_name', 'customer_username', 'shape', 'cake_color', 'flavor', 'tier', 'size', 'tier_flavors', 'inscription_text', 'text_font', 'topping_layout', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'price', 'created_at',
+            'id', 'customer_name', 'customer_username', 'shape', 'cake_color', 'icing_color',
+            'flavor', 'tier', 'size', 'tier_flavors', 'inscription_text', 'text_font',
+            'topping_layout', 'candle_number', 'has_candle', 'has_chocolate', 'has_balls',
+            'has_nuts', 'has_cherry', 'has_sprinkles', 'price', 'created_at',
         ]
 
     def get_customer_name(self, obj):
