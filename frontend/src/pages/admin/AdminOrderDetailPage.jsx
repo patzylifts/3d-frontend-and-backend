@@ -7,6 +7,7 @@ import Navbar from "../../components/Navbar";
 import Logistics from "../../components/Logistics";
 import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
+import AdminQuotationPanel from "../../components/admin/AdminQuotationPanel";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 
@@ -60,6 +61,17 @@ export default function AdminOrderDetailPage() {
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-[#6E473B]">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
     if (!order) return null;
+
+    const isUploadedCake = order.items.some(
+        (item) => item.customization?.uploaded_cake
+    );
+
+    const canProgressStatus = [
+        "awaiting_downpayment",
+        "processing",
+        "ready_for_delivery",
+        "out_for_delivery",
+    ].includes(order.status);
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
@@ -116,20 +128,62 @@ export default function AdminOrderDetailPage() {
                             <span>Total:</span> <span>₱{Number(order.total_amount).toLocaleString()}</span>
                         </div>
 
-                        {order.status === "pending_review" && (
+                        {!isUploadedCake && order.status === "pending_review" && (
                             <div className="flex gap-3">
-                                <button className="flex-1 bg-[#6E473B] text-white py-2 rounded-lg font-bold" onClick={async () => {
-                                    if (!confirm("Accept this order?")) return;
-                                    const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/review/`, { method: "PATCH", body: JSON.stringify({ status: "awaiting_downpayment" }) });
-                                    if (!res.ok) return alert("Error");
-                                    await fetchOrder();
-                                }}>Accept</button>
-                                <button className="flex-1 border border-[#C05A11] text-[#C05A11] py-2 rounded-lg font-bold" onClick={() => setShowRejectModal(true)}>Reject</button>
+                                <button
+                                    className="flex-1 bg-[#6E473B] text-white py-2 rounded-lg font-bold"
+                                    onClick={async () => {
+                                        if (!confirm("Accept this order?")) return;
+
+                                        const res = await authFetch(
+                                            `${BASEURL}/api/orders/admin/orders/${id}/review/`,
+                                            {
+                                                method: "PATCH",
+                                                body: JSON.stringify({
+                                                    status: "awaiting_downpayment",
+                                                }),
+                                            }
+                                        );
+
+                                        if (!res.ok) return alert("Error");
+
+                                        await fetchOrder();
+                                    }}
+                                >
+                                    Accept
+                                </button>
+
+                                <button
+                                    className="flex-1 border border-[#C05A11] text-[#C05A11] py-2 rounded-lg font-bold"
+                                    onClick={() => setShowRejectModal(true)}
+                                >
+                                    Reject
+                                </button>
+                            </div>
+                        )}
+
+                        {isUploadedCake && (
+                            <div className="space-y-3">
+                                <AdminQuotationPanel
+                                    orderId={order.id}
+                                    status={order.status}
+                                    quotations={order.quotations || []}
+                                    onQuotationSent={fetchOrder}
+                                />
+
+                                {["pending_review", "awaiting_customer_response"].includes(order.status) && (
+                                    <button
+                                        className="w-full border border-[#C05A11] text-[#C05A11] py-2.5 rounded-xl font-bold hover:bg-orange-50 transition"
+                                        onClick={() => setShowRejectModal(true)}
+                                    >
+                                        Reject Order
+                                    </button>
+                                )}
                             </div>
                         )}
 
                         {/* Status Progression */}
-                        {order.status !== "pending_review" && !["rejected", "delivered"].includes(order.status) && (
+                        {canProgressStatus && (
                             <div className="space-y-3">
                                 <h4 className="font-bold text-[#6E473B]">Update Status</h4>
                                 {order.status === "awaiting_downpayment" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("processing")}>Start Processing</button>}
@@ -172,7 +226,12 @@ export default function AdminOrderDetailPage() {
                 </div>
                 <AdminOrderFeedback feedback={order.feedback} />
             </div>
-            <ChatBox orderId={id} isAdmin={true} />
+            <ChatBox
+                orderId={id}
+                isAdmin={true}
+                quotations={order.quotations || []}
+                onRefreshOrder={fetchOrder}
+            />
 
             <RejectModal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} onSubmit={async (reason) => {
                 const res = await authFetch(`${BASEURL}/api/orders/admin/orders/${id}/review/`, { method: "PATCH", body: JSON.stringify({ status: "rejected", rejection_reason: reason }) });

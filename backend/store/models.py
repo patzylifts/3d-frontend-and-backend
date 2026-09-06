@@ -196,6 +196,7 @@ class Order(models.Model):
 
     STATUS_CHOICES = [
         ("pending_review", "Pending Review"),
+        ("awaiting_customer_response", "Awaiting Customer Response"),
         ("awaiting_downpayment", "Awaiting Downpayment"),
         ("processing", "Processing"),
         ("ready_for_delivery", "Ready for Delivery"),

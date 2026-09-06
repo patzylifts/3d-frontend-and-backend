@@ -270,23 +270,27 @@ export default function CustomerOrderDetailPage() {
 
                                 <button onClick={handlePayNow} disabled={!isPayable || isInvalid || isTipInvalid || !agreeNoRefund} className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed">Proceed to Secure Checkout</button>
 
-                                {(order.status === "pending_review" || (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)) && (
-                                    <button
-                                        onClick={async () => {
-                                            if (!confirm("Cancel this order?")) return;
+                                {(
+                                    order.status === "pending_review" ||
+                                    order.status === "awaiting_customer_response" ||
+                                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
+                                ) && (
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm("Cancel this order?")) return;
 
-                                            const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
+                                                const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
 
-                                            if (res.ok) {
-                                                alert("Order cancelled");
-                                                fetchOrder();
-                                            }
-                                        }}
-                                        className="w-full mt-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold py-3 rounded-full transition-all cursor-pointer"
-                                    >
-                                        Cancel Order
-                                    </button>
-                                )}
+                                                if (res.ok) {
+                                                    alert("Order cancelled");
+                                                    fetchOrder();
+                                                }
+                                            }}
+                                            className="w-full mt-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold py-3 rounded-full transition-all cursor-pointer"
+                                        >
+                                            Cancel Order
+                                        </button>
+                                    )}
                             </div>
                         )}
 
@@ -358,7 +362,13 @@ export default function CustomerOrderDetailPage() {
                 )}
             </div>
 
-            <ChatBox orderId={id} isAdmin={false} />
+            <ChatBox
+                orderId={id}
+                isAdmin={false}
+                quotations={order.quotations || []}
+                onQuotationAccepted={fetchOrder}
+                onRefreshOrder={fetchOrder}
+            />
 
             <CustomizationProvider>
                 <CustomCakeModal

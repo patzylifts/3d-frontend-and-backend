@@ -3,7 +3,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from store.models import Order
-from .serializers import OrderSerializer
+from chat.models import Conversation, Message, Quotation
+from django.db import transaction
+from decimal import Decimal, InvalidOperation
+from .serializers import OrderSerializer, QuotationSerializer
+from chat.serializers import MessageSerializer
 from django.db.models import Count, Sum
 from datetime import date, timedelta
 from .utils_sms_notifications import send_order_status_sms
@@ -27,49 +31,208 @@ def admin_order_detail(request, order_id):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_send_quotation(request, order_id):
+
+    try:
+        order = Order.objects.get(id=order_id)
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    if not order.is_uploaded_cake:
+        return Response(
+            {"error": "Quotation is only available for uploaded cake orders."},
+            status=400
+        )
+
+    if order.status not in ["pending_review", "awaiting_customer_response"]:
+        return Response(
+            {"error": "A quotation cannot be sent for this order status."},
+            status=400
+        )
+
+    amount = request.data.get("amount")
+
+    if amount is None:
+        return Response(
+            {"error": "Quotation amount is required."},
+            status=400
+        )
+
+    try:
+        amount = Decimal(str(amount))
+
+        if amount <= 0:
+            raise ValueError
+
+    except (InvalidOperation, TypeError, ValueError):
+        return Response(
+            {"error": "Quotation amount must be greater than 0."},
+            status=400
+        )
+
+    with transaction.atomic():
+        order.quotations.filter(
+            status="pending"
+        ).update(
+            status="replaced"
+        )
+
+        quotation = Quotation.objects.create(
+            order=order,
+            created_by=request.user,
+            amount=amount,
+            status="pending",
+        )
+
+        order.quoted_price = amount
+        order.status = "awaiting_customer_response"
+        order.save(
+            update_fields=[
+                "quoted_price",
+                "status",
+            ]
+        )
+
+        conversation, _ = Conversation.objects.get_or_create(
+            order=order
+        )
+
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            sender_type="admin",
+            message_type="quotation",
+            content=f"Quotation: ₱{amount:,.2f}",
+            metadata={
+                "quotation_id": quotation.id,
+                "amount": str(amount),
+                "status": "pending",
+                "is_quotation": True,
+            },
+        )
+
+    return Response({
+        "message": "Quotation sent successfully.",
+        "quotation": QuotationSerializer(quotation).data,
+        "chat_message": MessageSerializer(message).data,
+        "order": OrderSerializer(order).data,
+    })
+
 # ADMIN: UPDATE ORDER
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def admin_review_order(request, order_id):
+
     try:
         order = Order.objects.get(id=order_id)
 
-        if order.status != "pending_review":
-            return Response({"error": "Order already reviewed"}, status=400)
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
 
-        new_status = request.data.get("status")
-        reason = request.data.get("rejection_reason")
+    new_status = request.data.get("status")
+    reason = request.data.get("rejection_reason")
 
-        if new_status not in ["awaiting_downpayment", "rejected"]:
-            return Response({"error": "Invalid status"}, status=400)
+    if order.is_uploaded_cake:
 
-        if new_status == "rejected":
-            if not reason:
-                return Response({"error": "Rejection reason required"}, status=400)
-            order.rejection_reason = reason
+        if order.status not in [
+            "pending_review",
+            "awaiting_customer_response"
+        ]:
+            return Response(
+                {"error": "This uploaded cake order can no longer be rejected."},
+                status=400
+            )
+
+        if new_status != "rejected":
+            return Response(
+                {"error": "Uploaded cake orders can only be rejected from this endpoint."},
+                status=400
+            )
+
+        if not reason:
+            return Response(
+                {"error": "Rejection reason required"},
+                status=400
+            )
 
         old_status = order.status
 
-        order.status = new_status
-        order.save()
+        order.status = "rejected"
+        order.rejection_reason = reason
+        order.save(
+            update_fields=[
+                "status",
+                "rejection_reason",
+            ]
+        )
 
         sms_sent = False
 
-        if old_status != new_status:
+        if old_status != order.status:
             try:
                 send_order_status_sms(order)
                 sms_sent = True
             except Exception as e:
                 print("ORDER SMS ERROR:", str(e))
-                
+
         return Response({
-            "message": "Order reviewed successfully",
+            "message": "Uploaded cake order rejected successfully",
             "order": OrderSerializer(order).data,
             "sms_sent": sms_sent
         })
 
-    except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+    if order.status != "pending_review":
+        return Response(
+            {"error": "Order already reviewed"},
+            status=400
+        )
+
+    if new_status not in [
+        "awaiting_downpayment",
+        "rejected"
+    ]:
+        return Response(
+            {"error": "Invalid status"},
+            status=400
+        )
+
+    if new_status == "rejected":
+
+        if not reason:
+            return Response(
+                {"error": "Rejection reason required"},
+                status=400
+            )
+
+        order.rejection_reason = reason
+
+    old_status = order.status
+    order.status = new_status
+    order.save()
+
+    sms_sent = False
+
+    if old_status != new_status:
+        try:
+            send_order_status_sms(order)
+            sms_sent = True
+        except Exception as e:
+            print("ORDER SMS ERROR:", str(e))
+
+    return Response({
+        "message": "Order reviewed successfully",
+        "order": OrderSerializer(order).data,
+        "sms_sent": sms_sent
+    })
     
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
