@@ -10,6 +10,7 @@ urlpatterns = [
     path('<int:order_id>/', views.order_detail, name='order_detail'),
     path('customer/orders/', views.customer_orders),
     path('customer/orders/<int:order_id>/', views.customer_order_detail, name='customer_order_detail'),
+    path('<int:order_id>/accept-quotation/', views.accept_quotation, name='accept_quotation'),
     path('<int:order_id>/cancel/', cancel_order, name='cancel_order'),
     # Customer Feedback
     path('<int:order_id>/feedback/', views.submit_feedback, name='submit_feedback'),
@@ -17,6 +18,7 @@ urlpatterns = [
     path('admin/orders/', admin_views.admin_orders),
     path('admin/orders/<int:order_id>/', admin_views.admin_order_detail),
     path('admin/orders/<int:order_id>/review/', admin_views.admin_review_order),
+    path('admin/orders/<int:order_id>/quotation/', admin_views.admin_send_quotation),
     path('admin/dashboard/', admin_views.admin_dashboard),
     path('admin/orders/<int:order_id>/update-status/', admin_views.admin_update_order_status),
 ]
