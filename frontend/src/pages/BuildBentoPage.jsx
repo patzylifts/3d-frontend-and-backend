@@ -78,7 +78,9 @@ const TOPPING_3D_CONFIG = {
     },
 };
 
-const TIER_TOP_Y = [2.30, 1.70, 2.25, 2.70];
+const NUT_TIER_SCALE = [1, 0.8, 0.6, 0.55]; // tune tier2 (index 1)
+const BALLS_TIER_SCALE = [1, 0.8, 0.6, 0.55];
+const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.70];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
 const CANDLE_DIGIT_SPACING = 0.18;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
@@ -149,6 +151,52 @@ const getNodeScaleArray = (node, multiplier = 1) => {
     ];
 };
 
+const ICING_TRANSFORMS = {
+    0: {
+        round: {
+            position: [-0.0119, -0.7735, 0.0015],
+            scale: [1.235, 1.013, 1.235],
+        },
+        rectangle: {
+            position: [0.008, -1.249, -0.0005],
+            scale: [1.259, 1.146, 1.259],
+        },
+    },
+
+    1: {
+        round: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+        rectangle: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+    },
+
+    2: {
+        round: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+        rectangle: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+    },
+
+    3: {
+        round: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+        rectangle: {
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+        },
+    },
+};
+
 function applyMaterialsToScene(scene, {
     cakeColor,
     activeTexture,
@@ -158,6 +206,7 @@ function applyMaterialsToScene(scene, {
     icingColor,
     cherryTexture,
     cherryVisible = false,
+    tierIndex = 0,
 }) {
     if (!scene) return;
 
@@ -180,44 +229,46 @@ function applyMaterialsToScene(scene, {
         if (lname.includes("bar")) { child.visible = false; return; }
         if (lname.includes("ball")) { child.visible = false; return; }
 
-        if (lname.includes("icing")) {
-            const isRectangleIcing = lname.includes("rectangle") || lname.includes("rect");
-            const isRoundIcing = lname.includes("round");
-            child.visible =
-                (!isRectangleIcing && !isRoundIcing) ||
-                (isRoundIcing && form === 1) ||
-                (isRectangleIcing && form === 2);
+       if (lname.includes("icing")) {
+    const isRectangleIcing =
+        lname.includes("rectangle") || lname.includes("rect");
 
-            // Create realistic icing material
-            const icingMat = new THREE.MeshPhysicalMaterial({
-                color: icingColor?.color || "#3B1F18",
-                roughness: 0.12,
-                metalness: 0.0,
-                clearcoat: 0.6,
-                clearcoatRoughness: 0.15,
-                sheen: 0.3,
-                sheenRoughness: 0.4,
-                sheenColor: new THREE.Color(icingColor?.color || "#3B1F18").multiplyScalar(1.3),
-                envMapIntensity: 1.5,
-                side: THREE.DoubleSide,
-            });
-            child.material = icingMat;
+    const isRoundIcing =
+        lname.includes("round");
 
-            // Use GLTF model's original positions — these are authored to fit the cake side
-            // Round icing: position from GLTF node (-0.0119, -0.7735, 0.0015), scale (1.235, 1.013, 1.235)
-            // Rectangle icing: position from GLTF node (0.008, -1.249, -0.0005), scale (1.259, 1.146, 1.259)
-            if (isRoundIcing && child.visible) {
-                child.position.set(-0.0119, -0.7735, 0.0015);
-                child.scale.set(1.235, 1.013, 1.235);
-            } else if (isRectangleIcing && child.visible) {
-                child.position.set(0.008, -1.249, -0.0005);
-                child.scale.set(1.259, 1.146, 1.259);
-            }
+    child.visible =
+        (!isRectangleIcing && !isRoundIcing) ||
+        (isRoundIcing && form === 1) ||
+        (isRectangleIcing && form === 2);
 
-            child.castShadow = true;
-            child.receiveShadow = true;
-            return;
+    child.material = new THREE.MeshPhysicalMaterial({
+        color: icingColor?.color || "#3B1F18",
+        roughness: 0.3,
+        metalness: 0,
+        clearcoat: 0.25,
+        clearcoatRoughness: 0.4,
+        side: THREE.DoubleSide,
+    });
+
+    if (child.visible) {
+        const type = isRectangleIcing
+            ? "rectangle"
+            : "round";
+
+        const transform =
+            ICING_TRANSFORMS[tierIndex]?.[type];
+
+        if (transform) {
+            child.position.set(...transform.position);
+            child.scale.set(...transform.scale);
         }
+    }
+
+    child.castShadow = true;
+    child.receiveShadow = true;
+
+    return;
+}
 
         if (lname.includes("cherry")) {
             child.visible = cherryVisible;
@@ -357,6 +408,8 @@ function RealisticLighting() {
 
 // ───── CakeModel ─────
 export function CakeModel({ selectedTierIndex }) {
+
+
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
@@ -422,10 +475,59 @@ export function CakeModel({ selectedTierIndex }) {
         cherryTexture.needsUpdate = true;
     }, [cherryTexture]);
 
-    useEffect(() => { applyMaterialsToScene(tier1?.scene, matProps); }, [tier1, cakeColor, icingColor, form, selectedTierFlavors, textureByFlavor, cherryTexture, cherry]);
-    useEffect(() => { applyMaterialsToScene(tier2?.scene, matProps); }, [tier2, cakeColor, form, selectedTierFlavors, textureByFlavor]);
-    useEffect(() => { applyMaterialsToScene(tier3?.scene, matProps); }, [tier3, cakeColor, form, selectedTierFlavors, textureByFlavor]);
-    useEffect(() => { applyMaterialsToScene(tier4?.scene, matProps); }, [tier4, cakeColor, form, selectedTierFlavors, textureByFlavor]);
+useEffect(() => {
+    applyMaterialsToScene(tier1?.scene, {
+        ...matProps,
+        tierIndex: 0,
+    });
+}, [
+    tier1,
+    cakeColor,
+    icingColor,
+    form,
+    selectedTierFlavors,
+    cherryTexture,
+    cherry
+]);
+
+useEffect(() => {
+    applyMaterialsToScene(tier2?.scene, {
+        ...matProps,
+        tierIndex: 1,
+    });
+}, [
+    tier2,
+    cakeColor,
+    icingColor,
+    form,
+    selectedTierFlavors
+]);
+
+useEffect(() => {
+    applyMaterialsToScene(tier3?.scene, {
+        ...matProps,
+        tierIndex: 2,
+    });
+}, [
+    tier3,
+    cakeColor,
+    icingColor,
+    form,
+    selectedTierFlavors
+]);
+
+useEffect(() => {
+    applyMaterialsToScene(tier4?.scene, {
+        ...matProps,
+        tierIndex: 3,
+    });
+}, [
+    tier4,
+    cakeColor,
+    icingColor,
+    form,
+    selectedTierFlavors
+]);
 
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
@@ -500,45 +602,81 @@ export function CakeModel({ selectedTierIndex }) {
     };
 
     const renderSprinkles = () => {
-        if (!selectedToppings.sprinkles) return null;
+    if (!selectedToppings.sprinkles) return null;
 
-        const sprinkleColors = ["#F7D65A", "#EC7DAB", "#A0D9F6", "#8EE1A3", "#F0A868", "#B79AF7"];
-        const topY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
-        const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
-        const rotationY = TIER_TOP_ROTATION[selectedTierIndex] ?? TIER_TOP_ROTATION[0];
-        const sprinkleCount = selectedTierIndex >= 2 ? 28 : 18;
+    const sprinkleColors = [
+        "#F7D65A",
+        "#EC7DAB",
+        "#A0D9F6",
+        "#8EE1A3",
+        "#F0A868",
+        "#B79AF7"
+    ];
 
-        return (
-            <group position={[0, topY + TIER_TOP_OFFSET[selectedTierIndex] ?? TIER_TOP_OFFSET[0], 0]} rotation={[0, rotationY, 0]}>
-                {Array.from({ length: sprinkleCount }).map((_, index) => {
-                    const angle = (index / sprinkleCount) * Math.PI * 2;
-                    const spread = radius * 0.84;
-                    const x = Math.cos(angle) * spread;
-                    const z = Math.sin(angle) * spread;
-                    const color = sprinkleColors[index % sprinkleColors.length];
+    const topY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
+    const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
 
-                    return (
-                        <mesh key={index} position={[x, 0.06, z]} rotation={[0.4, angle, 0.2]} castShadow>
-                            <boxGeometry args={[0.08, 0.04, 0.02]} />
-                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} />
-                        </mesh>
-                    );
-                })}
-            </group>
-        );
-    };
+    const rotationY =
+        TIER_TOP_ROTATION[selectedTierIndex] ??
+        TIER_TOP_ROTATION[0];
+
+    const sprinkleCount =
+        selectedTierIndex >= 2 ? 28 : 18;
+
+    // Get Small / Medium / Large value
+    const sprinkleSize =
+        TOPPING_SIZES[toppingLayout.sprinkles?.size] ?? 1;
+
+    return (
+        <group
+            position={[0, topY + 0.03, 0]}
+            rotation={[0, rotationY, 0]}
+        >
+            {Array.from({ length: sprinkleCount }).map((_, index) => {
+                const angle =
+                    (index / sprinkleCount) * Math.PI * 2;
+
+                const spread = radius * 0.84;
+
+                const x = Math.cos(angle) * spread;
+                const z = Math.sin(angle) * spread;
+
+                const color =
+                    sprinkleColors[index % sprinkleColors.length];
+
+                return (
+                    <mesh
+                        key={index}
+                        position={[x, 0, z]}
+                        rotation={[0.4, angle, 0.2]}
+                        scale={sprinkleSize}
+                        castShadow
+                    >
+                        <boxGeometry args={[0.08, 0.04, 0.02]} />
+
+                        <meshStandardMaterial
+                            color={color}
+                            emissive={color}
+                            emissiveIntensity={0.15}
+                        />
+                    </mesh>
+                );
+            })}
+        </group>
+    );
+};
 
     const renderCustomToppings = () => (
         <>
             {selectedToppings.candle && renderCandleNumber()}
 
-            {selectedToppings.nuts && nodes.nuts?.geometry && (
+                        {selectedToppings.nuts && nodes.nuts?.geometry && (
                 <mesh
                     geometry={nodes.nuts.geometry}
                     material={materials.Default}
                     position={getToppingPosition(toppingLayout.nuts, TOPPING_3D_CONFIG.nuts, selectedTierIndex)}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
-                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size]}
+                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
                 />
             )}
 
@@ -546,7 +684,7 @@ export function CakeModel({ selectedTierIndex }) {
                 <group
                     position={getToppingPosition(toppingLayout.nuts, TOPPING_3D_CONFIG.nuts, selectedTierIndex)}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
-                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size]}
+                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
                 >
                     <mesh geometry={nodes.Mesh021.geometry} material={materials.Default} />
                     <mesh geometry={nodes.Mesh021_1.geometry} material={materials.Default} />
@@ -564,15 +702,14 @@ export function CakeModel({ selectedTierIndex }) {
             )}
 
             {selectedToppings.balls && nodes.balls?.geometry && (
-                <mesh
-                    geometry={nodes.balls.geometry}
-                    material={materials.balls}
-                    position={getToppingPosition(toppingLayout.balls, TOPPING_3D_CONFIG.balls, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.balls.rotation}
-                    scale={TOPPING_3D_CONFIG.balls.scale * TOPPING_SIZES[toppingLayout.balls.size]}
-                />
-            )}
-
+    <mesh
+        geometry={nodes.balls.geometry}
+        material={materials.balls}
+        position={getToppingPosition(toppingLayout.balls, TOPPING_3D_CONFIG.balls, selectedTierIndex)}
+        rotation={TOPPING_3D_CONFIG.balls.rotation}
+        scale={TOPPING_3D_CONFIG.balls.scale * TOPPING_SIZES[toppingLayout.balls.size] * (BALLS_TIER_SCALE[selectedTierIndex] ?? 1)}
+    />
+)}
             {selectedToppings.cherry && nodes.cherry?.geometry && (
                 <mesh
                     geometry={nodes.cherry.geometry}
