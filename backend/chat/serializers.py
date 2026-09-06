@@ -8,21 +8,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = [
-            "id",
-            "conversation",
-            "sender",
-            "sender_name",
-            "sender_type",
-            "message_type",
-            "content",
-            "attachment",
-            "metadata",
-            "created_at",
-            "read_by_customer",
-            "read_by_admin",
-        ]
-
+        fields = ["id", "conversation", "sender", "sender_name", "sender_type", "message_type", "content", "attachment", "metadata", "created_at", "read_by_customer", "read_by_admin"]
         read_only_fields = ("conversation", "sender", "sender_type", "created_at", "read_by_customer", "read_by_admin")
 
     def get_sender_name(self, obj):
@@ -39,12 +25,7 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Conversation
-        fields = [
-            "id",
-            "order",
-            "created_at",
-            "messages",
-        ]
+        fields = ["id", "order", "created_at", "messages"]
         
 class SendMessageSerializer(serializers.ModelSerializer):
 

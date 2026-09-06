@@ -15,6 +15,47 @@ class Conversation(models.Model):
     def __str__(self):
         return f"Conversation for Order #{self.order.id}"
 
+class Quotation(models.Model):
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+        ("replaced", "Replaced"),
+    ]
+
+    order = models.ForeignKey(
+        Order,
+        related_name="quotations",
+        on_delete=models.CASCADE
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Quotation #{self.id} - Order #{self.order.id} - {self.amount}"
+
 class Message(models.Model):
 
     SENDER_CHOICES = [

@@ -3,7 +3,22 @@ from rest_framework import serializers
 from payments.serializers import PaymentSerializer
 from store.models import Order, OrderItem, Product
 from .models import OrderFeedback
+from chat.models import Quotation
         
+class QuotationSerializer(serializers.ModelSerializer):
+
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quotation
+        fields = ["id", "order", "created_by", "created_by_name", "amount", "status", "created_at", "accepted_at"]
+        read_only_fields = ["id", "order", "created_by", "created_by_name", "status", "created_at", "accepted_at"]
+
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.username
+        return "System"
+
 class OrderFeedbackSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -39,11 +54,12 @@ class OrderSerializer(serializers.ModelSerializer):
     formatted_phone = serializers.SerializerMethodField()
     payments = PaymentSerializer(many=True, read_only=True)
     feedback = OrderFeedbackSerializer(read_only=True)
+    quotations = QuotationSerializer(many=True, read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'payments', 'feedback',
+            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'quoted_price', 'quotations', 'payments', 'feedback',
         ]
         
     def get_total_paid(self, obj):

@@ -1,6 +1,7 @@
 # orders/serializers_feedback.py
 from rest_framework import serializers
 from .models import OrderFeedback
+from chat.models import Quotation
 
 class OrderFeedbackSerializer(serializers.ModelSerializer):
 
