@@ -68,6 +68,34 @@ export default function CustomerOrderDetailPage() {
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
     const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount || parsedPay === 0;
 
+    const handleCancelOrder = async () => {
+        if (!confirm("Are you sure you want to cancel this order?")) {
+            return;
+        }
+
+        try {
+            const res = await authFetch(
+                `${BASEURL}/api/orders/${id}/cancel/`,
+                {
+                    method: "POST",
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "Failed to cancel order.");
+                return;
+            }
+
+            alert("Order cancelled successfully.");
+            await fetchOrder();
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong while cancelling the order.");
+        }
+    };
+
     const handlePayNow = async () => {
         try {
             const res = await authFetch(`${BASEURL}/api/payments/${id}/checkout/`, {
@@ -156,6 +184,14 @@ export default function CustomerOrderDetailPage() {
     if (!order) return null;
 
     const isPayable = !["delivered", "completed", "cancelled", "rejected"].includes(order.status);
+
+    const canCancelOrder =
+        order.status === "pending_review" ||
+        order.status === "awaiting_customer_response" ||
+        (
+            order.status === "awaiting_downpayment" &&
+            Number(order.total_paid) === 0
+        );
 
     const showPaymentCard =
         isPayable &&
@@ -277,28 +313,29 @@ export default function CustomerOrderDetailPage() {
                                 </div>
 
                                 <button onClick={handlePayNow} disabled={!isPayable || isInvalid || isTipInvalid || !agreeNoRefund} className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed">Proceed to Secure Checkout</button>
+                            </div>
+                        )}
 
-                                {(
-                                    order.status === "pending_review" ||
-                                    order.status === "awaiting_customer_response" ||
-                                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
-                                ) && (
-                                        <button
-                                            onClick={async () => {
-                                                if (!confirm("Cancel this order?")) return;
-
-                                                const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
-
-                                                if (res.ok) {
-                                                    alert("Order cancelled");
-                                                    fetchOrder();
-                                                }
-                                            }}
-                                            className="w-full mt-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold py-3 rounded-full transition-all cursor-pointer"
-                                        >
+                        {canCancelOrder && (
+                            <div className="bg-white border border-rose-200 rounded-2xl p-5 shadow-sm">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <h4 className="text-sm font-black text-stone-700">
                                             Cancel Order
-                                        </button>
-                                    )}
+                                        </h4>
+
+                                        <p className="text-xs text-stone-500 mt-1">
+                                            You can cancel this order while no payment has been made.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={handleCancelOrder}
+                                        className="w-full sm:w-auto shrink-0 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+                                    >
+                                        Cancel Order
+                                    </button>
+                                </div>
                             </div>
                         )}
 
