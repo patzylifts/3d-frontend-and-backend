@@ -1,8 +1,6 @@
 // src/pages/admin/AdminDashboard.jsx
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/auth";
-import Navbar from "../../components/Navbar";
-
 
 export default function AdminDashboard() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -35,8 +33,6 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
-            <Navbar />
-
             <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 flex flex-col gap-8">
                 <header className="mb-2">
                     <h1 className="text-3xl font-black text-[#6E473B]">Business Overview</h1>

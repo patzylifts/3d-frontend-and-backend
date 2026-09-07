@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAccessToken } from "../../utils/auth";
-import Navbar from "../../components/Navbar";
 
 function AdminProductEdit() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -82,7 +81,6 @@ function AdminProductEdit() {
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
-            <Navbar />
             <div className="max-w-4xl mx-auto px-4 mt-8">
                 <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border border-[#E6CCA2] shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

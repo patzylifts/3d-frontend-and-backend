@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-
 import Navbar from '../components/Navbar';
 
 const LandingPage = () => {
@@ -22,7 +21,6 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-[#FCF8EE] flex flex-col antialiased font-sans">
             <Navbar />
-            
             {/* Hero Section */}
             <section className="relative w-full h-[85vh] min-h-[500px] overflow-hidden flex items-center justify-center">
                 <video autoPlay loop muted playsInline className="absolute top-1/2 left-1/2 min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover z-0">

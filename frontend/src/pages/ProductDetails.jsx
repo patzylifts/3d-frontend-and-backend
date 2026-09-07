@@ -2,7 +2,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
-import Navbar from '../components/Navbar';
 
 function ProductDetails() {
     const { id } = useParams();
@@ -94,9 +93,7 @@ function ProductDetails() {
 
     return (
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased flex flex-col">
-            <Navbar />
-
-            <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col justify-center">
+            <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-8 flex-1 flex flex-col">
                 {/* Back Button */}
                 <div className="mb-6">
                     <button

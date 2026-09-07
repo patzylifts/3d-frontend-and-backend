@@ -1,7 +1,7 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 :root {
   --espresso: #2d1b14;

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import { getOrderStatusLabel } from "../../utils/orderStatus";
-import Navbar from "../../components/Navbar";
 
 export default function AdminOrdersPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -97,8 +96,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-[#FCF8EE] pb-10">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-5">
         <header className="mb-8">
           <h1 className="text-3xl font-black text-[#6E473B]">Customer Orders</h1>
           <p className="text-[#A07060]">Manage incoming requests and cake statuses.</p>

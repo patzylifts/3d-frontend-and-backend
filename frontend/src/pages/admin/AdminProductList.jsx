@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminProductCard from "../../components/admin/AdminProductCard";
 import { getAccessToken } from "../../utils/auth";
-import Navbar from "../../components/Navbar";
 
 function AdminProductList() {
     const [activeTab, setActiveTab] = useState("products");
@@ -115,7 +114,6 @@ function AdminProductList() {
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
-            <Navbar />
             {successMessage && <div className="fixed top-20 right-5 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg font-bold">{successMessage}</div>}
             
             <div className="max-w-7xl mx-auto px-4 mt-8">

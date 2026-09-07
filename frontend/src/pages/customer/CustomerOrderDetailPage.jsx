@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import Logistics from "../../components/Logistics";
-import Navbar from "../../components/Navbar";
 import ProductReviewForm from "../../components/customer/ProductReviewForm";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
@@ -225,9 +224,7 @@ export default function CustomerOrderDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased pb-16">
-            <Navbar />
-
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 space-y-6">
                 <header className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
                         <button className="text-xs font-bold text-[#d67b27] hover:text-[#b56219] transition-colors mb-2 block cursor-pointer" onClick={() => navigate("/orders")}>← Back to My Orders</button>

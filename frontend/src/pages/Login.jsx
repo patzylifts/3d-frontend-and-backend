@@ -49,7 +49,7 @@ function Login() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#FCF8EE] flex items-center justify-center p-4 antialiased font-sans">
+        <div className="min-h-[calc(100vh-5rem)] w-full bg-[#FCF8EE] flex items-start sm:items-center justify-center px-4 pt-5 pb-8 antialiased font-sans">
             <div className="w-full max-w-md bg-white border border-[#E6CCA2] rounded-2xl shadow-md p-6 sm:p-8 flex flex-col gap-6">
                 
                 {/* 🎂 Brand Header */}
