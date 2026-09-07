@@ -1,4 +1,4 @@
-
+/* src/pages/BuildBentoPage.css */
 .topping-board {
     width: 220px;
     height: 220px;
@@ -60,3 +60,25 @@
     height: 36px;
 }
 
+/* 3D preview responsive sizing */
+.cake-preview-shell {
+    height: 310px;
+}
+
+@media (min-width: 640px) {
+    .cake-preview-shell {
+        height: 350px;
+    }
+}
+
+@media (min-width: 768px) {
+    .cake-preview-shell {
+        height: 400px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .cake-preview-shell {
+        height: clamp(460px, calc(100vh - 4rem), 540px);
+    }
+}

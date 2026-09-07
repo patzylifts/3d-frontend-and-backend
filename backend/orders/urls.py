@@ -12,8 +12,11 @@ urlpatterns = [
     path('customer/orders/<int:order_id>/', views.customer_order_detail, name='customer_order_detail'),
     path('<int:order_id>/accept-quotation/', views.accept_quotation, name='accept_quotation'),
     path('<int:order_id>/cancel/', cancel_order, name='cancel_order'),
+    
     # Customer Feedback
-    path('<int:order_id>/feedback/', views.submit_feedback, name='submit_feedback'),
+    path('<int:order_id>/items/<int:item_id>/product-review/', views.product_review, name='product_review'),
+    path('products/<int:product_id>/reviews/', views.product_reviews, name='product_reviews'),
+    
     # Admin Orders
     path('admin/orders/', admin_views.admin_orders),
     path('admin/orders/<int:order_id>/', admin_views.admin_order_detail),

@@ -1,8 +1,11 @@
 // src/components/OrderCard.jsx
+import { getOrderStatusLabel } from "../utils/orderStatus";
+
 export default function OrderCard({ order, unreadCount, onView }) {
   const total = Number(order.total_amount);
   const statusColors = {
     pending_review: "bg-amber-100 text-amber-800 border border-amber-200",
+    awaiting_customer_response: "bg-sky-100 text-sky-800 border border-sky-200",
     awaiting_downpayment: "bg-orange-100 text-orange-800 border border-orange-200",
     processing: "bg-yellow-100 text-yellow-800 border border-yellow-200",
     completed: "bg-emerald-100 text-emerald-800 border border-emerald-200",
@@ -33,10 +36,10 @@ export default function OrderCard({ order, unreadCount, onView }) {
           </div>
           <div>
             <span
-              className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[order.status] || "bg-stone-100 text-stone-600"
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusColors[order.status] || "bg-stone-100 text-stone-600"
                 }`}
             >
-              {order.status.replace("_", " ")}
+              {getOrderStatusLabel(order.status)}
             </span>
           </div>
         </div>

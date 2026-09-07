@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import Logistics from "../../components/Logistics";
-import Navbar from "../../components/Navbar";
-import OrderFeedback from "../../components/customer/OrderFeedback";
+import ProductReviewForm from "../../components/customer/ProductReviewForm";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
+import { getOrderStatusLabel } from "../../utils/orderStatus";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -66,6 +66,34 @@ export default function CustomerOrderDetailPage() {
     const maxAmount = order ? remainingBalance : 0;
     const isTipInvalid = tipAmount !== "" && parsedTip < 0;
     const isInvalid = payAmount === "" || parsedPay < minAmount || parsedPay > maxAmount || parsedPay === 0;
+
+    const handleCancelOrder = async () => {
+        if (!confirm("Are you sure you want to cancel this order?")) {
+            return;
+        }
+
+        try {
+            const res = await authFetch(
+                `${BASEURL}/api/orders/${id}/cancel/`,
+                {
+                    method: "POST",
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "Failed to cancel order.");
+                return;
+            }
+
+            alert("Order cancelled successfully.");
+            await fetchOrder();
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong while cancelling the order.");
+        }
+    };
 
     const handlePayNow = async () => {
         try {
@@ -156,6 +184,14 @@ export default function CustomerOrderDetailPage() {
 
     const isPayable = !["delivered", "completed", "cancelled", "rejected"].includes(order.status);
 
+    const canCancelOrder =
+        order.status === "pending_review" ||
+        order.status === "awaiting_customer_response" ||
+        (
+            order.status === "awaiting_downpayment" &&
+            Number(order.total_paid) === 0
+        );
+
     const showPaymentCard =
         isPayable &&
         ["awaiting_downpayment", "partial"].includes(order.status === "awaiting_downpayment" ? order.status : order.payment_status) &&
@@ -169,6 +205,9 @@ export default function CustomerOrderDetailPage() {
             case "pending_review":
             case "awaiting_downpayment":
                 return "bg-amber-50 text-amber-700 border-amber-200";
+
+            case "awaiting_customer_response":
+                return "bg-sky-50 text-sky-700 border-sky-200";
             case "cancelled":
             case "rejected":
                 return "bg-rose-50 text-rose-700 border-rose-200";
@@ -185,9 +224,7 @@ export default function CustomerOrderDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased pb-16">
-            <Navbar />
-
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 space-y-6">
                 <header className="bg-white border border-[#f3e1c6] rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
                         <button className="text-xs font-bold text-[#d67b27] hover:text-[#b56219] transition-colors mb-2 block cursor-pointer" onClick={() => navigate("/orders")}>← Back to My Orders</button>
@@ -195,7 +232,11 @@ export default function CustomerOrderDetailPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        <span className={`text-xs uppercase font-black tracking-wider px-3 py-1.5 border rounded-full ${getStatusColor(order.status)}`}>{order.status.replace("_", " ")}</span>
+                        <span
+                            className={`text-xs uppercase font-black tracking-wider whitespace-nowrap px-3 py-1.5 border rounded-full ${getStatusColor(order.status)}`}
+                        >
+                            {getOrderStatusLabel(order.status)}
+                        </span>
                         <span className={`text-xs uppercase font-black tracking-wider px-3 py-1.5 border rounded-full ${getPaymentColor(order.payment_status)}`}>{order.payment_status}</span>
                     </div>
                 </header>
@@ -269,28 +310,29 @@ export default function CustomerOrderDetailPage() {
                                 </div>
 
                                 <button onClick={handlePayNow} disabled={!isPayable || isInvalid || isTipInvalid || !agreeNoRefund} className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed">Proceed to Secure Checkout</button>
+                            </div>
+                        )}
 
-                                {(
-                                    order.status === "pending_review" ||
-                                    order.status === "awaiting_customer_response" ||
-                                    (order.status === "awaiting_downpayment" && Number(order.total_paid) === 0)
-                                ) && (
-                                        <button
-                                            onClick={async () => {
-                                                if (!confirm("Cancel this order?")) return;
-
-                                                const res = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, { method: "POST" });
-
-                                                if (res.ok) {
-                                                    alert("Order cancelled");
-                                                    fetchOrder();
-                                                }
-                                            }}
-                                            className="w-full mt-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold py-3 rounded-full transition-all cursor-pointer"
-                                        >
+                        {canCancelOrder && (
+                            <div className="bg-white border border-rose-200 rounded-2xl p-5 shadow-sm">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <h4 className="text-sm font-black text-stone-700">
                                             Cancel Order
-                                        </button>
-                                    )}
+                                        </h4>
+
+                                        <p className="text-xs text-stone-500 mt-1">
+                                            You can cancel this order while no payment has been made.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={handleCancelOrder}
+                                        className="w-full sm:w-auto shrink-0 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+                                    >
+                                        Cancel Order
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -325,6 +367,12 @@ export default function CustomerOrderDetailPage() {
                                             )}
 
                                             <p className="text-xs text-stone-400 font-semibold">Qty: {item.quantity} × ₱{item.price}</p>
+                                            {order.status === "delivered" && item.product && (
+                                                <ProductReviewForm
+                                                    orderId={order.id}
+                                                    item={item}
+                                                />
+                                            )}
                                         </div>
 
                                         <div className="font-extrabold text-[#844414] text-right">₱{item.subtotal}</div>
@@ -354,12 +402,6 @@ export default function CustomerOrderDetailPage() {
                         </div>
                     </div>
                 </div>
-
-                {(order.status === "delivered" || order.feedback) && (
-                    <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
-                        <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
-                    </div>
-                )}
             </div>
 
             <ChatBox

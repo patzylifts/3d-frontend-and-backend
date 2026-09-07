@@ -3,13 +3,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
-import Navbar from "../../components/Navbar";
 import Logistics from "../../components/Logistics";
-import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 import AdminQuotationPanel from "../../components/admin/AdminQuotationPanel";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
+import { getOrderStatusLabel } from "../../utils/orderStatus";
 
 export default function AdminOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -19,6 +18,11 @@ export default function AdminOrderDetailPage() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [reviewData, setReviewData] = useState({
+        average_rating: 0,
+        review_count: 0,
+        reviews: [],
+    });
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showCakeModal, setShowCakeModal] = useState(false);
     const [selectedCake, setSelectedCake] = useState(null);
@@ -58,6 +62,17 @@ export default function AdminOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
+    useEffect(() => {
+        fetch(`${BASEURL}/api/orders/products/${id}/reviews/`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.reviews) {
+                    setReviewData(data);
+                }
+            })
+            .catch((err) => console.error(err));
+    }, [id, BASEURL]);
+
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-[#6E473B]">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
     if (!order) return null;
@@ -75,8 +90,7 @@ export default function AdminOrderDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
-            <Navbar />
-            <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 space-y-6">
+            <div className="max-w-6xl mx-auto px-4 md:px-8 mt-5 space-y-6">
 
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <button className="text-[#A07060] hover:text-[#6E473B] font-bold" onClick={() => navigate("/admin/orders")}>
@@ -84,7 +98,11 @@ export default function AdminOrderDetailPage() {
                     </button>
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-black text-[#6E473B]">Order <span className="text-[#C05A11]">#{order.id}</span></h1>
-                        <span className={`px-3 py-1 text-xs font-black rounded-full uppercase border ${order.status}`}>{order.status.replace('_', ' ')}</span>
+                        <span
+                            className={`px-3 py-1 text-[11px] font-black rounded-full uppercase border whitespace-nowrap ${order.status}`}
+                        >
+                            {getOrderStatusLabel(order.status)}
+                        </span>
                     </div>
                 </header>
 
@@ -224,7 +242,6 @@ export default function AdminOrderDetailPage() {
                 <div className="bg-white p-6 rounded-2xl border border-[#E6CCA2]">
                     <Logistics order={order} embedded />
                 </div>
-                <AdminOrderFeedback feedback={order.feedback} />
             </div>
             <ChatBox
                 orderId={id}

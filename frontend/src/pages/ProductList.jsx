@@ -1,7 +1,6 @@
 // src/pages/ProductList.jsx
 import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
-import Navbar from "../components/Navbar";
 
 function ProductList() {
     const [products, setProducts] = useState([]);
@@ -52,9 +51,7 @@ function ProductList() {
 
     return (
         <div className="min-h-screen bg-[#fffdf9] text-stone-800 antialiased">
-            <Navbar />
-            
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-12">
                 {/* Header Section */}
                 <header className="text-center max-w-xl mx-auto mb-14 space-y-3">
                     <h1 className="text-4xl font-black text-[#844414] tracking-tight sm:text-5xl drop-shadow-sm">
@@ -75,7 +72,7 @@ function ProductList() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-20 bg-white border border-[#f3e1c6] rounded-3xl shadow-sm max-w-md mx-auto px-8 py-12">
+                        <div className="text-center bg-white border border-[#f3e1c6] rounded-3xl shadow-sm max-w-md mx-auto px-8 py-12">
                             <span className="text-6xl block mb-4 animate-bounce">🍰</span>
                             <p className="text-[#844414] font-bold text-xl">Our ovens are busy!</p>
                             <p className="text-stone-400 text-sm mt-2">Check back soon for new treats.</p>

@@ -2,7 +2,6 @@
 from rest_framework import serializers
 from payments.serializers import PaymentSerializer
 from store.models import Order, OrderItem, Product
-from .models import OrderFeedback
 from chat.models import Quotation
         
 class QuotationSerializer(serializers.ModelSerializer):
@@ -18,12 +17,6 @@ class QuotationSerializer(serializers.ModelSerializer):
         if obj.created_by:
             return obj.created_by.username
         return "System"
-
-class OrderFeedbackSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = OrderFeedback
-        fields = "__all__"
         
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
@@ -53,13 +46,12 @@ class OrderSerializer(serializers.ModelSerializer):
     full_address = serializers.SerializerMethodField()
     formatted_phone = serializers.SerializerMethodField()
     payments = PaymentSerializer(many=True, read_only=True)
-    feedback = OrderFeedbackSerializer(read_only=True)
     quotations = QuotationSerializer(many=True, read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'quoted_price', 'quotations', 'payments', 'feedback',
+            'id', 'user', 'user_name', 'customer_email', 'created_at', 'full_name', 'phone', 'formatted_phone', 'street', 'city', 'province', 'postal_code', 'full_address', 'delivery_date', 'delivery_time', 'order_notes', 'total_amount', 'status', 'payment_status', 'total_paid', 'remaining_balance', 'items', 'rejection_reason', 'quoted_price', 'quotations', 'payments',
         ]
         
     def get_total_paid(self, obj):

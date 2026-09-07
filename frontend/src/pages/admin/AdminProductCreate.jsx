@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccessToken } from "../../utils/auth";
-import Navbar from "../../components/Navbar";
 
 export default function AdminProductCreate() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -69,7 +68,6 @@ export default function AdminProductCreate() {
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] pb-10">
-            <Navbar />
             <div className="max-w-3xl mx-auto px-4 mt-8">
                 <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border border-[#E6CCA2] shadow-sm">
                     <header className="mb-8">

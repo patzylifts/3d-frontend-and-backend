@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
-import Navbar from "../../components/Navbar";
+import { getOrderStatusLabel } from "../../utils/orderStatus";
 
 export default function AdminOrdersPage() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -53,8 +53,38 @@ export default function AdminOrdersPage() {
   }, []);
 
   const getStatusClass = (status) => {
-    if (status === "pending_review") return "bg-amber-100 text-amber-800 border-amber-200";
-    if (status === "completed") return "bg-green-100 text-green-800 border-green-200";
+    if (status === "pending_review") {
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    }
+
+    if (status === "awaiting_customer_response") {
+      return "bg-sky-100 text-sky-800 border-sky-200";
+    }
+
+    if (status === "awaiting_downpayment") {
+      return "bg-orange-100 text-orange-800 border-orange-200";
+    }
+
+    if (status === "processing") {
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    }
+
+    if (status === "ready_for_delivery") {
+      return "bg-violet-100 text-violet-800 border-violet-200";
+    }
+
+    if (status === "out_for_delivery") {
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    }
+
+    if (status === "delivered" || status === "completed") {
+      return "bg-green-100 text-green-800 border-green-200";
+    }
+
+    if (status === "rejected" || status === "cancelled") {
+      return "bg-rose-100 text-rose-800 border-rose-200";
+    }
+
     return "bg-gray-100 text-gray-800 border-gray-200";
   };
 
@@ -66,8 +96,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-[#FCF8EE] pb-10">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-5">
         <header className="mb-8">
           <h1 className="text-3xl font-black text-[#6E473B]">Customer Orders</h1>
           <p className="text-[#A07060]">Manage incoming requests and cake statuses.</p>
@@ -120,8 +149,10 @@ export default function AdminOrdersPage() {
                       <td className="p-4 text-sm text-[#A07060]">{order.full_address || `${order.street || ''} ${order.city || ''}` || "—"}</td>
                       <td className="p-4 font-black text-[#6E473B]">₱{Number(order.total_amount).toLocaleString()}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 text-[10px] font-black rounded-full border uppercase ${getStatusClass(order.status)}`}>
-                          {order.status.replace("_", " ")}
+                        <span
+                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-1 text-[10px] font-black rounded-full border uppercase ${getStatusClass(order.status)}`}
+                        >
+                          {getOrderStatusLabel(order.status, true)}
                         </span>
                       </td>
                       <td className="p-4">

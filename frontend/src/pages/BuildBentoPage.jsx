@@ -1,7 +1,7 @@
 // src/pages/BuildBentoPage.jsx
-import { useRef, Suspense, useState, useEffect, Component } from "react";
+import { useRef, Suspense, useState, useEffect, useMemo, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useGLTF, useTexture, OrbitControls, ContactShadows, SpotLight } from "@react-three/drei";
+import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
@@ -9,6 +9,7 @@ import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, T
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
+import CakeCompass from "../components/CakeCompass";
 import './BuildBentoPage.css';
 
 const TIER_MODEL_URLS = {
@@ -84,7 +85,6 @@ const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.70];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
 const CANDLE_DIGIT_SPACING = 0.18;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
-const TIER_TOP_OFFSET = [0.12, 0.18, 0.2, 0.25];
 const TIER_TOP_ROTATION = [0, 0.18, 0.25, 0.35];
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
@@ -97,17 +97,6 @@ const FLAVOR_LABELS = {
     "Choco Moist": "Chocolate",
     "Vanilla Chiffon": "Vanilla",
     "Ube Chiffon": "Ube",
-};
-
-// ──────── Helpers ────────────
-const getTierTopY = (selectedTierIndex) => {
-    switch (selectedTierIndex) {
-        case 0: return 2.33;
-        case 1: return 2.38;
-        case 2: return 3.15;
-        case 3: return 3.95;
-        default: return 2.33;
-    }
 };
 
 const getToppingPosition = (layout, config, selectedTierIndex) => {
@@ -131,11 +120,6 @@ const getCakeShape = (name) => {
     if (lname.includes("rectangle") || lname.includes("rect") || lname.includes("cube")) return "rectangle";
     if (lname.includes("round") || lname === "cake" || /^cake([._]\d+)?$/.test(lname)) return "round";
     return null;
-};
-
-const getNodeRotationArray = (node) => {
-    if (!node?.rotation) return [0, 0, 0];
-    return [node.rotation.x, node.rotation.y, node.rotation.z];
 };
 
 const getNodeScaleArray = (node, multiplier = 1) => {
@@ -229,46 +213,46 @@ function applyMaterialsToScene(scene, {
         if (lname.includes("bar")) { child.visible = false; return; }
         if (lname.includes("ball")) { child.visible = false; return; }
 
-       if (lname.includes("icing")) {
-    const isRectangleIcing =
-        lname.includes("rectangle") || lname.includes("rect");
+        if (lname.includes("icing")) {
+            const isRectangleIcing =
+                lname.includes("rectangle") || lname.includes("rect");
 
-    const isRoundIcing =
-        lname.includes("round");
+            const isRoundIcing =
+                lname.includes("round");
 
-    child.visible =
-        (!isRectangleIcing && !isRoundIcing) ||
-        (isRoundIcing && form === 1) ||
-        (isRectangleIcing && form === 2);
+            child.visible =
+                (!isRectangleIcing && !isRoundIcing) ||
+                (isRoundIcing && form === 1) ||
+                (isRectangleIcing && form === 2);
 
-    child.material = new THREE.MeshPhysicalMaterial({
-        color: icingColor?.color || "#3B1F18",
-        roughness: 0.3,
-        metalness: 0,
-        clearcoat: 0.25,
-        clearcoatRoughness: 0.4,
-        side: THREE.DoubleSide,
-    });
+            child.material = new THREE.MeshPhysicalMaterial({
+                color: icingColor?.color || "#3B1F18",
+                roughness: 0.3,
+                metalness: 0,
+                clearcoat: 0.25,
+                clearcoatRoughness: 0.4,
+                side: THREE.DoubleSide,
+            });
 
-    if (child.visible) {
-        const type = isRectangleIcing
-            ? "rectangle"
-            : "round";
+            if (child.visible) {
+                const type = isRectangleIcing
+                    ? "rectangle"
+                    : "round";
 
-        const transform =
-            ICING_TRANSFORMS[tierIndex]?.[type];
+                const transform =
+                    ICING_TRANSFORMS[tierIndex]?.[type];
 
-        if (transform) {
-            child.position.set(...transform.position);
-            child.scale.set(...transform.scale);
+                if (transform) {
+                    child.position.set(...transform.position);
+                    child.scale.set(...transform.scale);
+                }
+            }
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            return;
         }
-    }
-
-    child.castShadow = true;
-    child.receiveShadow = true;
-
-    return;
-}
 
         if (lname.includes("cherry")) {
             child.visible = cherryVisible;
@@ -407,9 +391,7 @@ function RealisticLighting() {
 }
 
 // ───── CakeModel ─────
-export function CakeModel({ selectedTierIndex }) {
-
-
+export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
@@ -435,30 +417,34 @@ export function CakeModel({ selectedTierIndex }) {
         inscriptionText,
         textFont,
     } = useCustomization();
-    const groupRef = useRef();
 
     const chocoTexture = useTexture(TEXTURE_URLS.choco);
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture = useTexture(TEXTURE_URLS.ube);
     const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
 
-    const texturesByKey = {
+    const texturesByKey = useMemo(() => ({
         choco: chocoTexture,
         vanilla: milkshakeTexture,
         ube: abstractTexture,
-    };
+    }), [chocoTexture, milkshakeTexture, abstractTexture]);
 
     const baseFlavor = selectedTierFlavors?.[0] || flavor;
     const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
     const activeTexture = texturesByKey[activeTextureKey];
-    const textureByFlavor = Object.fromEntries(
-        Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
-            flavorName,
-            texturesByKey[textureKey],
-        ])
+
+    const textureByFlavor = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
+                    flavorName,
+                    texturesByKey[textureKey],
+                ])
+            ),
+        [flavorTextureMap, texturesByKey]
     );
 
-    const matProps = {
+    const matProps = useMemo(() => ({
         cakeColor,
         activeTexture,
         form,
@@ -467,7 +453,16 @@ export function CakeModel({ selectedTierIndex }) {
         icingColor,
         cherryTexture,
         cherryVisible: cherry,
-    };
+    }), [
+        cakeColor,
+        activeTexture,
+        form,
+        selectedTierFlavors,
+        textureByFlavor,
+        icingColor,
+        cherryTexture,
+        cherry,
+    ]);
 
     useEffect(() => {
         if (!cherryTexture) return;
@@ -475,62 +470,38 @@ export function CakeModel({ selectedTierIndex }) {
         cherryTexture.needsUpdate = true;
     }, [cherryTexture]);
 
-useEffect(() => {
-    applyMaterialsToScene(tier1?.scene, {
-        ...matProps,
-        tierIndex: 0,
-    });
-}, [
-    tier1,
-    cakeColor,
-    icingColor,
-    form,
-    selectedTierFlavors,
-    cherryTexture,
-    cherry
-]);
+    useEffect(() => {
+        applyMaterialsToScene(tier1?.scene, {
+            ...matProps,
+            tierIndex: 0,
+        });
+    }, [tier1, matProps]);
 
-useEffect(() => {
-    applyMaterialsToScene(tier2?.scene, {
-        ...matProps,
-        tierIndex: 1,
-    });
-}, [
-    tier2,
-    cakeColor,
-    icingColor,
-    form,
-    selectedTierFlavors
-]);
+    useEffect(() => {
+        applyMaterialsToScene(tier2?.scene, {
+            ...matProps,
+            tierIndex: 1,
+        });
+    }, [tier2, matProps]);
 
-useEffect(() => {
-    applyMaterialsToScene(tier3?.scene, {
-        ...matProps,
-        tierIndex: 2,
-    });
-}, [
-    tier3,
-    cakeColor,
-    icingColor,
-    form,
-    selectedTierFlavors
-]);
+    useEffect(() => {
+        applyMaterialsToScene(tier3?.scene, {
+            ...matProps,
+            tierIndex: 2,
+        });
+    }, [tier3, matProps]);
 
-useEffect(() => {
-    applyMaterialsToScene(tier4?.scene, {
-        ...matProps,
-        tierIndex: 3,
-    });
-}, [
-    tier4,
-    cakeColor,
-    icingColor,
-    form,
-    selectedTierFlavors
-]);
+    useEffect(() => {
+        applyMaterialsToScene(tier4?.scene, {
+            ...matProps,
+            tierIndex: 3,
+        });
+    }, [tier4, matProps]);
 
     useFrame((_, delta) => {
-        if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
+        if (autoSpin && cakeGroupRef.current) {
+            cakeGroupRef.current.rotation.y -= delta * 0.4;
+        }
     });
 
     const selectedToppings = { candle, chocolate, balls, nuts, cherry, sprinkles };
@@ -602,75 +573,75 @@ useEffect(() => {
     };
 
     const renderSprinkles = () => {
-    if (!selectedToppings.sprinkles) return null;
+        if (!selectedToppings.sprinkles) return null;
 
-    const sprinkleColors = [
-        "#F7D65A",
-        "#EC7DAB",
-        "#A0D9F6",
-        "#8EE1A3",
-        "#F0A868",
-        "#B79AF7"
-    ];
+        const sprinkleColors = [
+            "#F7D65A",
+            "#EC7DAB",
+            "#A0D9F6",
+            "#8EE1A3",
+            "#F0A868",
+            "#B79AF7"
+        ];
 
-    const topY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
-    const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
+        const topY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
+        const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
 
-    const rotationY =
-        TIER_TOP_ROTATION[selectedTierIndex] ??
-        TIER_TOP_ROTATION[0];
+        const rotationY =
+            TIER_TOP_ROTATION[selectedTierIndex] ??
+            TIER_TOP_ROTATION[0];
 
-    const sprinkleCount =
-        selectedTierIndex >= 2 ? 28 : 18;
+        const sprinkleCount =
+            selectedTierIndex >= 2 ? 28 : 18;
 
-    // Get Small / Medium / Large value
-    const sprinkleSize =
-        TOPPING_SIZES[toppingLayout.sprinkles?.size] ?? 1;
+        // Get Small / Medium / Large value
+        const sprinkleSize =
+            TOPPING_SIZES[toppingLayout.sprinkles?.size] ?? 1;
 
-    return (
-        <group
-            position={[0, topY + 0.03, 0]}
-            rotation={[0, rotationY, 0]}
-        >
-            {Array.from({ length: sprinkleCount }).map((_, index) => {
-                const angle =
-                    (index / sprinkleCount) * Math.PI * 2;
+        return (
+            <group
+                position={[0, topY + 0.03, 0]}
+                rotation={[0, rotationY, 0]}
+            >
+                {Array.from({ length: sprinkleCount }).map((_, index) => {
+                    const angle =
+                        (index / sprinkleCount) * Math.PI * 2;
 
-                const spread = radius * 0.84;
+                    const spread = radius * 0.84;
 
-                const x = Math.cos(angle) * spread;
-                const z = Math.sin(angle) * spread;
+                    const x = Math.cos(angle) * spread;
+                    const z = Math.sin(angle) * spread;
 
-                const color =
-                    sprinkleColors[index % sprinkleColors.length];
+                    const color =
+                        sprinkleColors[index % sprinkleColors.length];
 
-                return (
-                    <mesh
-                        key={index}
-                        position={[x, 0, z]}
-                        rotation={[0.4, angle, 0.2]}
-                        scale={sprinkleSize}
-                        castShadow
-                    >
-                        <boxGeometry args={[0.08, 0.04, 0.02]} />
+                    return (
+                        <mesh
+                            key={index}
+                            position={[x, 0, z]}
+                            rotation={[0.4, angle, 0.2]}
+                            scale={sprinkleSize}
+                            castShadow
+                        >
+                            <boxGeometry args={[0.08, 0.04, 0.02]} />
 
-                        <meshStandardMaterial
-                            color={color}
-                            emissive={color}
-                            emissiveIntensity={0.15}
-                        />
-                    </mesh>
-                );
-            })}
-        </group>
-    );
-};
+                            <meshStandardMaterial
+                                color={color}
+                                emissive={color}
+                                emissiveIntensity={0.15}
+                            />
+                        </mesh>
+                    );
+                })}
+            </group>
+        );
+    };
 
     const renderCustomToppings = () => (
         <>
             {selectedToppings.candle && renderCandleNumber()}
 
-                        {selectedToppings.nuts && nodes.nuts?.geometry && (
+            {selectedToppings.nuts && nodes.nuts?.geometry && (
                 <mesh
                     geometry={nodes.nuts.geometry}
                     material={materials.Default}
@@ -702,14 +673,14 @@ useEffect(() => {
             )}
 
             {selectedToppings.balls && nodes.balls?.geometry && (
-    <mesh
-        geometry={nodes.balls.geometry}
-        material={materials.balls}
-        position={getToppingPosition(toppingLayout.balls, TOPPING_3D_CONFIG.balls, selectedTierIndex)}
-        rotation={TOPPING_3D_CONFIG.balls.rotation}
-        scale={TOPPING_3D_CONFIG.balls.scale * TOPPING_SIZES[toppingLayout.balls.size] * (BALLS_TIER_SCALE[selectedTierIndex] ?? 1)}
-    />
-)}
+                <mesh
+                    geometry={nodes.balls.geometry}
+                    material={materials.balls}
+                    position={getToppingPosition(toppingLayout.balls, TOPPING_3D_CONFIG.balls, selectedTierIndex)}
+                    rotation={TOPPING_3D_CONFIG.balls.rotation}
+                    scale={TOPPING_3D_CONFIG.balls.scale * TOPPING_SIZES[toppingLayout.balls.size] * (BALLS_TIER_SCALE[selectedTierIndex] ?? 1)}
+                />
+            )}
             {selectedToppings.cherry && nodes.cherry?.geometry && (
                 <mesh
                     geometry={nodes.cherry.geometry}
@@ -818,7 +789,7 @@ useEffect(() => {
     );
 
     return (
-        <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
+        <group ref={cakeGroupRef} dispose={null} position={[0, -0.8, 0]}>
             {selectedTierIndex === 1 && (
                 <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
             )}
@@ -933,6 +904,41 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
     );
 }
 
+function ConfiguratorSection({
+    title,
+    isOpen,
+    onToggle,
+    children,
+}) {
+    return (
+        <section className="rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm overflow-hidden">
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={isOpen}
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-[#F8EDD4] transition-colors"
+            >
+                <span className="text-xs font-bold tracking-wider text-[#A05A2C] uppercase">
+                    {title}
+                </span>
+
+                <span
+                    className={`text-[#C05A11] text-lg transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                        }`}
+                >
+                    ⌄
+                </span>
+            </button>
+
+            {isOpen && (
+                <div className="px-5 pb-5">
+                    {children}
+                </div>
+            )}
+        </section>
+    );
+}
+
 // ────── Configurator ──────
 function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize }) {
     const {
@@ -969,6 +975,13 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     const [orderStatus, setOrderStatus] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [openSection, setOpenSection] = useState("tier");
+
+    const toggleSection = (section) => {
+        setOpenSection((current) =>
+            current === section ? null : section
+        );
+    };
 
     const handleSizeChange = (e) => setSelectedSize(e.target.value);
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
@@ -1046,18 +1059,21 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             </h2>
 
             {/* ── Tier & Size ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
+            <ConfiguratorSection
+                title="Tier & Size"
+                isOpen={openSection === "tier"}
+                onToggle={() => toggleSection("tier")}
+            >
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Tier Layout</h3>
                 <div className="flex flex-wrap gap-2 mb-4">
                     {CAKE_SIZES.map((item, idx) => (
                         <button
                             key={item.tier}
                             type="button"
-                            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                                selectedTierIndex === idx
-                                    ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                            }`}
+                            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${selectedTierIndex === idx
+                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                                }`}
                             onClick={() => {
                                 setSelectedTierIndex(idx);
                                 setSelectedSize(CAKE_SIZES[idx].sizes[0]);
@@ -1070,10 +1086,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
                 <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-2">Base Dimensions</h3>
                 <div className="relative w-full">
-                    <select 
-                        id="size-select" 
-                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer" 
-                        value={selectedSize} 
+                    <select
+                        id="size-select"
+                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] appearance-none focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 cursor-pointer"
+                        value={selectedSize}
                         onChange={handleSizeChange}
                     >
                         {CAKE_SIZES[selectedTierIndex].sizes.map((s) => (
@@ -1082,49 +1098,53 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                     </select>
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A05A2C] pointer-events-none text-xs">▼</span>
                 </div>
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Shape ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Base Shape</h3>
+            <ConfiguratorSection
+                title="Cake Base Shape"
+                isOpen={openSection === "shape"}
+                onToggle={() => toggleSection("shape")}
+            >
                 <div className="flex gap-2">
-                    <button 
+                    <button
                         type="button"
-                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                            form === 1
-                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                        }`} 
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${form === 1
+                            ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                            : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                            }`}
                         onClick={() => setForm(1)}
                     >
                         ⭕ Round
                     </button>
-                    <button 
+                    <button
                         type="button"
-                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                            form === 2
-                                ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
-                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
-                        }`} 
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${form === 2
+                            ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                            : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
+                            }`}
                         onClick={() => setForm(2)}
                     >
                         ⬜ Rectangle
                     </button>
                 </div>
-            </section>
-{/* ── Cake Color ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Color</h3>
+            </ConfiguratorSection>
+
+            {/* ── Cake Color ── */}
+            <ConfiguratorSection
+                title="Cake Color"
+                isOpen={openSection === "cakeColor"}
+                onToggle={() => toggleSection("cakeColor")}
+            >
                 <div className="flex flex-wrap gap-2.5">
                     {cakeColors.map((c) => (
                         <button
                             key={c.name}
                             type="button"
-                            className={`w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
-                                cakeColor.name === c.name 
-                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md" 
-                                    : "border-transparent shadow-sm"
-                            }`}
+                            className={`w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${cakeColor.name === c.name
+                                ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                : "border-transparent shadow-sm"
+                                }`}
                             style={{ background: c.color }}
                             title={c.name}
                             onClick={() => setCakeColor(c)}
@@ -1132,21 +1152,23 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         />
                     ))}
                 </div>
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Icing Color ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Icing Color</h3>
+            <ConfiguratorSection
+                title="Icing Color"
+                isOpen={openSection === "icingColor"}
+                onToggle={() => toggleSection("icingColor")}
+            >
                 <div className="flex flex-wrap gap-2.5">
                     {icingColors.map((c) => (
                         <button
                             key={c.name}
                             type="button"
-                            className={`group relative w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${
-                                icingColor.name === c.name
-                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
-                                    : "border-transparent shadow-sm"
-                            }`}
+                            className={`group relative w-9 h-9 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${icingColor.name === c.name
+                                ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                : "border-transparent shadow-sm"
+                                }`}
                             style={{ background: c.color }}
                             title={c.name}
                             onClick={() => setIcingColor(c)}
@@ -1156,24 +1178,24 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         </button>
                     ))}
                 </div>
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Flavor ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">
-                    {selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}
-                </h3>
+            <ConfiguratorSection
+                title={selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}
+                isOpen={openSection === "flavor"}
+                onToggle={() => toggleSection("flavor")}
+            >
                 {selectedTierIndex === 0 ? (
                     <div className="flex flex-col gap-2">
                         {flavors.map((f) => (
                             <button
                                 key={f}
                                 type="button"
-                                className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-[0.99] ${
-                                    flavor === f 
-                                        ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20" 
-                                        : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
-                                }`}
+                                className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-[0.99] ${flavor === f
+                                    ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
+                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                                    }`}
                                 onClick={() => {
                                     setFlavor(f);
                                     if (f === "Choco Moist")
@@ -1217,11 +1239,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         ))}
                     </div>
                 )}
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Cake Message ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Cake Message</h3>
+            <ConfiguratorSection
+                title="Cake Message"
+                isOpen={openSection === "message"}
+                onToggle={() => toggleSection("message")}
+            >
                 <div className="flex flex-col gap-2.5">
                     <input
                         className="w-full px-4 py-2.5 text-sm rounded-xl bg-white border border-[#E6CCA2] text-[#6E473B] placeholder-[#CBB294] focus:outline-none focus:border-[#C05A11] focus:ring-1 focus:ring-[#C05A11]/30 transition-all"
@@ -1245,11 +1270,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A05A2C] pointer-events-none text-xs">▼</span>
                     </div>
                 </div>
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Decorations ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Decorations</h3>
+            <ConfiguratorSection
+                title="Decorations"
+                isOpen={openSection === "decorations"}
+                onToggle={() => toggleSection("decorations")}
+            >
                 <div className="grid grid-cols-2 gap-2">
                     {[
                         { label: "🕯️ Candle", value: candle, set: setCandle },
@@ -1262,11 +1290,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <button
                             key={label}
                             type="button"
-                            className={`flex justify-between items-center px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${
-                                value 
-                                    ? "bg-[#C05A11]/10 border-[#C05A11] text-[#A84E0E] font-semibold shadow-inner" 
-                                    : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
-                            }`}
+                            className={`flex justify-between items-center px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none active:scale-95 ${value
+                                ? "bg-[#C05A11]/10 border-[#C05A11] text-[#A84E0E] font-semibold shadow-inner"
+                                : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FFFDF9]"
+                                }`}
                             onClick={() => set(!value)}
                         >
                             <span>{label}</span>
@@ -1287,22 +1314,20 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             <div className="flex rounded-lg border border-[#E6CCA2] overflow-hidden bg-[#FDF6E2]">
                                 <button
                                     type="button"
-                                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                                        candleMode === "gold"
-                                            ? "bg-[#C05A11] text-white"
-                                            : "text-[#6E473B] hover:text-[#A84E0E]"
-                                    }`}
+                                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${candleMode === "gold"
+                                        ? "bg-[#C05A11] text-white"
+                                        : "text-[#6E473B] hover:text-[#A84E0E]"
+                                        }`}
                                     onClick={() => setCandleMode("gold")}
                                 >
                                     Gold
                                 </button>
                                 <button
                                     type="button"
-                                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border-l border-[#E6CCA2] ${
-                                        candleMode === "number"
-                                            ? "bg-[#C05A11] text-white"
-                                            : "text-[#6E473B] hover:text-[#A84E0E]"
-                                    }`}
+                                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border-l border-[#E6CCA2] ${candleMode === "number"
+                                        ? "bg-[#C05A11] text-white"
+                                        : "text-[#6E473B] hover:text-[#A84E0E]"
+                                        }`}
                                     onClick={() => setCandleMode("number")}
                                 >
                                     Number
@@ -1367,11 +1392,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         )}
                     </div>
                 )}
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Topping Placement ── */}
-            <section className="p-5 rounded-xl bg-[#FDF6E2] border border-[#ECD9B4] shadow-sm transition-all hover:border-[#D8BE91]">
-                <h3 className="text-xs font-semibold tracking-wider text-[#A05A2C] uppercase mb-3">Topping Placement</h3>
+            <ConfiguratorSection
+                title="Topping Placement"
+                isOpen={openSection === "placement"}
+                onToggle={() => toggleSection("placement")}
+            >
                 {activeToppings.length > 0 ? (
                     <div className="flex flex-col gap-5">
                         <div className="flex justify-center p-2 bg-[#FFFDF9] rounded-2xl border border-[#E6CCA2]">
@@ -1398,11 +1426,10 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                             <button
                                                 key={size}
                                                 type="button"
-                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${
-                                                    toppingLayout[topping.key].size === size 
-                                                        ? "bg-[#C05A11] text-white shadow-sm" 
-                                                        : "text-[#A07060] hover:text-[#6E473B]"
-                                                }`}
+                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${toppingLayout[topping.key].size === size
+                                                    ? "bg-[#C05A11] text-white shadow-sm"
+                                                    : "text-[#A07060] hover:text-[#6E473B]"
+                                                    }`}
                                                 onClick={() => setToppingSize(topping.key, size)}
                                             >
                                                 {size}
@@ -1418,12 +1445,12 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         Select a decoration first.
                     </div>
                 )}
-            </section>
+            </ConfiguratorSection>
 
             {/* ── Randomize ── */}
-            <button 
+            <button
                 type="button"
-                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer font-medium" 
+                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer"
                 onClick={generateRandomCake}
             >
                 🎲 Randomize My Cake!
@@ -1476,76 +1503,146 @@ function BuildBentoContent() {
         setSelectedSize,
     } = useCustomization();
 
+    const navigate = useNavigate();
+    const [autoSpin, setAutoSpin] = useState(false);
+
+    const cakeGroupRef = useRef(null);
+    const orbitControlsRef = useRef(null);
+
+    const handleResetView = () => {
+        setAutoSpin(false);
+
+        // Reset only the cake's horizontal heading.
+        if (cakeGroupRef.current) {
+            cakeGroupRef.current.rotation.y = 0;
+        }
+
+        const controls = orbitControlsRef.current;
+
+        if (controls) {
+            const camera = controls.object;
+            const target = controls.target;
+
+            const offsetX = camera.position.x - target.x;
+            const offsetZ = camera.position.z - target.z;
+
+            const horizontalDistance = Math.sqrt(
+                offsetX * offsetX + offsetZ * offsetZ
+            );
+
+            camera.position.x = target.x;
+            camera.position.z = target.z + horizontalDistance;
+
+            camera.lookAt(target);
+            controls.update();
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#FCF8EE] flex flex-col antialiased font-sans">
             <Navbar />
 
             {/* Main responsive wrapper layout */}
             <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
-                
-                {/* 3D Canvas Box - Slightly bigger for a clearer and more prominent preview */}
-                <div className="flex-1 w-full h-[480px] md:h-[620px] relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-6">
-                    <div className="w-full h-full relative">
-                        <CanvasErrorBoundary>
-                            <Canvas
-                                dpr={[1, 2]}
-                                camera={{ fov: 40, position: [0, 4, 5] }}
-                                shadows
-                                gl={{
-                                    toneMapping: THREE.ACESFilmicToneMapping,
-                                    toneMappingExposure: 1.15,
-                                    outputColorSpace: THREE.SRGBColorSpace,
-                                }}
-                                onCreated={({ gl }) => {
-                                    gl.domElement.addEventListener(
-                                        "webglcontextlost",
-                                        (e) => {
-                                            e.preventDefault();
-                                            console.warn("WebGL context lost — will attempt to restore.");
-                                        },
-                                        false
-                                    );
-                                    gl.domElement.addEventListener(
-                                        "webglcontextrestored",
-                                        () => {
-                                            console.info("WebGL context restored.");
-                                        },
-                                        false
-                                    );
-                                }}
+
+                {/* 3D Canvas Box */}
+                <div className="w-full flex-1 self-start sticky top-0 lg:top-6 z-20 lg:z-auto">
+                    <div className="cake-preview-shell w-full relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className="absolute top-4 left-4 z-30 inline-flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm border border-[#E6CCA2] text-[#6E473B] hover:text-[#C05A11] px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all cursor-pointer"
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAutoSpin((prev) => !prev)}
+                            aria-pressed={autoSpin}
+                            className="absolute top-4 right-4 z-30 inline-flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm border border-[#E6CCA2] text-[#6E473B] px-3 py-2 rounded-full text-xs font-bold shadow-sm transition-all cursor-pointer"
+                        >
+                            <span
+                                className={`relative inline-block w-8 h-4 shrink-0 rounded-full transition-colors ${autoSpin ? "bg-[#C05A11]" : "bg-[#D6C4AE]"
+                                    }`}
                             >
-                                <color attach="background" args={["#FCF8EE"]} />
-
-                                <fog attach="fog" args={["#FCF8EE", 16, 28]} />
-
-                                <RealisticLighting />
-
-                                <Suspense fallback={null}>
-                                    <CakeModel selectedTierIndex={selectedTierIndex} />
-
-                                    <ContactShadows
-                                        position={[0, -2.3, 0]}
-                                        opacity={0.18}
-                                        scale={6}
-                                        blur={2.5}
-                                        color="#5C4033"
-                                    />
-                                </Suspense>
-
-                                <OrbitControls
-                                    enablePan={false}
-                                    minDistance={3}
-                                    maxDistance={12}
-                                    minPolarAngle={Math.PI / 6}
-                                    maxPolarAngle={Math.PI / 2}
-                                    target={[0, 1.2, 0]}
+                                <span
+                                    className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all duration-200"
+                                    style={{
+                                        left: autoSpin ? "18px" : "2px",
+                                    }}
                                 />
-                            </Canvas>
-                        </CanvasErrorBoundary>
-                    </div>
+                            </span>
 
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
-                        🖱️ Drag to rotate · Scroll to zoom
+                            Auto Spin
+                        </button>
+                        <div className="w-full h-full relative">
+                            <CanvasErrorBoundary>
+                                <Canvas
+                                    dpr={[1, 2]}
+                                    camera={{ fov: 40, position: [0, 4, 5] }}
+                                    shadows={{ type: THREE.PCFShadowMap }}
+                                    gl={{
+                                        toneMapping: THREE.ACESFilmicToneMapping,
+                                        toneMappingExposure: 1.15,
+                                        outputColorSpace: THREE.SRGBColorSpace,
+                                    }}
+                                    onCreated={({ gl }) => {
+                                        gl.domElement.addEventListener(
+                                            "webglcontextlost",
+                                            (e) => {
+                                                e.preventDefault();
+                                                console.warn("WebGL context lost — will attempt to restore.");
+                                            },
+                                            false
+                                        );
+                                        gl.domElement.addEventListener(
+                                            "webglcontextrestored",
+                                            () => {
+                                                console.info("WebGL context restored.");
+                                            },
+                                            false
+                                        );
+                                    }}
+                                >
+                                    <color attach="background" args={["#FCF8EE"]} />
+
+                                    <fog attach="fog" args={["#FCF8EE", 16, 28]} />
+
+                                    <RealisticLighting />
+
+                                    <Suspense fallback={null}>
+                                        <CakeModel selectedTierIndex={selectedTierIndex} autoSpin={autoSpin} cakeGroupRef={cakeGroupRef} />
+
+                                        <ContactShadows
+                                            position={[0, -2.3, 0]}
+                                            opacity={0.18}
+                                            scale={6}
+                                            blur={2.5}
+                                            color="#5C4033"
+                                        />
+                                    </Suspense>
+
+                                    <OrbitControls
+                                        ref={orbitControlsRef}
+                                        enablePan={false}
+                                        minDistance={3}
+                                        maxDistance={12}
+                                        minPolarAngle={Math.PI / 6}
+                                        maxPolarAngle={Math.PI / 2}
+                                        target={[0, 1.2, 0]}
+                                    />
+                                </Canvas>
+                            </CanvasErrorBoundary>
+                        </div>
+
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
+                            🖱️ Drag to rotate · Scroll to zoom
+                        </div>
+                        <CakeCompass
+                            cakeGroupRef={cakeGroupRef}
+                            controlsRef={orbitControlsRef}
+                            onReset={handleResetView}
+                        />
                     </div>
                 </div>
 
@@ -1563,7 +1660,6 @@ function BuildBentoContent() {
     );
 }
 
-// ────── Default export ──────
 export default function BuildBentoPage() {
     return (
         <CustomizationProvider>
