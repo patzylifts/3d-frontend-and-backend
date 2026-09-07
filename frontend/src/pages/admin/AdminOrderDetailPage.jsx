@@ -10,6 +10,7 @@ import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 import AdminQuotationPanel from "../../components/admin/AdminQuotationPanel";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
+import { getOrderStatusLabel } from "../../utils/orderStatus";
 
 export default function AdminOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -84,7 +85,11 @@ export default function AdminOrderDetailPage() {
                     </button>
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-black text-[#6E473B]">Order <span className="text-[#C05A11]">#{order.id}</span></h1>
-                        <span className={`px-3 py-1 text-xs font-black rounded-full uppercase border ${order.status}`}>{order.status.replace('_', ' ')}</span>
+                        <span
+                            className={`px-3 py-1 text-[11px] font-black rounded-full uppercase border whitespace-nowrap ${order.status}`}
+                        >
+                            {getOrderStatusLabel(order.status)}
+                        </span>
                     </div>
                 </header>
 

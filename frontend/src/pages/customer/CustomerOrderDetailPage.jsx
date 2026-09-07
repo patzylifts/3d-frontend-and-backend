@@ -8,6 +8,7 @@ import OrderFeedback from "../../components/customer/OrderFeedback";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
+import { getOrderStatusLabel } from "../../utils/orderStatus";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -169,6 +170,9 @@ export default function CustomerOrderDetailPage() {
             case "pending_review":
             case "awaiting_downpayment":
                 return "bg-amber-50 text-amber-700 border-amber-200";
+
+            case "awaiting_customer_response":
+                return "bg-sky-50 text-sky-700 border-sky-200";
             case "cancelled":
             case "rejected":
                 return "bg-rose-50 text-rose-700 border-rose-200";
@@ -195,7 +199,11 @@ export default function CustomerOrderDetailPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        <span className={`text-xs uppercase font-black tracking-wider px-3 py-1.5 border rounded-full ${getStatusColor(order.status)}`}>{order.status.replace("_", " ")}</span>
+                        <span
+                            className={`text-xs uppercase font-black tracking-wider whitespace-nowrap px-3 py-1.5 border rounded-full ${getStatusColor(order.status)}`}
+                        >
+                            {getOrderStatusLabel(order.status)}
+                        </span>
                         <span className={`text-xs uppercase font-black tracking-wider px-3 py-1.5 border rounded-full ${getPaymentColor(order.payment_status)}`}>{order.payment_status}</span>
                     </div>
                 </header>
