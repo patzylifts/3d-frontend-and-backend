@@ -5,7 +5,6 @@ import { authFetch } from "../../utils/auth";
 import RejectModal from "../../components/admin/RejectModal";
 import Navbar from "../../components/Navbar";
 import Logistics from "../../components/Logistics";
-import AdminOrderFeedback from "../../components/admin/AdminOrderFeedback";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 import AdminQuotationPanel from "../../components/admin/AdminQuotationPanel";
 import ChatBox from "../../components/chat/ChatBox";
@@ -20,6 +19,11 @@ export default function AdminOrderDetailPage() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [reviewData, setReviewData] = useState({
+        average_rating: 0,
+        review_count: 0,
+        reviews: [],
+    });
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showCakeModal, setShowCakeModal] = useState(false);
     const [selectedCake, setSelectedCake] = useState(null);
@@ -58,6 +62,17 @@ export default function AdminOrderDetailPage() {
     useEffect(() => {
         fetchOrder();
     }, [id]);
+
+    useEffect(() => {
+        fetch(`${BASEURL}/api/orders/products/${id}/reviews/`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.reviews) {
+                    setReviewData(data);
+                }
+            })
+            .catch((err) => console.error(err));
+    }, [id, BASEURL]);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-[#6E473B]">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
@@ -229,7 +244,6 @@ export default function AdminOrderDetailPage() {
                 <div className="bg-white p-6 rounded-2xl border border-[#E6CCA2]">
                     <Logistics order={order} embedded />
                 </div>
-                <AdminOrderFeedback feedback={order.feedback} />
             </div>
             <ChatBox
                 orderId={id}

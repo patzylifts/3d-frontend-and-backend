@@ -1,11 +1,38 @@
 # orders/serializers_feedback.py
 from rest_framework import serializers
-from .models import OrderFeedback
-from chat.models import Quotation
+from .models import ProductReview
+        
+class ProductReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(
+        source="user.username",
+        read_only=True
+    )
 
-class OrderFeedbackSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(
+        source="product.name",
+        read_only=True
+    )
 
     class Meta:
-        model = OrderFeedback
-        fields = "__all__"
-        read_only_fields = ["user", "order", "created_at"]
+        model = ProductReview
+        fields = [
+            "id",
+            "order_item",
+            "product",
+            "product_name",
+            "user",
+            "user_name",
+            "rating",
+            "comment",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "order_item",
+            "product",
+            "product_name",
+            "user",
+            "user_name",
+            "created_at",
+        ]

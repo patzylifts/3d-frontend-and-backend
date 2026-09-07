@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/auth";
 import Logistics from "../../components/Logistics";
 import Navbar from "../../components/Navbar";
-import OrderFeedback from "../../components/customer/OrderFeedback";
+import ProductReviewForm from "../../components/customer/ProductReviewForm";
 import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
@@ -370,6 +370,12 @@ export default function CustomerOrderDetailPage() {
                                             )}
 
                                             <p className="text-xs text-stone-400 font-semibold">Qty: {item.quantity} × ₱{item.price}</p>
+                                            {order.status === "delivered" && item.product && (
+                                                <ProductReviewForm
+                                                    orderId={order.id}
+                                                    item={item}
+                                                />
+                                            )}
                                         </div>
 
                                         <div className="font-extrabold text-[#844414] text-right">₱{item.subtotal}</div>
@@ -399,12 +405,6 @@ export default function CustomerOrderDetailPage() {
                         </div>
                     </div>
                 </div>
-
-                {(order.status === "delivered" || order.feedback) && (
-                    <div className="bg-white border border-[#f3e1c6] rounded-2xl p-2 shadow-sm">
-                        <OrderFeedback order={order} onFeedbackSubmitted={fetchOrder} />
-                    </div>
-                )}
             </div>
 
             <ChatBox

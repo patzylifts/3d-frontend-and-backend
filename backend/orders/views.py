@@ -5,13 +5,13 @@ from chat.models import Conversation, Message
 from .serializers import QuotationSerializer
 import uuid
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from store.models import Order
-from .models import OrderFeedback
+from store.models import Order, Product
+from .models import ProductReview
 from .serializers import OrderSerializer
-from .serializers_feedback import OrderFeedbackSerializer
+from .serializers_feedback import ProductReviewSerializer
 from orders.utils_sms_notifications import send_order_status_sms
 
 @api_view(['GET'])
@@ -205,10 +205,10 @@ def cancel_order(request, order_id):
 
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)
-    
-@api_view(['POST'])
+
+@api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
-def submit_feedback(request, order_id):
+def product_review(request, order_id, item_id):
 
     try:
         order = Order.objects.get(
@@ -222,30 +222,109 @@ def submit_feedback(request, order_id):
             status=404
         )
 
+    try:
+        item = order.items.select_related("product").get(
+            id=item_id
+        )
+
+    except order.items.model.DoesNotExist:
+        return Response(
+            {"error": "Order item not found"},
+            status=404
+        )
+
+    if item.product is None:
+        return Response(
+            {"error": "This item is not a standard product."},
+            status=400
+        )
+
+    existing_review = ProductReview.objects.filter(
+        order_item=item
+    ).first()
+
+    if request.method == "GET":
+
+        if not existing_review:
+            return Response({
+                "review": None
+            })
+
+        return Response({
+            "review": ProductReviewSerializer(existing_review).data
+        })
+
     if order.status != "delivered":
         return Response(
-            {"error": "You can only review delivered orders"},
+            {"error": "You can only review products from delivered orders."},
             status=400
         )
 
-    if hasattr(order, "feedback"):
+    if existing_review:
         return Response(
-            {"error": "Feedback already submitted"},
+            {"error": "You already reviewed this product for this order."},
             status=400
         )
 
-    serializer = OrderFeedbackSerializer(data=request.data)
+    serializer = ProductReviewSerializer(
+        data=request.data
+    )
 
     if serializer.is_valid():
 
-        serializer.save(
-            order=order,
+        review = serializer.save(
+            order_item=item,
+            product=item.product,
             user=request.user
         )
 
         return Response({
-            "message": "Feedback submitted successfully",
-            "feedback": serializer.data
-        })
+            "message": "Product review submitted successfully.",
+            "review": ProductReviewSerializer(review).data
+        }, status=201)
 
-    return Response(serializer.errors, status=400)
+    return Response(
+        serializer.errors,
+        status=400
+    )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def product_reviews(request, product_id):
+
+    try:
+        product = Product.objects.get(
+            id=product_id
+        )
+
+    except Product.DoesNotExist:
+        return Response(
+            {"error": "Product not found"},
+            status=404
+        )
+
+    reviews = ProductReview.objects.filter(
+        product=product
+    ).select_related(
+        "user"
+    ).order_by("-created_at")
+
+    serializer = ProductReviewSerializer(
+        reviews,
+        many=True
+    )
+
+    average_rating = 0
+
+    if reviews.exists():
+        average_rating = round(
+            sum(review.rating for review in reviews) / reviews.count(),
+            1
+        )
+
+    return Response({
+        "average_rating": average_rating,
+        "review_count": reviews.count(),
+        "reviews": serializer.data,
+    })
