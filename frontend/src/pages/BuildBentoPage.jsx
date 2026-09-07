@@ -1,7 +1,7 @@
 // src/pages/BuildBentoPage.jsx
-import { useRef, Suspense, useState, useEffect, Component } from "react";
+import { useRef, Suspense, useState, useEffect, useMemo, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useGLTF, useTexture, OrbitControls, ContactShadows, SpotLight } from "@react-three/drei";
+import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
@@ -9,6 +9,7 @@ import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, T
 import { useCart } from "../context/CartContext";
 import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
+import CakeCompass from "../components/CakeCompass";
 import './BuildBentoPage.css';
 
 const TIER_MODEL_URLS = {
@@ -84,7 +85,6 @@ const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.70];
 const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
 const CANDLE_DIGIT_SPACING = 0.18;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
-const TIER_TOP_OFFSET = [0.12, 0.18, 0.2, 0.25];
 const TIER_TOP_ROTATION = [0, 0.18, 0.25, 0.35];
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
@@ -97,17 +97,6 @@ const FLAVOR_LABELS = {
     "Choco Moist": "Chocolate",
     "Vanilla Chiffon": "Vanilla",
     "Ube Chiffon": "Ube",
-};
-
-// ──────── Helpers ────────────
-const getTierTopY = (selectedTierIndex) => {
-    switch (selectedTierIndex) {
-        case 0: return 2.33;
-        case 1: return 2.38;
-        case 2: return 3.15;
-        case 3: return 3.95;
-        default: return 2.33;
-    }
 };
 
 const getToppingPosition = (layout, config, selectedTierIndex) => {
@@ -131,11 +120,6 @@ const getCakeShape = (name) => {
     if (lname.includes("rectangle") || lname.includes("rect") || lname.includes("cube")) return "rectangle";
     if (lname.includes("round") || lname === "cake" || /^cake([._]\d+)?$/.test(lname)) return "round";
     return null;
-};
-
-const getNodeRotationArray = (node) => {
-    if (!node?.rotation) return [0, 0, 0];
-    return [node.rotation.x, node.rotation.y, node.rotation.z];
 };
 
 const getNodeScaleArray = (node, multiplier = 1) => {
@@ -407,9 +391,7 @@ function RealisticLighting() {
 }
 
 // ───── CakeModel ─────
-export function CakeModel({ selectedTierIndex }) {
-
-
+export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
     const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
     const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
     const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
@@ -435,30 +417,34 @@ export function CakeModel({ selectedTierIndex }) {
         inscriptionText,
         textFont,
     } = useCustomization();
-    const groupRef = useRef();
 
     const chocoTexture = useTexture(TEXTURE_URLS.choco);
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture = useTexture(TEXTURE_URLS.ube);
     const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
 
-    const texturesByKey = {
+    const texturesByKey = useMemo(() => ({
         choco: chocoTexture,
         vanilla: milkshakeTexture,
         ube: abstractTexture,
-    };
+    }), [chocoTexture, milkshakeTexture, abstractTexture]);
 
     const baseFlavor = selectedTierFlavors?.[0] || flavor;
     const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
     const activeTexture = texturesByKey[activeTextureKey];
-    const textureByFlavor = Object.fromEntries(
-        Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
-            flavorName,
-            texturesByKey[textureKey],
-        ])
+
+    const textureByFlavor = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
+                    flavorName,
+                    texturesByKey[textureKey],
+                ])
+            ),
+        [flavorTextureMap, texturesByKey]
     );
 
-    const matProps = {
+    const matProps = useMemo(() => ({
         cakeColor,
         activeTexture,
         form,
@@ -467,7 +453,16 @@ export function CakeModel({ selectedTierIndex }) {
         icingColor,
         cherryTexture,
         cherryVisible: cherry,
-    };
+    }), [
+        cakeColor,
+        activeTexture,
+        form,
+        selectedTierFlavors,
+        textureByFlavor,
+        icingColor,
+        cherryTexture,
+        cherry,
+    ]);
 
     useEffect(() => {
         if (!cherryTexture) return;
@@ -480,57 +475,33 @@ export function CakeModel({ selectedTierIndex }) {
             ...matProps,
             tierIndex: 0,
         });
-    }, [
-        tier1,
-        cakeColor,
-        icingColor,
-        form,
-        selectedTierFlavors,
-        cherryTexture,
-        cherry
-    ]);
+    }, [tier1, matProps]);
 
     useEffect(() => {
         applyMaterialsToScene(tier2?.scene, {
             ...matProps,
             tierIndex: 1,
         });
-    }, [
-        tier2,
-        cakeColor,
-        icingColor,
-        form,
-        selectedTierFlavors
-    ]);
+    }, [tier2, matProps]);
 
     useEffect(() => {
         applyMaterialsToScene(tier3?.scene, {
             ...matProps,
             tierIndex: 2,
         });
-    }, [
-        tier3,
-        cakeColor,
-        icingColor,
-        form,
-        selectedTierFlavors
-    ]);
+    }, [tier3, matProps]);
 
     useEffect(() => {
         applyMaterialsToScene(tier4?.scene, {
             ...matProps,
             tierIndex: 3,
         });
-    }, [
-        tier4,
-        cakeColor,
-        icingColor,
-        form,
-        selectedTierFlavors
-    ]);
+    }, [tier4, matProps]);
 
     useFrame((_, delta) => {
-        if (groupRef.current) groupRef.current.rotation.y += delta * 0.25;
+        if (autoSpin && cakeGroupRef.current) {
+            cakeGroupRef.current.rotation.y -= delta * 0.4;
+        }
     });
 
     const selectedToppings = { candle, chocolate, balls, nuts, cherry, sprinkles };
@@ -818,7 +789,7 @@ export function CakeModel({ selectedTierIndex }) {
     );
 
     return (
-        <group ref={groupRef} dispose={null} position={[0, -0.8, 0]}>
+        <group ref={cakeGroupRef} dispose={null} position={[0, -0.8, 0]}>
             {selectedTierIndex === 1 && (
                 <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
             )}
@@ -1479,7 +1450,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             {/* ── Randomize ── */}
             <button
                 type="button"
-                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer font-medium"
+                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer"
                 onClick={generateRandomCake}
             >
                 🎲 Randomize My Cake!
@@ -1533,6 +1504,39 @@ function BuildBentoContent() {
     } = useCustomization();
 
     const navigate = useNavigate();
+    const [autoSpin, setAutoSpin] = useState(false);
+
+    const cakeGroupRef = useRef(null);
+    const orbitControlsRef = useRef(null);
+
+    const handleResetView = () => {
+        setAutoSpin(false);
+
+        // Reset only the cake's horizontal heading.
+        if (cakeGroupRef.current) {
+            cakeGroupRef.current.rotation.y = 0;
+        }
+
+        const controls = orbitControlsRef.current;
+
+        if (controls) {
+            const camera = controls.object;
+            const target = controls.target;
+
+            const offsetX = camera.position.x - target.x;
+            const offsetZ = camera.position.z - target.z;
+
+            const horizontalDistance = Math.sqrt(
+                offsetX * offsetX + offsetZ * offsetZ
+            );
+
+            camera.position.x = target.x;
+            camera.position.z = target.z + horizontalDistance;
+
+            camera.lookAt(target);
+            controls.update();
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#FCF8EE] flex flex-col antialiased font-sans">
@@ -1541,76 +1545,104 @@ function BuildBentoContent() {
             {/* Main responsive wrapper layout */}
             <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
 
-                {/* 3D Canvas Box - Slightly bigger for a clearer and more prominent preview */}
-                <div className="flex-1 w-full h-[280px] sm:h-[340px] md:h-[440px] lg:h-[620px] relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col sticky top-0 lg:top-6 z-20 lg:z-auto">
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="absolute top-4 left-4 z-30 inline-flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm border border-[#E6CCA2] text-[#6E473B] hover:text-[#C05A11] px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all cursor-pointer"
-                    >
-                        ← Back
-                    </button>
-                    <div className="w-full h-full relative">
-                        <CanvasErrorBoundary>
-                            <Canvas
-                                dpr={[1, 2]}
-                                camera={{ fov: 40, position: [0, 4, 5] }}
-                                shadows={{ type: THREE.PCFShadowMap }}
-                                gl={{
-                                    toneMapping: THREE.ACESFilmicToneMapping,
-                                    toneMappingExposure: 1.15,
-                                    outputColorSpace: THREE.SRGBColorSpace,
-                                }}
-                                onCreated={({ gl }) => {
-                                    gl.domElement.addEventListener(
-                                        "webglcontextlost",
-                                        (e) => {
-                                            e.preventDefault();
-                                            console.warn("WebGL context lost — will attempt to restore.");
-                                        },
-                                        false
-                                    );
-                                    gl.domElement.addEventListener(
-                                        "webglcontextrestored",
-                                        () => {
-                                            console.info("WebGL context restored.");
-                                        },
-                                        false
-                                    );
-                                }}
+                {/* 3D Canvas Box */}
+                <div className="w-full flex-1 self-start sticky top-0 lg:top-6 z-20 lg:z-auto">
+                    <div className="cake-preview-shell w-full relative bg-white border border-[#E6CCA2] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className="absolute top-4 left-4 z-30 inline-flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm border border-[#E6CCA2] text-[#6E473B] hover:text-[#C05A11] px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all cursor-pointer"
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAutoSpin((prev) => !prev)}
+                            aria-pressed={autoSpin}
+                            className="absolute top-4 right-4 z-30 inline-flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm border border-[#E6CCA2] text-[#6E473B] px-3 py-2 rounded-full text-xs font-bold shadow-sm transition-all cursor-pointer"
+                        >
+                            <span
+                                className={`relative inline-block w-8 h-4 shrink-0 rounded-full transition-colors ${autoSpin ? "bg-[#C05A11]" : "bg-[#D6C4AE]"
+                                    }`}
                             >
-                                <color attach="background" args={["#FCF8EE"]} />
-
-                                <fog attach="fog" args={["#FCF8EE", 16, 28]} />
-
-                                <RealisticLighting />
-
-                                <Suspense fallback={null}>
-                                    <CakeModel selectedTierIndex={selectedTierIndex} />
-
-                                    <ContactShadows
-                                        position={[0, -2.3, 0]}
-                                        opacity={0.18}
-                                        scale={6}
-                                        blur={2.5}
-                                        color="#5C4033"
-                                    />
-                                </Suspense>
-
-                                <OrbitControls
-                                    enablePan={false}
-                                    minDistance={3}
-                                    maxDistance={12}
-                                    minPolarAngle={Math.PI / 6}
-                                    maxPolarAngle={Math.PI / 2}
-                                    target={[0, 1.2, 0]}
+                                <span
+                                    className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all duration-200"
+                                    style={{
+                                        left: autoSpin ? "18px" : "2px",
+                                    }}
                                 />
-                            </Canvas>
-                        </CanvasErrorBoundary>
-                    </div>
+                            </span>
 
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
-                        🖱️ Drag to rotate · Scroll to zoom
+                            Auto Spin
+                        </button>
+                        <div className="w-full h-full relative">
+                            <CanvasErrorBoundary>
+                                <Canvas
+                                    dpr={[1, 2]}
+                                    camera={{ fov: 40, position: [0, 4, 5] }}
+                                    shadows={{ type: THREE.PCFShadowMap }}
+                                    gl={{
+                                        toneMapping: THREE.ACESFilmicToneMapping,
+                                        toneMappingExposure: 1.15,
+                                        outputColorSpace: THREE.SRGBColorSpace,
+                                    }}
+                                    onCreated={({ gl }) => {
+                                        gl.domElement.addEventListener(
+                                            "webglcontextlost",
+                                            (e) => {
+                                                e.preventDefault();
+                                                console.warn("WebGL context lost — will attempt to restore.");
+                                            },
+                                            false
+                                        );
+                                        gl.domElement.addEventListener(
+                                            "webglcontextrestored",
+                                            () => {
+                                                console.info("WebGL context restored.");
+                                            },
+                                            false
+                                        );
+                                    }}
+                                >
+                                    <color attach="background" args={["#FCF8EE"]} />
+
+                                    <fog attach="fog" args={["#FCF8EE", 16, 28]} />
+
+                                    <RealisticLighting />
+
+                                    <Suspense fallback={null}>
+                                        <CakeModel selectedTierIndex={selectedTierIndex} autoSpin={autoSpin} cakeGroupRef={cakeGroupRef} />
+
+                                        <ContactShadows
+                                            position={[0, -2.3, 0]}
+                                            opacity={0.18}
+                                            scale={6}
+                                            blur={2.5}
+                                            color="#5C4033"
+                                        />
+                                    </Suspense>
+
+                                    <OrbitControls
+                                        ref={orbitControlsRef}
+                                        enablePan={false}
+                                        minDistance={3}
+                                        maxDistance={12}
+                                        minPolarAngle={Math.PI / 6}
+                                        maxPolarAngle={Math.PI / 2}
+                                        target={[0, 1.2, 0]}
+                                    />
+                                </Canvas>
+                            </CanvasErrorBoundary>
+                        </div>
+
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
+                            🖱️ Drag to rotate · Scroll to zoom
+                        </div>
+                        <CakeCompass
+                            cakeGroupRef={cakeGroupRef}
+                            controlsRef={orbitControlsRef}
+                            onReset={handleResetView}
+                        />
                     </div>
                 </div>
 
@@ -1628,7 +1660,6 @@ function BuildBentoContent() {
     );
 }
 
-// ────── Default export ──────
 export default function BuildBentoPage() {
     return (
         <CustomizationProvider>
