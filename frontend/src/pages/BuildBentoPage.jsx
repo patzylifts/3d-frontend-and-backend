@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
-import Navbar from "../components/Navbar";
 import CakeInscription from "../components/CakeInscription";
 import CakeCompass from "../components/CakeCompass";
 import './BuildBentoPage.css';
@@ -255,10 +254,17 @@ function applyMaterialsToScene(scene, {
         }
 
         if (lname.includes("cherry")) {
-            child.visible = cherryVisible;
+            // The selected topping is rendered with its configurable position below.
+            child.visible = false;
             child.material = new THREE.MeshStandardMaterial(cherryMatProps);
             child.castShadow = true;
             child.receiveShadow = true;
+            return;
+        }
+
+        if (lname.includes("sprinkle")) {
+            // Hide baked-in sprinkles so they only appear after selection.
+            child.visible = false;
             return;
         }
 
@@ -1060,7 +1066,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Tier & Size ── */}
             <ConfiguratorSection
-                title="Tier & Size"
+                title="1. Tier & Size"
                 isOpen={openSection === "tier"}
                 onToggle={() => toggleSection("tier")}
             >
@@ -1102,7 +1108,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Shape ── */}
             <ConfiguratorSection
-                title="Cake Base Shape"
+                title="2. Cake Base Shape"
                 isOpen={openSection === "shape"}
                 onToggle={() => toggleSection("shape")}
             >
@@ -1132,7 +1138,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Cake Color ── */}
             <ConfiguratorSection
-                title="Cake Color"
+                title="3. Cake Color"
                 isOpen={openSection === "cakeColor"}
                 onToggle={() => toggleSection("cakeColor")}
             >
@@ -1156,7 +1162,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Icing Color ── */}
             <ConfiguratorSection
-                title="Icing Color"
+                title="4. Icing Color"
                 isOpen={openSection === "icingColor"}
                 onToggle={() => toggleSection("icingColor")}
             >
@@ -1182,7 +1188,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Flavor ── */}
             <ConfiguratorSection
-                title={selectedTierIndex === 0 ? "Flavor" : "Tier Flavor Layout"}
+                title={selectedTierIndex === 0 ? "5. Flavor" : "Tier Flavor Layout"}
                 isOpen={openSection === "flavor"}
                 onToggle={() => toggleSection("flavor")}
             >
@@ -1243,7 +1249,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Cake Message ── */}
             <ConfiguratorSection
-                title="Cake Message"
+                title="6. Cake Message"
                 isOpen={openSection === "message"}
                 onToggle={() => toggleSection("message")}
             >
@@ -1274,7 +1280,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Decorations ── */}
             <ConfiguratorSection
-                title="Decorations"
+                title="7. Decorations"
                 isOpen={openSection === "decorations"}
                 onToggle={() => toggleSection("decorations")}
             >
@@ -1396,7 +1402,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
             {/* ── Topping Placement ── */}
             <ConfiguratorSection
-                title="Topping Placement"
+                title="8. Topping Placement"
                 isOpen={openSection === "placement"}
                 onToggle={() => toggleSection("placement")}
             >
@@ -1539,9 +1545,7 @@ function BuildBentoContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#FCF8EE] flex flex-col antialiased font-sans">
-            <Navbar />
-
+        <div className="min-h-screen bg-[#FCF8EE] pt-20 flex flex-col antialiased font-sans">
             {/* Main responsive wrapper layout */}
             <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
 

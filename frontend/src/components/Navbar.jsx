@@ -32,9 +32,7 @@ function Navbar() {
         }
     }
 
-    const hideNavbarRoutes = [
-        "/build",
-    ];
+    const hideNavbarRoutes = [];
 
     if (hideNavbarRoutes.includes(location.pathname)) {
         return null;
