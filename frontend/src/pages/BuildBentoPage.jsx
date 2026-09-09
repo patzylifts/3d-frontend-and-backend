@@ -189,6 +189,7 @@ function applyMaterialsToScene(scene, {
     icingColor,
     cherryTexture,
     cherryVisible = false,
+    sprinklesVisible = false,
     tierIndex = 0,
 }) {
     if (!scene) return;
@@ -263,8 +264,15 @@ function applyMaterialsToScene(scene, {
         }
 
         if (lname.includes("sprinkle")) {
-            // Hide baked-in sprinkles so they only appear after selection.
-            child.visible = false;
+            const isRectangleSprinkle = lname.includes("rectangle") || lname.includes("rect");
+            const isRoundSprinkle = lname.includes("round");
+            child.visible = sprinklesVisible && (
+                (!isRectangleSprinkle && !isRoundSprinkle) ||
+                (isRoundSprinkle && form === 1) ||
+                (isRectangleSprinkle && form === 2)
+            );
+            child.castShadow = true;
+            child.receiveShadow = true;
             return;
         }
 
@@ -459,6 +467,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         icingColor,
         cherryTexture,
         cherryVisible: cherry,
+        sprinklesVisible: sprinkles,
     }), [
         cakeColor,
         activeTexture,
@@ -468,6 +477,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         icingColor,
         cherryTexture,
         cherry,
+        sprinkles,
     ]);
 
     useEffect(() => {
@@ -578,71 +588,6 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         );
     };
 
-    const renderSprinkles = () => {
-        if (!selectedToppings.sprinkles) return null;
-
-        const sprinkleColors = [
-            "#F7D65A",
-            "#EC7DAB",
-            "#A0D9F6",
-            "#8EE1A3",
-            "#F0A868",
-            "#B79AF7"
-        ];
-
-        const topY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
-        const radius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
-
-        const rotationY =
-            TIER_TOP_ROTATION[selectedTierIndex] ??
-            TIER_TOP_ROTATION[0];
-
-        const sprinkleCount =
-            selectedTierIndex >= 2 ? 28 : 18;
-
-        // Get Small / Medium / Large value
-        const sprinkleSize =
-            TOPPING_SIZES[toppingLayout.sprinkles?.size] ?? 1;
-
-        return (
-            <group
-                position={[0, topY + 0.03, 0]}
-                rotation={[0, rotationY, 0]}
-            >
-                {Array.from({ length: sprinkleCount }).map((_, index) => {
-                    const angle =
-                        (index / sprinkleCount) * Math.PI * 2;
-
-                    const spread = radius * 0.84;
-
-                    const x = Math.cos(angle) * spread;
-                    const z = Math.sin(angle) * spread;
-
-                    const color =
-                        sprinkleColors[index % sprinkleColors.length];
-
-                    return (
-                        <mesh
-                            key={index}
-                            position={[x, 0, z]}
-                            rotation={[0.4, angle, 0.2]}
-                            scale={sprinkleSize}
-                            castShadow
-                        >
-                            <boxGeometry args={[0.08, 0.04, 0.02]} />
-
-                            <meshStandardMaterial
-                                color={color}
-                                emissive={color}
-                                emissiveIntensity={0.15}
-                            />
-                        </mesh>
-                    );
-                })}
-            </group>
-        );
-    };
-
     const renderCustomToppings = () => (
         <>
             {selectedToppings.candle && renderCandleNumber()}
@@ -698,99 +643,6 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
                 />
             )}
 
-            {selectedToppings.sprinkles && form === 1 && nodes.Sprinkles_Round?.geometry && (
-                <group
-                    position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
-                >
-                    <mesh
-                        geometry={nodes.Sprinkles_Round.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#F6D365",
-                            emissive: "#F6D365",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
-                        castShadow
-                    />
-                    <mesh
-                        geometry={nodes.Sprinkles_Round.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#EC7DAB",
-                            emissive: "#EC7DAB",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        position={[0.05, 0.02, 0.02]}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size] * 0.96}
-                        castShadow
-                    />
-                    <mesh
-                        geometry={nodes.Sprinkles_Round.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#A0D9F6",
-                            emissive: "#A0D9F6",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        position={[-0.04, -0.02, -0.03]}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size] * 0.94}
-                        castShadow
-                    />
-                </group>
-            )}
-
-            {selectedToppings.sprinkles && form === 2 && nodes.Sprinkles_Rectangle?.geometry && (
-                <group
-                    position={getToppingPosition(toppingLayout.sprinkles, TOPPING_3D_CONFIG.sprinkles, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.sprinkles.rotation}
-                >
-                    <mesh
-                        geometry={nodes.Sprinkles_Rectangle.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#F6D365",
-                            emissive: "#F6D365",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size]}
-                        castShadow
-                    />
-                    <mesh
-                        geometry={nodes.Sprinkles_Rectangle.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#EC7DAB",
-                            emissive: "#EC7DAB",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        position={[0.05, 0.02, 0.02]}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size] * 0.96}
-                        castShadow
-                    />
-                    <mesh
-                        geometry={nodes.Sprinkles_Rectangle.geometry}
-                        material={new THREE.MeshStandardMaterial({
-                            color: "#A0D9F6",
-                            emissive: "#A0D9F6",
-                            emissiveIntensity: 0.15,
-                            roughness: 0.5,
-                            metalness: 0.08,
-                        })}
-                        position={[-0.04, -0.02, -0.03]}
-                        scale={TOPPING_3D_CONFIG.sprinkles.scale * TOPPING_SIZES[toppingLayout.sprinkles.size] * 0.94}
-                        castShadow
-                    />
-                </group>
-            )}
-
-            {selectedToppings.sprinkles && (!nodes.Sprinkles_Round?.geometry && !nodes.Sprinkles_Rectangle?.geometry) && renderSprinkles()}
         </>
     );
 
@@ -1545,9 +1397,9 @@ function BuildBentoContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#FCF8EE] pt-20 flex flex-col antialiased font-sans">
+        <div className="min-h-screen bg-[#FCF8EE] pt-2 flex flex-col antialiased font-sans">
             {/* Main responsive wrapper layout */}
-            <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
+            <div className="max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-4 items-start">
 
                 {/* 3D Canvas Box */}
                 <div className="w-full flex-1 self-start sticky top-0 lg:top-6 z-20 lg:z-auto">
