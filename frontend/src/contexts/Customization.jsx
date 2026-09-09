@@ -62,7 +62,7 @@ export const TOPPING_SIZES = {
 };
 
 const DEFAULT_TOPPING_LAYOUT = {
-    candle: { x: 50, y: 50, size: "medium", mode: "gold" },
+    candle: { x: 50, y: 50, size: "medium", mode: "gold", color: "gold" },
     chocolate: { x: 50, y: 50, size: "medium" },
     balls: { x: 50, y: 50, size: "medium" },
     nuts: { x: 50, y: 50, size: "medium" },
@@ -140,6 +140,7 @@ const normalizeCandleNumber = (value) => {
 };
 
 const normalizeCandleMode = (value) => value === "number" ? "number" : "gold";
+const normalizeCandleColor = (value) => value === "white" ? "white" : "gold";
 
 const DEFAULT_CAKE_PRICES = {
     tier1: { "Choco Moist": 1000, "Vanilla Chiffon": 900, "Ube Chiffon": 900 },
@@ -182,6 +183,9 @@ export const CustomizationProvider = (props) => {
     );
     const [candleMode, setCandleModeState] = useState(
         () => normalizeCandleMode(initialState?.topping_layout?.candle?.mode)
+    );
+    const [candleColor, setCandleColorState] = useState(
+        () => normalizeCandleColor(initialState?.topping_layout?.candle?.color)
     );
     const [chocolate, setChocolate] = useState(!!initialState?.has_chocolate);
     const [balls, setBalls] = useState(!!initialState?.has_balls);
@@ -266,6 +270,18 @@ export const CustomizationProvider = (props) => {
             candle: {
                 ...prev.candle,
                 mode: normalizeCandleMode(value),
+            },
+        }));
+    };
+
+    const setCandleColor = (value) => {
+        const normalizedColor = normalizeCandleColor(value);
+        setCandleColorState(normalizedColor);
+        setToppingLayout((prev) => ({
+            ...prev,
+            candle: {
+                ...prev.candle,
+                color: normalizedColor,
             },
         }));
     };
@@ -416,6 +432,8 @@ export const CustomizationProvider = (props) => {
                 setCandle,
                 candleMode,
                 setCandleMode,
+                candleColor,
+                setCandleColor,
                 candleNumber,
                 setCandleNumber,
                 chocolate,

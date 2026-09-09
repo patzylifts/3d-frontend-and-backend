@@ -80,10 +80,11 @@ const TOPPING_3D_CONFIG = {
 
 const NUT_TIER_SCALE = [1, 0.8, 0.6, 0.55]; // tune tier2 (index 1)
 const BALLS_TIER_SCALE = [1, 0.8, 0.6, 0.55];
-const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.70];
-const TIER_TOP_RADIUS = [1, 0.72, 0.58, 0.48];
-const CANDLE_DIGIT_SPACING = 0.18;
+const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.73];
+const TIER_TOP_RADIUS = [1, 0.72, 0.78, 0.80];
+const CANDLE_DIGIT_SPACING = 0.30;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
+const CANDLE_NUMBER_Y_OFFSET = -0.12;
 const TIER_TOP_ROTATION = [0, 0.18, 0.25, 0.35];
 const TIER_FLAVOR_LABELS = {
     1: ["Cake"],
@@ -98,14 +99,29 @@ const FLAVOR_LABELS = {
     "Ube Chiffon": "Ube",
 };
 
-const getToppingPosition = (layout, config, selectedTierIndex) => {
+const getToppingPosition = (layout, config, selectedTierIndex, candleMode) => {
     const tierRadius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
     const radius = config.radius * tierRadius;
-    const x = ((layout.x - 50) / 50) * radius;
-    const z = ((layout.y - 50) / 50) * radius;
+    const isCandle = config === TOPPING_3D_CONFIG.candle;
+    const [placementMin, placementMax] = isCandle
+        ? getCandlePlacementBounds(selectedTierIndex, candleMode)
+        : [5, 95];
+    const boundedX = Math.max(placementMin, Math.min(placementMax, layout.x));
+    const boundedY = Math.max(placementMin, Math.min(placementMax, layout.y));
+    const x = ((boundedX - 50) / 50) * radius;
+    const z = ((boundedY - 50) / 50) * radius;
     const topSurfaceY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
-    return [x, topSurfaceY + config.yOffset, z];
+    const y = Math.min(topSurfaceY + config.yOffset, topSurfaceY - 0.001);
+    return [x, y, z];
 };
+
+const getCandlePlacementBounds = (selectedTierIndex, candleMode = "number") => (
+    selectedTierIndex >= 2
+        ? [40, 60]
+        : selectedTierIndex === 0
+            ? [25, 75]
+            : [30, 70]
+);
 
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
     color: FLAVOR_VISUALS[flavorName]?.color || fallbackColor,
@@ -421,6 +437,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         selectedTierFlavors,
         candle,
         candleMode,
+        candleColor,
         candleNumber,
         chocolate,
         balls,
@@ -524,8 +541,22 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
 
     const renderCandleNumber = () => {
         const selectedCandleMode = toppingLayout.candle?.mode || candleMode || "gold";
+        const selectedCandleColor = toppingLayout.candle?.color || candleColor || "gold";
         const digitScaleMultiplier = TOPPING_SIZES[toppingLayout.candle.size] || 1;
-        const candlePosition = getToppingPosition(toppingLayout.candle, TOPPING_3D_CONFIG.candle, selectedTierIndex);
+        const candlePosition = getToppingPosition(
+            toppingLayout.candle,
+            TOPPING_3D_CONFIG.candle,
+            selectedTierIndex,
+            selectedCandleMode
+        );
+        const candleNumberPosition = [
+            candlePosition[0],
+            candlePosition[1] + CANDLE_NUMBER_Y_OFFSET,
+            candlePosition[2],
+        ];
+        const candleMaterial = selectedCandleColor === "white"
+            ? (materials.Candle_White_Default || materials.chandel || materials.Default)
+            : (materials.chandel || materials.Candle_White_Default || materials.Default);
 
         if (selectedCandleMode === "gold") {
             const goldCandleMesh = nodes.chandel?.geometry || nodes.Candle_White_Default?.geometry;
@@ -546,7 +577,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
 
         const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
         const spacing = CANDLE_DIGIT_SPACING * digitScaleMultiplier * (TIER_TOP_RADIUS[selectedTierIndex] ?? 1);
-        const digitMaterial = materials.Candle_White_Default || materials.chandel || materials.Default;
+        const digitMaterial = candleMaterial;
         const hasDigitMeshes = digits.every((digit) => nodes[`candle_${digit}`]?.geometry);
 
         if (!hasDigitMeshes) {
@@ -556,8 +587,8 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
             return (
                 <mesh
                     geometry={fallbackCandle}
-                    material={materials.chandel || materials.Candle_White_Default || materials.Default}
-                    position={candlePosition}
+                    material={candleMaterial}
+                    position={candleNumberPosition}
                     rotation={TOPPING_3D_CONFIG.candle.rotation}
                     scale={TOPPING_3D_CONFIG.candle.scale * digitScaleMultiplier}
                     castShadow
@@ -567,7 +598,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         }
 
         return (
-            <group position={candlePosition}>
+            <group position={candleNumberPosition}>
                 {digits.map((digit, idx) => {
                     const node = nodes[`candle_${digit}`];
                     const xOffset = (idx - (digits.length - 1) / 2) * spacing;
@@ -576,7 +607,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
                         <mesh
                             key={`${digit}-${idx}`}
                             geometry={node.geometry}
-                            material={node.material || digitMaterial}
+                            material={digitMaterial}
                             position={[xOffset, 0, 0]}
                             rotation={[0, 0, 0]}
                             scale={getNodeScaleArray(node, digitScaleMultiplier)}
@@ -699,7 +730,7 @@ function DraggableTopping({ topping, layout }) {
 }
 
 // ────── ToppingPlacementBoard ──────
-function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) {
+function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeToppings, toppingLayout, onMove }) {
     const boardRef = useRef(null);
     const { setNodeRef } = useDroppable({ id: "cake-placement" });
     const sensors = useSensors(
@@ -726,6 +757,12 @@ function ToppingPlacementBoard({ form, activeToppings, toppingLayout, onMove }) 
 
         nextX = Math.max(5, Math.min(95, nextX));
         nextY = Math.max(5, Math.min(95, nextY));
+
+        if (key === "candle") {
+            const [candleMin, candleMax] = getCandlePlacementBounds(selectedTierIndex, candleMode);
+            nextX = Math.max(candleMin, Math.min(candleMax, nextX));
+            nextY = Math.max(candleMin, Math.min(candleMax, nextY));
+        }
 
         if (form === 1) {
             const dx = nextX - 50;
@@ -806,6 +843,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         flavors, flavor, setFlavor,
         candle, setCandle,
         candleMode, setCandleMode,
+        candleColor, setCandleColor,
         candleNumber, setCandleNumber,
         chocolate, setChocolate,
         balls, setBalls,
@@ -884,6 +922,14 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             text_font: textFont,
             has_candle: candle,
             candle_number: candleNumber,
+            topping_layout: {
+                ...toppingLayout,
+                candle: {
+                    ...toppingLayout.candle,
+                    mode: candleMode,
+                    color: candleColor,
+                },
+            },
             has_chocolate: chocolate,
             has_balls: balls,
             has_nuts: nuts,
@@ -1178,7 +1224,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                         }`}
                                     onClick={() => setCandleMode("gold")}
                                 >
-                                    Gold
+                                    Single
                                 </button>
                                 <button
                                     type="button"
@@ -1192,6 +1238,27 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 </button>
                             </div>
                         </div>
+
+                        {candleMode === "number" && (
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <span className="text-xs font-semibold text-[#6E473B]">Candle Color</span>
+                                <div className="flex rounded-lg border border-[#E6CCA2] overflow-hidden bg-[#FDF6E2]">
+                                    {["white", "gold"].map((color) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${candleColor === color
+                                                ? "bg-[#C05A11] text-white"
+                                                : "text-[#6E473B] hover:text-[#A84E0E]"
+                                                } ${color === "gold" ? "border-l border-[#E6CCA2]" : ""}`}
+                                            onClick={() => setCandleColor(color)}
+                                        >
+                                            {color}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {candleMode === "number" && (
                             <>
@@ -1263,6 +1330,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <div className="flex justify-center p-2 bg-[#FFFDF9] rounded-2xl border border-[#E6CCA2]">
                             <ToppingPlacementBoard
                                 form={form}
+                                    selectedTierIndex={selectedTierIndex}
+                                    candleMode={candleMode}
                                 activeToppings={activeToppings}
                                 toppingLayout={toppingLayout}
                                 onMove={setToppingPosition}
