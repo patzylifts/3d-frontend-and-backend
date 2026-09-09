@@ -80,6 +80,8 @@ def build_customization_snapshot(data, price, customization_id=None):
         "text_font": data.get("text_font") or "",
         "topping_layout": data.get("topping_layout") or {},
         "candle_number": int(data.get("candle_number", 1)),
+        "candle_mode": data.get("candle_mode") or data.get("topping_layout", {}).get("candle", {}).get("mode", "gold"),
+        "candle_color": data.get("candle_color") or data.get("topping_layout", {}).get("candle", {}).get("color", "gold"),
         "has_candle": bool(data.get("has_candle", False)),
         "has_chocolate": bool(data.get("has_chocolate", False)),
         "has_balls": bool(data.get("has_balls", False)),
@@ -258,22 +260,21 @@ def add_custom_cake_to_cart(request):
                 "error": "No price is configured for the selected tier, size, and flavor."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        customization_record = serializer.save(user=request.user, price=price)
-        customization_snapshot = build_customization_snapshot(
-            data,
-            price,
-            customization_id=customization_record.id,
-        )
-        
-        # Get or create the user's cart
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        
-        # Create a CartItem with a JSON customization snapshot (no product)
-        CartItem.objects.create(
-            cart=cart,
-            customization=customization_snapshot,
-            quantity=1,
-        )
+        with transaction.atomic():
+            customization_record = serializer.save(user=request.user, price=price)
+            customization_snapshot = build_customization_snapshot(
+                data,
+                price,
+                customization_id=customization_record.id,
+            )
+
+            # Get or create the user's cart and add the custom cake atomically.
+            cart, _ = Cart.objects.get_or_create(user=request.user)
+            CartItem.objects.create(
+                cart=cart,
+                customization=customization_snapshot,
+                quantity=1,
+            )
         
         return Response({
             "message": "Custom cake added to cart",

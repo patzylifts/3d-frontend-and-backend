@@ -922,6 +922,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             text_font: textFont,
             has_candle: candle,
             candle_number: candleNumber,
+            candle_mode: candleMode,
+            candle_color: candleColor,
             topping_layout: {
                 ...toppingLayout,
                 candle: {

@@ -62,6 +62,15 @@ function CartPage() {
                                             {item.is_custom_cake && (() => {
                                                 const d = item.customization_detail;
                                                 const tierFlavors = Object.entries(d.tier_flavors || {});
+                                                const candleLayout = d.topping_layout?.candle || {};
+                                                const candleMode = d.candle_mode || candleLayout.mode || "gold";
+                                                const candleColor = d.candle_color || candleLayout.color || "gold";
+                                                const messageText = d.inscription_text || d.message || "";
+                                                const candleDescription = d.has_candle
+                                                    ? candleMode === "number"
+                                                        ? `Number ${d.candle_number || 1} (${candleColor})`
+                                                        : "Single (gold)"
+                                                    : null;
                                                 const addons = [
                                                     d.has_candle    && { label: "🕯️ Candle" },
                                                     d.has_chocolate && { label: "🍫 Chocolate" },
@@ -108,9 +117,39 @@ function CartPage() {
                                                             </div>
                                                         )}
 
-                                                        {d.inscription_text && (
-                                                            <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 mt-1 italic text-stone-700">
-                                                                <span className="font-bold not-italic text-amber-800 mr-1">💬 Message:</span> "{d.inscription_text}"
+                                                        {d.has_candle && (
+                                                            <div className="flex justify-between items-center pt-1">
+                                                                <span className="font-medium text-stone-400">🕯️ Candle</span>
+                                                                <span className="font-semibold text-stone-700">{candleDescription}</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 mt-1 text-stone-700">
+                                                            <span className="font-bold text-amber-800 mr-1">💬 Message:</span>
+                                                            <span className={messageText ? "italic" : "italic text-stone-400"}>
+                                                                {messageText ? `"${messageText}"` : "No message"}
+                                                            </span>
+                                                            <span className="block mt-1 text-[11px] text-stone-500">
+                                                                Font: {d.text_font || "Default"}
+                                                            </span>
+                                                        </div>
+
+                                                        {d.has_candle && candleMode === "number" && (
+                                                            <div className="text-[11px] text-stone-500 pt-1">
+                                                                Number candle color: {candleColor}
+                                                            </div>
+                                                        )}
+
+                                                        {d.icing_color && (
+                                                            <div className="flex justify-between items-center pt-1">
+                                                                <span className="font-medium text-stone-400">🍥 Icing Color</span>
+                                                                <span className="flex items-center gap-2 font-semibold text-stone-700">
+                                                                    <span
+                                                                        className="w-4 h-4 rounded-full border border-stone-300 shadow-sm"
+                                                                        style={{ background: d.icing_color }}
+                                                                    />
+                                                                    {d.icing_color}
+                                                                </span>
                                                             </div>
                                                         )}
 

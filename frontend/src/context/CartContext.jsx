@@ -140,13 +140,20 @@ export const CartProvider = ({ children }) => {
                 body: JSON.stringify(payload),
             });
 
-            if (!res.ok) {
-                const err = await res.json();
-                console.error("Failed to add custom cake:", err);
-                return { success: false, error: err };
+            const responseText = await res.text();
+            let responseData = {};
+            try {
+                responseData = responseText ? JSON.parse(responseText) : {};
+            } catch {
+                responseData = { error: responseText || "The server returned an invalid response." };
             }
 
-            const data = await res.json();
+            if (!res.ok) {
+                console.error("Failed to add custom cake:", responseData);
+                return { success: false, error: responseData };
+            }
+
+            const data = responseData;
             await fetchCart();
             return { success: true, data };
         } catch (error) {
