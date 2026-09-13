@@ -9,6 +9,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             "amount",
             "tip",
             "status",
+            "paymongo_payment_id",
+            "processed_at",
             "created_at",
             "updated_at",
         ]

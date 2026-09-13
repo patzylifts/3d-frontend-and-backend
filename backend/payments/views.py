@@ -206,23 +206,22 @@ def create_checkout_session(request, order_id):
                 )
 
                 if not same_request:
-                    if not same_request:
-                        return Response(
-                            {
-                                "needs_checkout_choice": True,
-                                "message":
-                                    "An unfinished payment checkout already exists.",
-                                "checkout_url":
-                                    pending_payment.checkout_url,
-                                "existing_checkout": {
-                                    "amount":
-                                        str(pending_payment.amount),
-                                    "tip":
-                                        str(pending_payment.tip),
-                                },
+                    return Response(
+                        {
+                            "needs_checkout_choice": True,
+                            "message":
+                                "An unfinished payment checkout already exists.",
+                            "checkout_url":
+                                pending_payment.checkout_url,
+                            "existing_checkout": {
+                                "amount":
+                                    str(pending_payment.amount),
+                                "tip":
+                                    str(pending_payment.tip),
                             },
-                            status=200
-                        )
+                        },
+                        status=200
+                    )
 
                 payment = pending_payment
 
@@ -275,15 +274,17 @@ def create_checkout_session(request, order_id):
         payload = {
             "data": {
                 "attributes": {
+                    "billing": {
+                        "email": request.user.email,
+                        "name": order.full_name,
+                    },
+
                     "line_items": line_items,
 
                     "payment_method_types": [
                         "gcash"
                     ],
 
-                    # IMPORTANT:
-                    # Redirect != proof of payment.
-                    # The webhook remains the source of truth.
                     "success_url":
                         f"{frontend_url}/orders/{order.id}"
                         "?checkout=returned",
@@ -296,11 +297,8 @@ def create_checkout_session(request, order_id):
                         f"ORDER-{order.id}-PAYMENT-{payment.id}",
 
                     "metadata": {
-                        "order_id":
-                            str(order.id),
-
-                        "payment_id":
-                            str(payment.id),
+                        "order_id": str(order.id),
+                        "payment_id": str(payment.id),
                     },
 
                     "send_email_receipt": True,
