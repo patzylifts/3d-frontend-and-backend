@@ -1332,8 +1332,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                         <div className="flex justify-center p-2 bg-[#FFFDF9] rounded-2xl border border-[#E6CCA2]">
                             <ToppingPlacementBoard
                                 form={form}
-                                    selectedTierIndex={selectedTierIndex}
-                                    candleMode={candleMode}
+                                selectedTierIndex={selectedTierIndex}
+                                candleMode={candleMode}
                                 activeToppings={activeToppings}
                                 toppingLayout={toppingLayout}
                                 onMove={setToppingPosition}
@@ -1562,7 +1562,7 @@ function BuildBentoContent() {
                             </CanvasErrorBoundary>
                         </div>
 
-                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase">
+                        <div className="cake-view-instruction absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#FFFDF9]/90 backdrop-blur border border-[#E6CCA2] px-4 py-1.5 rounded-full text-[11px] font-medium text-[#A05A2C] shadow-sm select-none pointer-events-none tracking-wide uppercase whitespace-nowrap">
                             🖱️ Drag to rotate · Scroll to zoom
                         </div>
                         <CakeCompass
