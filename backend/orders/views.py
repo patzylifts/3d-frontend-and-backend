@@ -1,7 +1,8 @@
 # orders/views.py
 from django.db import transaction
 from django.utils import timezone
-from chat.models import Conversation, Message
+from chat.models import Conversation
+from chat.services import ChatService
 from .serializers import QuotationSerializer
 import uuid
 from rest_framework.decorators import api_view, permission_classes
@@ -150,18 +151,23 @@ def accept_quotation(request, order_id):
             order=order
         )
 
-        Message.objects.create(
+        system_message = ChatService.create_system_message(
             conversation=conversation,
-            sender=request.user,
-            sender_type="customer",
-            message_type="system",
-            content=f"Quotation accepted: ₱{quotation.amount:,.2f}",
+            content=f"Quotation accepted · ₱{quotation.amount:,.2f}",
             metadata={
+                "event": "quotation_accepted",
                 "quotation_id": quotation.id,
+                "order_id": order.id,
                 "amount": str(quotation.amount),
                 "status": "accepted",
-                "is_quotation_acceptance": True,
             },
+            read_by_customer=True,
+            read_by_admin=False,
+        )
+
+        transaction.on_commit(
+            lambda msg=system_message:
+            ChatService.broadcast_message(msg)
         )
 
     return Response({

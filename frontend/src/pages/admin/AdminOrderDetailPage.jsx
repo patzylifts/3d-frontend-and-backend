@@ -18,11 +18,6 @@ export default function AdminOrderDetailPage() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [reviewData, setReviewData] = useState({
-        average_rating: 0,
-        review_count: 0,
-        reviews: [],
-    });
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showCakeModal, setShowCakeModal] = useState(false);
     const [selectedCake, setSelectedCake] = useState(null);
@@ -59,19 +54,9 @@ export default function AdminOrderDetailPage() {
     };
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         fetchOrder();
     }, [id]);
-
-    useEffect(() => {
-        fetch(`${BASEURL}/api/orders/products/${id}/reviews/`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.reviews) {
-                    setReviewData(data);
-                }
-            })
-            .catch((err) => console.error(err));
-    }, [id, BASEURL]);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-[#6E473B]">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;

@@ -20,6 +20,11 @@ export default function ChatBox({
     const [isOpen, setIsOpen] = useState(false);
     const socket = useRef(null);
     const bottomRef = useRef(null);
+    const isOpenRef = useRef(false);
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+    }, [isOpen]);
+
     const { fetchUnread } = useUnread();
     const currentQuotation = quotations.length
         ? quotations[quotations.length - 1]
@@ -30,6 +35,7 @@ export default function ChatBox({
         : null;
 
     useEffect(() => {
+        setMessages([]);
         loadConversation();
 
         const ws = connectSocket();
@@ -71,13 +77,44 @@ export default function ChatBox({
     }
 
     async function loadConversation() {
-        const res = await authFetch(
-            `${BASEURL}/api/chat/orders/${orderId}/`
-        );
+        try {
+            const res = await authFetch(
+                `${BASEURL}/api/chat/orders/${orderId}/`
+            );
 
-        const data = await res.json();
+            if (!res.ok) {
+                console.error("Failed to load conversation.");
+                return;
+            }
 
-        setMessages(data.messages);
+            const data = await res.json();
+            const loadedMessages = Array.isArray(data.messages)
+                ? data.messages
+                : [];
+
+            setMessages((prev) => {
+                const merged = new Map();
+
+                prev.forEach((msg) => {
+                    merged.set(msg.id, msg);
+                });
+
+                loadedMessages.forEach((msg) => {
+                    merged.set(msg.id, msg);
+                });
+
+                return Array.from(merged.values()).sort(
+                    (a, b) =>
+                        new Date(a.created_at) -
+                        new Date(b.created_at)
+                );
+            });
+        } catch (error) {
+            console.error(
+                "Failed to load conversation:",
+                error
+            );
+        }
     }
 
     function connectSocket() {
@@ -88,19 +125,44 @@ export default function ChatBox({
         );
 
         socket.current.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            let data;
 
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: data.id,
-                    sender_type: data.sender_type,
-                    content: data.message,
-                    created_at: data.created_at
+            try {
+                data = JSON.parse(event.data);
+            } catch (error) {
+                console.error(
+                    "Invalid chat WebSocket payload:",
+                    error
+                );
+                return;
+            }
+
+            const incomingMessage = {
+                id: data.id,
+                sender_type: data.sender_type,
+                message_type: data.message_type || "text",
+                content: data.message || "",
+                metadata: data.metadata || {},
+                attachment: data.attachment || null,
+                created_at: data.created_at,
+            };
+
+            setMessages((prev) => {
+                const alreadyExists = prev.some(
+                    (msg) => msg.id === incomingMessage.id
+                );
+
+                if (alreadyExists) {
+                    return prev;
                 }
-            ]);
 
-            if (isOpen) {
+                return [
+                    ...prev,
+                    incomingMessage,
+                ];
+            });
+
+            if (isOpenRef.current) {
                 markConversationRead();
             } else {
                 fetchUnread();
@@ -118,8 +180,7 @@ export default function ChatBox({
 
         socket.current.send(
             JSON.stringify({
-                message,
-                sender: isAdmin ? "admin" : "customer"
+                message: message.trim(),
             })
         );
         setMessage("");
@@ -170,32 +231,89 @@ export default function ChatBox({
                     )}
                     <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
                         {messages
-                            .filter(msg => msg.message_type !== "quotation")
-                            .map(msg => (
-                                <div
-                                    key={msg.id}
-                                    className={
-                                        msg.sender_type === (isAdmin ? "admin" : "customer")
-                                            ? "text-right"
-                                            : "text-left"
-                                    }
-                                >
+                            .filter((msg) => msg.message_type !== "quotation")
+                            .map((msg) => {
+                                const isSystemMessage =
+                                    msg.message_type === "system" ||
+                                    msg.sender_type === "system";
+
+                                if (isSystemMessage) {
+                                    const systemContent =
+                                        msg.metadata?.event === "quotation_accepted" ||
+                                            msg.metadata?.is_quotation_acceptance
+                                            ? `Quotation accepted · ₱${Number(
+                                                msg.metadata?.amount || 0
+                                            ).toLocaleString(undefined, {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}`
+                                            : msg.content;
+                                            
+                                    return (
+                                        <div
+                                            key={msg.id}
+                                            className="flex justify-center py-0.5"
+                                        >
+                                            <div
+                                                className="
+                            max-w-[92%]
+                            rounded-full
+                            border border-orange-200
+                            bg-orange-50
+                            px-2.5 py-1
+                            text-center
+                            text-[11px]
+                            font-semibold
+                            leading-tight
+                            text-orange-700
+                        "
+                                            >
+                                                <span
+                                                    className="mr-1"
+                                                    aria-hidden="true"
+                                                >
+                                                    ✓
+                                                </span>
+
+                                                {systemContent}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                const isOwnMessage =
+                                    msg.sender_type ===
+                                    (isAdmin ? "admin" : "customer");
+
+                                return (
                                     <div
-                                        className={`inline-block px-3 py-2 rounded-lg max-w-[80%] break-words ${msg.sender_type === (isAdmin ? "admin" : "customer")
-                                            ? "bg-orange-500 text-white"
-                                            : "bg-stone-100 text-stone-800"
-                                            }`}
+                                        key={msg.id}
+                                        className={
+                                            isOwnMessage
+                                                ? "text-right"
+                                                : "text-left"
+                                        }
                                     >
-                                        {msg.content}
+                                        <div
+                                            className={`inline-block max-w-[80%] break-words rounded-lg px-3 py-2 ${isOwnMessage
+                                                ? "bg-orange-500 text-white"
+                                                : "bg-stone-100 text-stone-800"
+                                                }`}
+                                        >
+                                            {msg.content}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         <div ref={bottomRef}></div>
                     </div>
 
                     <div className="flex gap-2 p-4 border-t bg-white">
                         <input
                             value={message}
+                            maxLength={2000}
+                            aria-label="Chat message"
+                            placeholder="Type a message..."
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") {

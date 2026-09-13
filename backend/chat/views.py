@@ -105,7 +105,7 @@ def mark_messages_read(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
 
         updated = conversation.messages.filter(
-            sender_type="customer",
+            sender_type__in=["customer", "system"],
             read_by_admin=False
         ).update(read_by_admin=True)
 
@@ -132,7 +132,7 @@ def unread_count(request):
                 total=Count(
                     "messages",
                     filter=Q(
-                        messages__sender_type="customer",
+                        messages__sender_type__in=["customer", "system"],
                         messages__read_by_admin=False
                     )
                 )
@@ -176,7 +176,7 @@ def unread_per_order(request):
         for convo in conversations:
 
             unread = convo.messages.filter(
-                sender_type="customer",
+                sender_type__in=["customer", "system"],
                 read_by_admin=False
             ).count()
 
