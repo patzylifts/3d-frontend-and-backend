@@ -1,7 +1,8 @@
 # orders/views.py
 from django.db import transaction
 from django.utils import timezone
-from chat.models import Conversation, Message
+from chat.models import Conversation
+from chat.services import ChatService
 from .serializers import QuotationSerializer
 import uuid
 from rest_framework.decorators import api_view, permission_classes
@@ -13,6 +14,11 @@ from .models import ProductReview
 from .serializers import OrderSerializer
 from .serializers_feedback import ProductReviewSerializer
 from orders.utils_sms_notifications import send_order_status_sms
+from payments.services import (
+    PaymentAlreadyCompletedError,
+    PaymentGatewayError,
+    expire_pending_checkout_sessions,
+)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -150,18 +156,23 @@ def accept_quotation(request, order_id):
             order=order
         )
 
-        Message.objects.create(
+        system_message = ChatService.create_system_message(
             conversation=conversation,
-            sender=request.user,
-            sender_type="customer",
-            message_type="system",
-            content=f"Quotation accepted: ₱{quotation.amount:,.2f}",
+            content=f"Quotation accepted · ₱{quotation.amount:,.2f}",
             metadata={
+                "event": "quotation_accepted",
                 "quotation_id": quotation.id,
+                "order_id": order.id,
                 "amount": str(quotation.amount),
                 "status": "accepted",
-                "is_quotation_acceptance": True,
             },
+            read_by_customer=True,
+            read_by_admin=False,
+        )
+
+        transaction.on_commit(
+            lambda msg=system_message:
+            ChatService.broadcast_message(msg)
         )
 
     return Response({
@@ -170,41 +181,90 @@ def accept_quotation(request, order_id):
         "order": OrderSerializer(order).data,
     })
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def cancel_order(request, order_id):
     try:
-        order = Order.objects.get(id=order_id, user=request.user)
-        total_paid = sum(p.amount for p in order.payments.all())
-        
-        if order.status == "awaiting_customer_response":
-            order.status = "cancelled"
-            order.payment_status = "cancelled"
-            order.save()
-            send_order_status_sms(order)
-            return Response({"message": "Order cancelled successfully"})
-
-        if order.status == "pending_review":
-            order.status = "cancelled"
-            order.payment_status = "cancelled"
-            order.save()
-            send_order_status_sms(order)
-            return Response({"message": "Order cancelled successfully"})
-
-        if order.status == "awaiting_downpayment" and total_paid == 0:
-            order.status = "cancelled"
-            order.payment_status = "cancelled"
-            order.save()
-            send_order_status_sms(order)
-            return Response({"message": "Order cancelled successfully"})
-
-        return Response(
-            {"error": "This order can no longer be cancelled"},
-            status=400
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user
         )
 
     except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    total_paid = sum(
+        payment.amount
+        for payment in order.payments.filter(
+            status__in=["partial", "paid"]
+        )
+    )
+
+    can_cancel = (
+        order.status == "pending_review"
+        or order.status == "awaiting_customer_response"
+        or (
+            order.status == "awaiting_downpayment"
+            and total_paid == 0
+        )
+    )
+
+    if not can_cancel:
+        return Response(
+            {
+                "error":
+                    "This order can no longer be cancelled."
+            },
+            status=400
+        )
+
+    try:
+        expire_pending_checkout_sessions(order)
+
+    except PaymentAlreadyCompletedError:
+        # Very important race-condition protection:
+        #
+        # PayMongo says this checkout already contains a paid
+        # transaction even if our webhook hasn't reached us yet.
+        return Response(
+            {
+                "error":
+                    "A payment was already completed for this order. "
+                    "Please refresh the order before cancelling."
+            },
+            status=409
+        )
+
+    except PaymentGatewayError:
+        # Do not cancel locally if we cannot guarantee that the
+        # existing PayMongo checkout has been closed.
+        return Response(
+            {
+                "error":
+                    "We could not safely close the active payment "
+                    "checkout. Please try again."
+            },
+            status=503
+        )
+
+    order.status = "cancelled"
+    order.payment_status = "cancelled"
+
+    order.save(
+        update_fields=[
+            "status",
+            "payment_status",
+        ]
+    )
+
+    send_order_status_sms(order)
+
+    return Response({
+        "message": "Order cancelled successfully"
+    })
 
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])

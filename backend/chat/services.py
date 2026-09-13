@@ -1,6 +1,12 @@
 # chat/services.py
+import logging
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from .models import Message
 
+logger = logging.getLogger(__name__)
 
 class ChatService:
 
@@ -14,11 +20,9 @@ class ChatService:
         message_type="text",
         attachment=None,
         metadata=None,
+        read_by_customer=False,
+        read_by_admin=False,
     ):
-
-        if metadata is None:
-            metadata = {}
-
         return Message.objects.create(
             conversation=conversation,
             sender=sender,
@@ -26,7 +30,9 @@ class ChatService:
             message_type=message_type,
             content=content,
             attachment=attachment,
-            metadata=metadata,
+            metadata=metadata or {},
+            read_by_customer=read_by_customer,
+            read_by_admin=read_by_admin,
         )
 
     @staticmethod
@@ -35,8 +41,9 @@ class ChatService:
         conversation,
         content,
         metadata=None,
+        read_by_customer=False,
+        read_by_admin=False,
     ):
-
         return ChatService.create_message(
             conversation=conversation,
             sender=None,
@@ -44,4 +51,61 @@ class ChatService:
             message_type="system",
             content=content,
             metadata=metadata or {},
+            read_by_customer=read_by_customer,
+            read_by_admin=read_by_admin,
         )
+
+    @staticmethod
+    def websocket_payload(message):
+        return {
+            "id": message.id,
+            "sender": message.sender_id,
+            "sender_name": (
+                message.sender.username
+                if message.sender
+                else "System"
+            ),
+            "sender_type": message.sender_type,
+            "message_type": message.message_type,
+            "message": message.content,
+            "metadata": message.metadata or {},
+            "attachment": (
+                message.attachment.url
+                if message.attachment
+                else None
+            ),
+            "created_at": message.created_at.isoformat(),
+        }
+
+    @staticmethod
+    def broadcast_message(message):
+        channel_layer = get_channel_layer()
+
+        if channel_layer is None:
+            logger.warning(
+                "Unable to broadcast chat message %s: "
+                "no channel layer configured.",
+                message.id,
+            )
+            return
+
+        try:
+            async_to_sync(
+                channel_layer.group_send
+            )(
+                f"order_{message.conversation.order_id}",
+                {
+                    "type": "chat_message",
+                    "message": ChatService.websocket_payload(
+                        message
+                    ),
+                },
+            )
+
+        except Exception:
+            # The message is already safely stored in the database.
+            # A websocket failure should not make the API request fail.
+            logger.exception(
+                "Failed to broadcast chat message %s",
+                message.id,
+            )

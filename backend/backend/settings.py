@@ -7,8 +7,15 @@ from datetime import timedelta
 load_dotenv()
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+
 PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
 PAYMONGO_WEBHOOK_SECRET = os.getenv("PAYMONGO_WEBHOOK_SECRET")
+
+FRONTEND_BASE_URL = os.getenv(
+    "FRONTEND_BASE_URL",
+    "http://localhost:5173"
+)
+
 SMS_API_KEY = os.getenv("SMS_API_KEY")
 SMS_API_URL = os.getenv("SMS_API_URL")
 

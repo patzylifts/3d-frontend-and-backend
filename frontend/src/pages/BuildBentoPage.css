@@ -82,3 +82,14 @@
         height: clamp(460px, calc(100vh - 4rem), 540px);
     }
 }
+
+/* Show canvas controls hint only on mouse/trackpad devices */
+.cake-view-instruction {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .cake-view-instruction {
+        display: block;
+    }
+}

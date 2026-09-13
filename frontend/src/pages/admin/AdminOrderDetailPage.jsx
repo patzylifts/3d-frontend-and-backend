@@ -18,11 +18,6 @@ export default function AdminOrderDetailPage() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [reviewData, setReviewData] = useState({
-        average_rating: 0,
-        review_count: 0,
-        reviews: [],
-    });
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showCakeModal, setShowCakeModal] = useState(false);
     const [selectedCake, setSelectedCake] = useState(null);
@@ -59,19 +54,9 @@ export default function AdminOrderDetailPage() {
     };
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         fetchOrder();
     }, [id]);
-
-    useEffect(() => {
-        fetch(`${BASEURL}/api/orders/products/${id}/reviews/`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.reviews) {
-                    setReviewData(data);
-                }
-            })
-            .catch((err) => console.error(err));
-    }, [id, BASEURL]);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-[#6E473B]">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
@@ -82,7 +67,6 @@ export default function AdminOrderDetailPage() {
     );
 
     const canProgressStatus = [
-        "awaiting_downpayment",
         "processing",
         "ready_for_delivery",
         "out_for_delivery",
@@ -204,7 +188,6 @@ export default function AdminOrderDetailPage() {
                         {canProgressStatus && (
                             <div className="space-y-3">
                                 <h4 className="font-bold text-[#6E473B]">Update Status</h4>
-                                {order.status === "awaiting_downpayment" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("processing")}>Start Processing</button>}
                                 {order.status === "processing" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("ready_for_delivery")}>Mark as Ready</button>}
                                 {order.status === "ready_for_delivery" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("out_for_delivery")}>Out for Delivery</button>}
                                 {order.status === "out_for_delivery" && <button className="w-full bg-[#6E473B] text-white py-2 rounded-lg font-bold" onClick={() => updateStatus("delivered")}>Mark as Delivered</button>}

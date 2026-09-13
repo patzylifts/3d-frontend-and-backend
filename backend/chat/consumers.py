@@ -8,6 +8,8 @@ from store.models import Order
 from .models import Conversation
 from .services import ChatService
 
+MAX_CHAT_MESSAGE_LENGTH = 2000
+
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
@@ -43,8 +45,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def can_access_order(self, user):
 
-        from store.models import Order
-
         try:
             order = Order.objects.get(id=self.order_id)
 
@@ -57,10 +57,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return order.user_id == user.id
 
     async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return
 
-        data = json.loads(text_data)
-        message = data.get("message", "")
+        message = str(data.get("message", "")).strip()
+
+        if not message:
+            return
+
+        if len(message) > MAX_CHAT_MESSAGE_LENGTH:
+            return
+
         user = self.scope["user"]
+
         saved_message = await self.save_message(
             message,
             user,
@@ -91,12 +102,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             order=order
         )
 
-        if user.is_staff:
-
+        if user.is_staff or user.is_superuser:
             sender_type = "admin"
-
         else:
-
             sender_type = "customer"
 
         msg = ChatService.create_message(
@@ -106,11 +114,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content=message,
         )
 
-        return {
-            "id": msg.id,
-            "sender": msg.sender.id,
-            "sender_name": msg.sender.username,
-            "sender_type": msg.sender_type,
-            "message": msg.content,
-            "created_at": msg.created_at.isoformat(),
-        }
+        return ChatService.websocket_payload(msg)
