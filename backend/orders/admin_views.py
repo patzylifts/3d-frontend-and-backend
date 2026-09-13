@@ -11,6 +11,11 @@ from chat.serializers import MessageSerializer
 from django.db.models import Count, Sum
 from datetime import date, timedelta
 from .utils_sms_notifications import send_order_status_sms
+from payments.services import (
+    PaymentAlreadyCompletedError,
+    PaymentGatewayError,
+    expire_pending_checkout_sessions,
+)
 
 # ADMIN: LIST ALL ORDERS
 @api_view(['GET'])
@@ -234,59 +239,209 @@ def admin_review_order(request, order_id):
         "sms_sent": sms_sent
     })
     
-@api_view(['PATCH'])
+@api_view(["PATCH"])
 @permission_classes([IsAdminUser])
 def admin_update_order_status(request, order_id):
     try:
-        order = Order.objects.get(id=order_id)
-
-        new_status = request.data.get("status")
-
-        if not new_status:
-            return Response({"error": "Status is required"}, status=400)
-
-        valid_transitions = {
-            "awaiting_downpayment": ["processing", "cancelled"],
-            "processing": ["ready_for_delivery", "cancelled"],
-            "ready_for_delivery": ["out_for_delivery"],
-            "out_for_delivery": ["delivered"],
-        }
-
-        current = order.status
-
-        if current not in valid_transitions or new_status not in valid_transitions[current]:
-            return Response({"error": f"Invalid transition from {current} to {new_status}"}, status=400)
-
-        old_status = order.status
-
-        order.status = new_status
-
-        if new_status == "delivered":
-            order.payment_status = "paid"
-
-        order.save()
-
-        sms_sent = False
-
-        if old_status != new_status:
-            try:
-                send_order_status_sms(order)
-                sms_sent = True
-            except Exception as e:
-                print("ORDER SMS ERROR:", str(e))
-                
-        return Response({
-            "message": "Order reviewed successfully",
-            "order": OrderSerializer(order).data,
-            "sms_sent": sms_sent,
-
-            # PLACEHOLDER FLAGS
-            "trigger_sms": True if new_status in ["ready_for_delivery", "out_for_delivery", "delivered"] else False,
-            "allow_rating": True if new_status == "delivered" else False
-        })
+        order = Order.objects.get(
+            id=order_id
+        )
 
     except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    new_status = request.data.get("status")
+
+    if not new_status:
+        return Response(
+            {"error": "Status is required"},
+            status=400
+        )
+
+    valid_transitions = {
+        "awaiting_downpayment": [
+            "processing",
+            "cancelled",
+        ],
+        "processing": [
+            "ready_for_delivery",
+            "cancelled",
+        ],
+        "ready_for_delivery": [
+            "out_for_delivery",
+        ],
+        "out_for_delivery": [
+            "delivered",
+        ],
+    }
+
+    current_status = order.status
+
+    if (
+        current_status not in valid_transitions
+        or new_status not in valid_transitions[current_status]
+    ):
+        return Response(
+            {
+                "error":
+                    f"Invalid transition from "
+                    f"{current_status} to {new_status}"
+            },
+            status=400
+        )
+
+    # --------------------------------------------------
+    # PROCESSING REQUIRES A VERIFIED PAYMENT
+    # --------------------------------------------------
+
+    if new_status == "processing":
+        if order.payment_status not in [
+            "partial",
+            "paid",
+        ]:
+            return Response(
+                {
+                    "error":
+                        "This order cannot start processing "
+                        "until a payment has been confirmed."
+                },
+                status=400
+            )
+
+    # --------------------------------------------------
+    # CANCELLATION SAFETY
+    # --------------------------------------------------
+
+    if new_status == "cancelled":
+
+        total_paid = (
+            order.payments
+            .filter(
+                status__in=[
+                    "partial",
+                    "paid",
+                ]
+            )
+            .aggregate(
+                total=Sum("amount")
+            )["total"]
+            or Decimal("0.00")
+        )
+
+        # We do not currently have an automated refund flow.
+        #
+        # Once real money has been received, admins must not
+        # simply cancel the order and lose payment accounting.
+        if (
+            total_paid > 0
+            or order.payment_status in [
+                "partial",
+                "paid",
+            ]
+        ):
+            return Response(
+                {
+                    "error":
+                        "This order already has a confirmed "
+                        "payment and cannot be cancelled "
+                        "without a refund process."
+                },
+                status=409
+            )
+
+        try:
+            expire_pending_checkout_sessions(
+                order
+            )
+
+        except PaymentAlreadyCompletedError:
+            return Response(
+                {
+                    "error":
+                        "PayMongo reports that this checkout "
+                        "has already been paid. Refresh the "
+                        "order before making changes."
+                },
+                status=409
+            )
+
+        except PaymentGatewayError:
+            return Response(
+                {
+                    "error":
+                        "The active payment checkout could "
+                        "not be safely closed. Please try again."
+                },
+                status=503
+            )
+
+    # --------------------------------------------------
+    # DELIVERY REQUIRES FULL PAYMENT
+    # --------------------------------------------------
+
+    if new_status == "delivered":
+        if order.payment_status != "paid":
+            return Response(
+                {
+                    "error":
+                        "This order must be fully paid "
+                        "before it can be marked delivered."
+                },
+                status=400
+            )
+
+    old_status = order.status
+
+    order.status = new_status
+
+    if new_status == "cancelled":
+        order.payment_status = "cancelled"
+
+        order.save(
+            update_fields=[
+                "status",
+                "payment_status",
+            ]
+        )
+
+    else:
+        order.save(
+            update_fields=[
+                "status",
+            ]
+        )
+
+    sms_sent = False
+
+    if old_status != new_status:
+        try:
+            send_order_status_sms(order)
+            sms_sent = True
+
+        except Exception as e:
+            print(
+                "ORDER SMS ERROR:",
+                str(e)
+            )
+
+    return Response({
+        "message": "Order status updated successfully.",
+        "order": OrderSerializer(order).data,
+        "sms_sent": sms_sent,
+
+        "trigger_sms":
+            new_status in [
+                "ready_for_delivery",
+                "out_for_delivery",
+                "delivered",
+            ],
+
+        "allow_rating":
+            new_status == "delivered",
+    })
     
 # DASHBOARD
 @api_view(['GET'])

@@ -8,6 +8,7 @@ import ChatBox from "../../components/chat/ChatBox";
 import { CustomizationProvider } from "../../contexts/Customization";
 import { CustomCakeModal } from "../../components/admin/CustomCakeModal";
 import { getOrderStatusLabel } from "../../utils/orderStatus";
+import ExistingCheckoutModal from "../../components/customer/ExistingCheckoutModal";
 
 export default function CustomerOrderDetailPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -19,11 +20,18 @@ export default function CustomerOrderDetailPage() {
     const [error, setError] = useState(null);
     const [payAmount, setPayAmount] = useState(0);
     const [tipAmount, setTipAmount] = useState(0);
+    const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+    const [checkoutChoice, setCheckoutChoice] = useState(null);
+    const [isReplacingCheckout, setIsReplacingCheckout] = useState(false);
     const [agreeNoRefund, setAgreeNoRefund] = useState(false);
     const [showCakeModal, setShowCakeModal] = useState(false);
     const [selectedCake, setSelectedCake] = useState(null);
     const [showImageModal, setShowImageModal] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const roundMoney = (value) =>
+        Math.round(
+            (Number(value) + Number.EPSILON) * 100
+        ) / 100;
 
     const fetchOrder = async () => {
         try {
@@ -37,12 +45,18 @@ export default function CustomerOrderDetailPage() {
             const data = await res.json();
             setOrder(data);
 
-            const min = Math.max(
-                Math.round(Number(data.total_amount) * 0.2) - Number(data.total_paid),
-                0
-            );
+            const totalPaid = Number(data.total_paid);
+            const remaining = Number(data.remaining_balance);
+
+            const min =
+                totalPaid === 0
+                    ? roundMoney(
+                        Number(data.total_amount) * 0.2
+                    )
+                    : Math.min(remaining, 0.01);
 
             setPayAmount(min);
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -54,13 +68,31 @@ export default function CustomerOrderDetailPage() {
         fetchOrder();
     }, [id]);
 
+    useEffect(() => {
+        const params = new URLSearchParams(
+            window.location.search
+        );
+
+        if (params.get("checkout") === "cancelled") {
+            window.history.replaceState(
+                {},
+                "",
+                `/orders/${id}`
+            );
+        }
+    }, [id]);
+
     const parsedPay = payAmount === "" ? 0 : Number(payAmount);
     const parsedTip = tipAmount === "" ? 0 : Number(tipAmount);
     const totalToCharge = parsedPay + parsedTip;
     const remainingBalance = order ? Number(order.remaining_balance) : 0;
 
     const minAmount = order
-        ? Math.max(Math.round(Number(order.total_amount) * 0.2) - Number(order.total_paid), 1)
+        ? Number(order.total_paid) === 0
+            ? roundMoney(
+                Number(order.total_amount) * 0.2
+            )
+            : 0.01
         : 0;
 
     const maxAmount = order ? remainingBalance : 0;
@@ -96,24 +128,160 @@ export default function CustomerOrderDetailPage() {
     };
 
     const handlePayNow = async () => {
+        if (isCreatingCheckout) return;
+
+        setIsCreatingCheckout(true);
+
+        const requestedAmount = parsedPay;
+        const requestedTip = parsedTip;
+
         try {
-            const res = await authFetch(`${BASEURL}/api/payments/${id}/checkout/`, {
-                method: "POST",
-                body: JSON.stringify({ amount: payAmount, tip: tipAmount }),
-            });
+            const res = await authFetch(
+                `${BASEURL}/api/payments/${id}/checkout/`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        amount: requestedAmount,
+                        tip: requestedTip,
+                    }),
+                }
+            );
 
             const data = await res.json();
 
             if (!res.ok) {
-                alert(data.error || "Failed to initiate payment");
+                alert(
+                    data.error ||
+                    "Failed to initiate payment."
+                );
+
                 return;
             }
 
-            localStorage.setItem("last_payment_amount", payAmount);
-            localStorage.setItem("last_tip_amount", tipAmount);
-            window.location.href = data.checkout_url;
+            if (data.needs_checkout_choice) {
+                setCheckoutChoice({
+                    checkoutUrl:
+                        data.checkout_url,
+
+                    existingAmount:
+                        data.existing_checkout?.amount,
+
+                    existingTip:
+                        data.existing_checkout?.tip,
+
+                    requestedAmount,
+                    requestedTip,
+                });
+
+                return;
+            }
+
+            if (!data.checkout_url) {
+                alert(
+                    "Payment checkout could not be created."
+                );
+
+                return;
+            }
+
+            window.location.href =
+                data.checkout_url;
+
         } catch (err) {
             console.error(err);
+
+            alert(
+                "Unable to connect to the payment service. Please try again."
+            );
+
+        } finally {
+            setIsCreatingCheckout(false);
+        }
+    };
+
+    const handleResumeCheckout = () => {
+        if (!checkoutChoice?.checkoutUrl) {
+            return;
+        }
+
+        window.location.href =
+            checkoutChoice.checkoutUrl;
+    };
+
+
+    const handleReplaceCheckout = async () => {
+        if (!checkoutChoice) return;
+
+        setIsReplacingCheckout(true);
+
+        try {
+            const cancelRes = await authFetch(
+                `${BASEURL}/api/payments/${id}/checkout/cancel/`,
+                {
+                    method: "POST",
+                }
+            );
+
+            const cancelData = await cancelRes
+                .json()
+                .catch(() => ({}));
+
+            if (!cancelRes.ok) {
+                alert(
+                    cancelData.error ||
+                    "Unable to close the previous checkout."
+                );
+
+                return;
+            }
+
+            const res = await authFetch(
+                `${BASEURL}/api/payments/${id}/checkout/`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        amount:
+                            checkoutChoice.requestedAmount,
+
+                        tip:
+                            checkoutChoice.requestedTip,
+                    }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(
+                    data.error ||
+                    "Unable to create the new checkout."
+                );
+
+                return;
+            }
+
+            if (!data.checkout_url) {
+                alert(
+                    "New payment checkout could not be created."
+                );
+
+                return;
+            }
+
+            setCheckoutChoice(null);
+
+            window.location.href =
+                data.checkout_url;
+
+        } catch (err) {
+            console.error(err);
+
+            alert(
+                "Unable to replace the payment checkout. Please try again."
+            );
+
+        } finally {
+            setIsReplacingCheckout(false);
         }
     };
 
@@ -286,12 +454,12 @@ export default function CustomerOrderDetailPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Amount to Pay</label>
-                                        <input type="number" value={payAmount || ""} disabled={!isPayable} onChange={(e) => isPayable && setPayAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm font-bold outline-none transition-all disabled:bg-stone-50" />
+                                        <input type="number" min="0" step="0.01" value={payAmount || ""} disabled={!isPayable || isCreatingCheckout} onChange={(e) => isPayable && setPayAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm font-bold outline-none transition-all disabled:bg-stone-50" />
                                     </div>
 
                                     <div className="flex flex-col">
                                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Add a Tip (Optional)</label>
-                                        <input type="number" value={tipAmount || ""} disabled={!isPayable} onChange={(e) => isPayable && setTipAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm font-bold outline-none transition-all disabled:bg-stone-50" />
+                                        <input type="number" min="0" step="0.01" value={tipAmount || ""} disabled={!isPayable || isCreatingCheckout} onChange={(e) => isPayable && setTipAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm font-bold outline-none transition-all disabled:bg-stone-50" />
                                     </div>
                                 </div>
 
@@ -309,7 +477,21 @@ export default function CustomerOrderDetailPage() {
                                     <label htmlFor="no-refund-agreement" className="text-sm text-stone-700 leading-relaxed cursor-pointer">I understand that once my payment is successfully processed, it is <span className="font-bold text-rose-600">non-refundable</span>. I have reviewed my order details and agree to proceed.</label>
                                 </div>
 
-                                <button onClick={handlePayNow} disabled={!isPayable || isInvalid || isTipInvalid || !agreeNoRefund} className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed">Proceed to Secure Checkout</button>
+                                <button
+                                    onClick={handlePayNow}
+                                    disabled={
+                                        !isPayable ||
+                                        isInvalid ||
+                                        isTipInvalid ||
+                                        !agreeNoRefund ||
+                                        isCreatingCheckout
+                                    }
+                                    className="w-full bg-[#d67b27] hover:bg-[#b56219] disabled:bg-stone-300 text-white font-black py-3.5 px-6 rounded-full transition-colors duration-200 text-sm uppercase tracking-wider shadow-sm text-center cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                    {isCreatingCheckout
+                                        ? "Creating Secure Checkout..."
+                                        : "Proceed to Secure Checkout"}
+                                </button>
                             </div>
                         )}
 
@@ -425,6 +607,19 @@ export default function CustomerOrderDetailPage() {
                     onImagesAdded={() => fetchOrder()}
                 />
             </CustomizationProvider>
+
+            <ExistingCheckoutModal
+                isOpen={Boolean(checkoutChoice)}
+                checkout={checkoutChoice}
+                isReplacing={isReplacingCheckout}
+                onResume={handleResumeCheckout}
+                onReplace={handleReplaceCheckout}
+                onClose={() => {
+                    if (!isReplacingCheckout) {
+                        setCheckoutChoice(null);
+                    }
+                }}
+            />
 
             {showImageModal && normalizedImages.length > 0 && (
                 <div className="fixed inset-0 z-[200] bg-black/85 flex items-center justify-center p-4" onClick={closeImageModal}>

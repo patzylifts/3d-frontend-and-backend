@@ -67,7 +67,6 @@ export default function AdminOrderDetailPage() {
     );
 
     const canProgressStatus = [
-        "awaiting_downpayment",
         "processing",
         "ready_for_delivery",
         "out_for_delivery",
@@ -189,7 +188,6 @@ export default function AdminOrderDetailPage() {
                         {canProgressStatus && (
                             <div className="space-y-3">
                                 <h4 className="font-bold text-[#6E473B]">Update Status</h4>
-                                {order.status === "awaiting_downpayment" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("processing")}>Start Processing</button>}
                                 {order.status === "processing" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("ready_for_delivery")}>Mark as Ready</button>}
                                 {order.status === "ready_for_delivery" && <button className="w-full bg-[#E6CCA2] py-2 rounded-lg font-bold" onClick={() => updateStatus("out_for_delivery")}>Out for Delivery</button>}
                                 {order.status === "out_for_delivery" && <button className="w-full bg-[#6E473B] text-white py-2 rounded-lg font-bold" onClick={() => updateStatus("delivered")}>Mark as Delivered</button>}
