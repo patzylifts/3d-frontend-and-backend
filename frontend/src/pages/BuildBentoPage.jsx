@@ -165,33 +165,33 @@ const ICING_TRANSFORMS = {
     1: {
         round: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.0],
         },
         rectangle: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.01],
         },
     },
 
     2: {
         round: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.01],
         },
         rectangle: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.01],
         },
     },
 
     3: {
         round: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.01],
         },
         rectangle: {
             position: [0, 0, 0],
-            scale: [1, 1, 1],
+            scale: [1.01, 1.0, 1.01],
         },
     },
 };
