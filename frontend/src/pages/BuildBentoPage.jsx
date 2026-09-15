@@ -65,7 +65,7 @@ const TOPPING_3D_CONFIG = {
         radius: 0.92,
     },
     cherry: {
-        yOffset: 0.01,
+        yOffset: 0.0,
         rotation: [0, 0, 0],
         scale: 0.039,
         radius: 0.85,
@@ -99,19 +99,112 @@ const FLAVOR_LABELS = {
     "Ube Chiffon": "Ube",
 };
 
-const getToppingPosition = (layout, config, selectedTierIndex, candleMode) => {
-    const tierRadius = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
+const getToppingPosition = (
+    layout,
+    config,
+    selectedTierIndex,
+    candleMode,
+    form,
+    tierBounds,
+    footprint = 0
+) => {
+    const tierRadius =
+        TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
+
     const radius = config.radius * tierRadius;
+
     const isCandle = config === TOPPING_3D_CONFIG.candle;
+    const isCherry = config === TOPPING_3D_CONFIG.cherry;
+
     const [placementMin, placementMax] = isCandle
         ? getCandlePlacementBounds(selectedTierIndex, candleMode)
         : [5, 95];
-    const boundedX = Math.max(placementMin, Math.min(placementMax, layout.x));
-    const boundedY = Math.max(placementMin, Math.min(placementMax, layout.y));
+
+    let boundedX = Math.max(
+        placementMin,
+        Math.min(placementMax, layout.x)
+    );
+
+    let boundedY = Math.max(
+        placementMin,
+        Math.min(placementMax, layout.y)
+    );
+
+    if (tierBounds) {
+        const margin = 0.10 + footprint;
+        const minX = tierBounds.min.x + margin;
+        const maxX = tierBounds.max.x - margin;
+        const minZ = tierBounds.min.z + margin;
+        const maxZ = tierBounds.max.z - margin;
+
+        if (form === 1) {
+            const dx = (boundedX - 50) / 50;
+            const dz = (boundedY - 50) / 50;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            const safeRadius = isCherry
+                ? [0.62, 0.60, 0.58, 0.56][selectedTierIndex] ?? 0.58
+                : 0.86;
+
+            if (distance > safeRadius) {
+                const angle = Math.atan2(dz, dx);
+                boundedX = 50 + Math.cos(angle) * safeRadius * 50;
+                boundedY = 50 + Math.sin(angle) * safeRadius * 50;
+            }
+        }
+
+        const x = THREE.MathUtils.lerp(minX, maxX, boundedX / 100);
+        const z = THREE.MathUtils.lerp(minZ, maxZ, boundedY / 100);
+        const topSurfaceY =
+            tierBounds.max.y ??
+            TIER_TOP_Y[selectedTierIndex] ??
+            TIER_TOP_Y[0];
+
+        return [x, topSurfaceY + (isCherry ? -0.08 : config.yOffset), z];
+    }
+
+    if (isCherry && form === 1) {
+        const cherryRadiusByTier = [
+            0.62,
+            0.60,
+            0.58,
+            0.56,
+        ];
+
+        const safeRadius =
+            cherryRadiusByTier[selectedTierIndex] ?? 0.58;
+
+        const dx = (boundedX - 50) / 50;
+        const dz = (boundedY - 50) / 50;
+
+        const distance = Math.sqrt(dx * dx + dz * dz);
+
+        if (distance > safeRadius) {
+            const angle = Math.atan2(dz, dx);
+
+            boundedX =
+                50 +
+                Math.cos(angle) * safeRadius * 50;
+
+            boundedY =
+                50 +
+                Math.sin(angle) * safeRadius * 50;
+        }
+    }
+
     const x = ((boundedX - 50) / 50) * radius;
     const z = ((boundedY - 50) / 50) * radius;
-    const topSurfaceY = TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
-    const y = Math.min(topSurfaceY + config.yOffset, topSurfaceY - 0.001);
+
+    const topSurfaceY =
+        tierBounds?.max.y ??
+        TIER_TOP_Y[selectedTierIndex] ??
+        TIER_TOP_Y[0];
+
+    let y = topSurfaceY + config.yOffset;
+
+    if (isCherry) {
+        y = topSurfaceY - 0.08;
+    }
+
     return [x, y, z];
 };
 
@@ -157,8 +250,8 @@ const ICING_TRANSFORMS = {
             scale: [1.235, 1.013, 1.235],
         },
         rectangle: {
-            position: [0.008, -1.249, -0.0005],
-            scale: [1.259, 1.146, 1.259],
+            position: [0.008, -1.249, -0.000],
+            scale: [1.268, 1.146, 1.267],
         },
     },
 
@@ -453,6 +546,70 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
     const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
     const abstractTexture = useTexture(TEXTURE_URLS.ube);
     const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
+    const activeTierScene = [
+    tier1.scene,
+    tier2.scene,
+    tier3.scene,
+    tier4.scene,
+    ][selectedTierIndex];
+
+    const activeTierBounds = useMemo(() => {
+        if (!activeTierScene) return null;
+
+        const clone = activeTierScene.clone(true);
+
+        // Match the exact transform used by the rendered cake
+        if (selectedTierIndex === 0) {
+            clone.position.set(0, 0, 0);
+            clone.scale.setScalar(1);
+            clone.rotation.set(0, 0, 0);
+        } else {
+            clone.position.set(0, -0.95, 0);
+            clone.scale.setScalar(0.9);
+            clone.rotation.set(0, Math.PI, 0);
+        }
+
+        const cakeBounds = new THREE.Box3();
+        const selectedShape = form === 1 ? "round" : "rectangle";
+
+        clone.traverse((child) => {
+            if (!child.isMesh) return;
+
+            const lname = (child.name || "").toLowerCase();
+            const isTopping = [
+                "candle",
+                "chandel",
+                "nut",
+                "bar",
+                "ball",
+                "cherry",
+                "sprinkle",
+                "plate",
+            ].some((part) => lname.includes(part));
+
+            const shape = getCakeShape(child.name);
+            const isMatchingIcing =
+                lname.includes("icing") &&
+                ((lname.includes("round") && selectedShape === "round") ||
+                    ((lname.includes("rectangle") || lname.includes("rect")) && selectedShape === "rectangle"));
+
+            child.visible = !isTopping && (shape === selectedShape || isMatchingIcing);
+        });
+
+        clone.updateMatrixWorld(true);
+
+        clone.traverse((child) => {
+            if (child.isMesh && child.visible) {
+                cakeBounds.expandByObject(child);
+            }
+        });
+
+        return cakeBounds.isEmpty() ? new THREE.Box3().setFromObject(clone) : cakeBounds;
+    }, [
+        activeTierScene,
+        selectedTierIndex,
+        form,
+    ]);
 
     const texturesByKey = useMemo(() => ({
         choco: chocoTexture,
@@ -538,6 +695,17 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
     });
 
     const selectedToppings = { candle, chocolate, balls, nuts, cherry, sprinkles };
+    const nutScale = Math.abs(
+        TOPPING_3D_CONFIG.nuts.scale *
+        TOPPING_SIZES[toppingLayout.nuts.size] *
+        (NUT_TIER_SCALE[selectedTierIndex] ?? 1)
+    );
+    const nutFootprint = [nodes.nuts, nodes.Mesh021, nodes.Mesh021_1]
+        .filter((node) => node?.geometry)
+        .reduce((largestRadius, node) => {
+            node.geometry.computeBoundingSphere();
+            return Math.max(largestRadius, (node.geometry.boundingSphere?.radius || 0) * nutScale);
+        }, 0);
 
     const renderCandleNumber = () => {
         const selectedCandleMode = toppingLayout.candle?.mode || candleMode || "gold";
@@ -627,7 +795,15 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
                 <mesh
                     geometry={nodes.nuts.geometry}
                     material={materials.Default}
-                    position={getToppingPosition(toppingLayout.nuts, TOPPING_3D_CONFIG.nuts, selectedTierIndex)}
+                    position={getToppingPosition(
+                        toppingLayout.nuts,
+                        TOPPING_3D_CONFIG.nuts,
+                        selectedTierIndex,
+                        undefined,
+                        form,
+                        activeTierBounds,
+                        nutFootprint
+                    )}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
                     scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
                 />
@@ -635,7 +811,15 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
 
             {selectedToppings.nuts && !nodes.nuts?.geometry && nodes.Mesh021?.geometry && nodes.Mesh021_1?.geometry && (
                 <group
-                    position={getToppingPosition(toppingLayout.nuts, TOPPING_3D_CONFIG.nuts, selectedTierIndex)}
+                    position={getToppingPosition(
+                        toppingLayout.nuts,
+                        TOPPING_3D_CONFIG.nuts,
+                        selectedTierIndex,
+                        undefined,
+                        form,
+                        activeTierBounds,
+                        nutFootprint
+                    )}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
                     scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
                 >
@@ -647,10 +831,23 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
             {selectedToppings.chocolate && nodes.bar?.geometry && (
                 <mesh
                     geometry={nodes.bar.geometry}
-                    material={materials.choco}
-                    position={getToppingPosition(toppingLayout.chocolate, TOPPING_3D_CONFIG.chocolate, selectedTierIndex)}
+                    material={materials.choco || materials.Default}
+                    position={getToppingPosition(
+                        toppingLayout.chocolate,
+                        TOPPING_3D_CONFIG.chocolate,
+                        selectedTierIndex,
+                        undefined,
+                        form,
+                        activeTierBounds
+                    )}
                     rotation={TOPPING_3D_CONFIG.chocolate.rotation}
-                    scale={TOPPING_3D_CONFIG.chocolate.scale * TOPPING_SIZES[toppingLayout.chocolate.size]}
+                    scale={
+                        TOPPING_3D_CONFIG.chocolate.scale *
+                        (TOPPING_SIZES[toppingLayout.chocolate.size] || 1)
+                    }
+                    visible={true}
+                    castShadow
+                    receiveShadow
                 />
             )}
 
@@ -767,7 +964,7 @@ function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeTopp
         if (form === 1) {
             const dx = nextX - 50;
             const dy = nextY - 50;
-            const radius = 45;
+            const radius = key === "cherry" ? 25 : 45;  
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance > radius) {
                 const angle = Math.atan2(dy, dx);
@@ -880,6 +1077,15 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     };
 
     const handleSizeChange = (e) => setSelectedSize(e.target.value);
+    const handleShapeChange = (newForm) => {
+    setForm(newForm);
+
+    // Reset cherry to the center of the cake
+    // so it is valid for both round and rectangle shapes.
+    if (cherry) {
+        setToppingPosition("cherry", 50, 50);
+    }
+};
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
     const activeToppings = TOPPING_OPTIONS.filter((topping) => toppingEnabled[topping.key]);
     const activeTierLabels = TIER_FLAVOR_LABELS[selectedTierIndex + 1] || TIER_FLAVOR_LABELS[1];
@@ -983,8 +1189,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             onClick={() => {
                                 setSelectedTierIndex(idx);
                                 setSelectedSize(CAKE_SIZES[idx].sizes[0]);
+
                             }}
-                        >
+                            >
                             {item.tier}
                         </button>
                     ))}
@@ -1019,7 +1226,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
                             : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
                             }`}
-                        onClick={() => setForm(1)}
+                        onClick={() => handleShapeChange(1)}
                     >
                         ⭕ Round
                     </button>
@@ -1029,7 +1236,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             ? "bg-[#C05A11] border-[#C05A11] text-white font-semibold shadow-md shadow-[#C05A11]/20"
                             : "bg-white border-[#E6CCA2] text-[#6E473B] hover:bg-[#FDF6E2]"
                             }`}
-                        onClick={() => setForm(2)}
+                        onClick={() => handleShapeChange(2)}
                     >
                         ⬜ Rectangle
                     </button>

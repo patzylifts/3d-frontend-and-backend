@@ -60,7 +60,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'cart', 'product', 'customization', 'quantity',
                   'product_name', 'product_price', 'product_image',
                   'customization_detail', 'item_name', 'item_unit_price', 'is_custom_cake']
-
+        
     def get_item_name(self, obj):
         if obj.product:
             return obj.product.name
