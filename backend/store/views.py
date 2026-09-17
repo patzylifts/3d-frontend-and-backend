@@ -253,6 +253,11 @@ def add_custom_cake_to_cart(request):
                 has_balls=data.get("has_balls", False),
                 has_nuts=data.get("has_nuts", False),
                 has_cherry=data.get("has_cherry", False),
+                cherry_count=(
+                    len((data.get("topping_layout") or {}).get("cherry"))
+                    if isinstance((data.get("topping_layout") or {}).get("cherry"), list)
+                    else 1
+                ),
                 has_sprinkles=data.get("has_sprinkles", False),
             )
         except CustomCakePricing.DoesNotExist:

@@ -133,6 +133,20 @@ const hydrateToppingLayout = (initialState) => {
     );
 };
 
+const hydrateCherryLayouts = (initialState) => {
+    const savedCherryLayout = initialState?.topping_layout?.cherry;
+    const layouts = Array.isArray(savedCherryLayout)
+        ? savedCherryLayout
+        : savedCherryLayout
+            ? [savedCherryLayout]
+            : [DEFAULT_TOPPING_LAYOUT.cherry];
+
+    return layouts.map((layout) => ({
+        ...DEFAULT_TOPPING_LAYOUT.cherry,
+        ...layout,
+    }));
+};
+
 const normalizeCandleNumber = (value) => {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return 1;
@@ -191,6 +205,9 @@ export const CustomizationProvider = (props) => {
     const [balls, setBalls] = useState(!!initialState?.has_balls);
     const [nuts, setNuts] = useState(!!initialState?.has_nuts);
     const [cherry, setCherry] = useState(!!initialState?.has_cherry);
+    const [cherryLayouts, setCherryLayouts] = useState(
+        () => hydrateCherryLayouts(initialState)
+    );
     const [sprinkles, setSprinkles] = useState(!!initialState?.has_sprinkles);
     const [cakeColor, setCakeColor] = useState(
         () => cakeColors.find(c => c.color === initialState?.cake_color) || cakeColors[0]
@@ -237,6 +254,16 @@ export const CustomizationProvider = (props) => {
     const pricingFlavor = selectedTierFlavors[0] ?? flavor;
 
     const setToppingPosition = (key, x, y) => {
+        if (key.startsWith("cherry-")) {
+            const index = Number.parseInt(key.slice("cherry-".length), 10);
+            if (Number.isNaN(index)) return;
+
+            setCherryLayouts((prev) => prev.map((layout, layoutIndex) => (
+                layoutIndex === index ? { ...layout, x, y } : layout
+            )));
+            return;
+        }
+
         setToppingLayout((prev) => ({
             ...prev,
             [key]: { ...prev[key], x, y },
@@ -244,10 +271,32 @@ export const CustomizationProvider = (props) => {
     };
 
     const setToppingSize = (key, size) => {
+        if (key.startsWith("cherry-")) {
+            const index = Number.parseInt(key.slice("cherry-".length), 10);
+            if (Number.isNaN(index)) return;
+
+            setCherryLayouts((prev) => prev.map((layout, layoutIndex) => (
+                layoutIndex === index ? { ...layout, size } : layout
+            )));
+            return;
+        }
+
         setToppingLayout((prev) => ({
             ...prev,
             [key]: { ...prev[key], size },
         }));
+    };
+
+    const setCherryCount = (count) => {
+        const nextCount = Math.max(1, Math.min(12, Number(count) || 1));
+        setCherry(true);
+        setCherryLayouts((prev) => Array.from({ length: nextCount }, (_, index) => (
+            prev[index] || {
+                ...DEFAULT_TOPPING_LAYOUT.cherry,
+                x: 35 + ((index * 17) % 35),
+                y: 35 + ((index * 23) % 30),
+            }
+        )));
     };
 
     const setTierLayerFlavor = (layerIdx, newFlavor) => {
@@ -343,7 +392,7 @@ export const CustomizationProvider = (props) => {
         if (chocolate) addonsPrice += getAddonPrice("chocolate");
         if (balls) addonsPrice += getAddonPrice("balls");
         if (nuts) addonsPrice += getAddonPrice("nuts");
-        if (cherry) addonsPrice += getAddonPrice("cherry");
+        if (cherry) addonsPrice += getAddonPrice("cherry") * cherryLayouts.length;
         if (sprinkles) addonsPrice += getAddonPrice("sprinkles");
 
         return getBasePrice() + addonsPrice;
@@ -381,6 +430,7 @@ export const CustomizationProvider = (props) => {
         setBalls(false);
         setNuts(false);
         setCherry(false);
+        setCherryLayouts([DEFAULT_TOPPING_LAYOUT.cherry]);
         setSprinkles(false);
         switch (randomDecoration) {
             case "candle":
@@ -444,6 +494,9 @@ export const CustomizationProvider = (props) => {
                 setNuts,
                 cherry,
                 setCherry,
+                cherryCount: cherryLayouts.length,
+                setCherryCount,
+                cherryLayouts,
                 sprinkles,
                 setSprinkles,
                 generateRandomCake,

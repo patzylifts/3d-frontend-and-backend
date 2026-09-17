@@ -65,7 +65,7 @@ const TOPPING_3D_CONFIG = {
         radius: 0.92,
     },
     cherry: {
-        yOffset: 0.60,
+        yOffset: -0.12,
         rotation: [0, 0, 0],
         scale: 0.039,
         radius: 0.85,
@@ -142,9 +142,7 @@ const getToppingPosition = (
             const dx = (boundedX - 50) / 50;
             const dz = (boundedY - 50) / 50;
             const distance = Math.sqrt(dx * dx + dz * dz);
-            const safeRadius = isCherry
-                ? [0.62, 0.60, 0.58, 0.56][selectedTierIndex] ?? 0.58
-                : 0.86;
+            const safeRadius = 0.86;
 
             if (distance > safeRadius) {
                 const angle = Math.atan2(dz, dx);
@@ -160,37 +158,10 @@ const getToppingPosition = (
             TIER_TOP_Y[selectedTierIndex] ??
             TIER_TOP_Y[0];
 
-        return [x, topSurfaceY + (isCherry ? -0.08 : config.yOffset), z];
+        return [x, topSurfaceY + (isCherry ? -0.15 : config.yOffset), z];
     }
 
-    if (isCherry && form === 1) {
-        const cherryRadiusByTier = [
-            0.62,
-            0.60,
-            0.58,
-            0.56,
-        ];
 
-        const safeRadius =
-            cherryRadiusByTier[selectedTierIndex] ?? 0.58;
-
-        const dx = (boundedX - 50) / 50;
-        const dz = (boundedY - 50) / 50;
-
-        const distance = Math.sqrt(dx * dx + dz * dz);
-
-        if (distance > safeRadius) {
-            const angle = Math.atan2(dz, dx);
-
-            boundedX =
-                50 +
-                Math.cos(angle) * safeRadius * 50;
-
-            boundedY =
-                50 +
-                Math.sin(angle) * safeRadius * 50;
-        }
-    }
 
     const x = ((boundedX - 50) / 50) * radius;
     const z = ((boundedY - 50) / 50) * radius;
@@ -537,6 +508,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         balls,
         nuts,
         cherry,
+        cherryLayouts,
         sprinkles,
         toppingLayout,
         inscriptionText,
@@ -862,14 +834,17 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
                 />
             )}
             {selectedToppings.cherry && nodes.cherry?.geometry && (
-                <mesh
-                    geometry={nodes.cherry.geometry}
-                    material={materials.cherry || materials.Default}
-                    position={getToppingPosition(toppingLayout.cherry, TOPPING_3D_CONFIG.cherry, selectedTierIndex)}
-                    rotation={TOPPING_3D_CONFIG.cherry.rotation}
-                    scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[toppingLayout.cherry.size]}
-                    castShadow
-                />
+                cherryLayouts.map((layout, index) => (
+                    <mesh
+                        key={`cherry-${index}`}
+                        geometry={nodes.cherry.geometry}
+                        material={materials.cherry || materials.Default}
+                        position={getToppingPosition(layout, TOPPING_3D_CONFIG.cherry, selectedTierIndex)}
+                        rotation={TOPPING_3D_CONFIG.cherry.rotation}
+                        scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[layout.size]}
+                        castShadow
+                    />
+                ))
             )}
 
         </>
@@ -928,7 +903,7 @@ function DraggableTopping({ topping, layout }) {
 }
 
 // ────── ToppingPlacementBoard ──────
-function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeToppings, toppingLayout, onMove }) {
+function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeToppings, toppingLayout, cherryLayouts, onMove }) {
     const boardRef = useRef(null);
     const { setNodeRef } = useDroppable({ id: "cake-placement" });
     const sensors = useSensors(
@@ -944,7 +919,9 @@ function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeTopp
 
     const handleDragEnd = ({ active, delta }) => {
         const key = active?.id;
-        const currentLayout = toppingLayout[key];
+        const currentLayout = key.startsWith("cherry-")
+            ? cherryLayouts[Number.parseInt(key.slice("cherry-".length), 10)]
+            : toppingLayout[key];
 
         if (!key || !currentLayout || !boardRef.current) return;
 
@@ -965,7 +942,7 @@ function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeTopp
         if (form === 1) {
             const dx = nextX - 50;
             const dy = nextY - 50;
-            const radius = key === "cherry" ? 25 : 45;  
+            const radius = 45;
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance > radius) {
                 const angle = Math.atan2(dy, dx);
@@ -988,7 +965,9 @@ function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeTopp
                         <DraggableTopping
                             key={topping.key}
                             topping={topping}
-                            layout={toppingLayout[topping.key]}
+                            layout={topping.key.startsWith("cherry-")
+                                ? cherryLayouts[Number.parseInt(topping.key.slice("cherry-".length), 10)]
+                                : toppingLayout[topping.key]}
                         />
                     ))}
                 </div>
@@ -1047,6 +1026,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         balls, setBalls,
         nuts, setNuts,
         cherry, setCherry,
+        cherryCount, setCherryCount, cherryLayouts,
         sprinkles, setSprinkles,
         generateRandomCake,
         calculatePrice,
@@ -1081,24 +1061,30 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     const handleShapeChange = (newForm) => {
         setForm(newForm);
 
-        // Reset cherry to the center of the cake
-        // so it is valid for both round and rectangle shapes.
-        // Automatically snap all active toppings into the new boundaries
+        // Keep topping positions when changing shape, while clamping any
+        // positions that fall outside the new cake boundaries.
         enforceToppingBounds(newForm, selectedTierIndex);
-        if (cherry) {
-            setToppingPosition("cherry", 50, 50);
-        }
     };
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
-    const activeToppings = TOPPING_OPTIONS.filter((topping) => toppingEnabled[topping.key]);
+    const activeToppings = TOPPING_OPTIONS
+        .filter((topping) => toppingEnabled[topping.key])
+        .flatMap((topping) => topping.key === "cherry"
+            ? cherryLayouts.map((_, index) => ({ ...topping, key: `cherry-${index}`, label: `Cherry ${index + 1}` }))
+            : [topping]);
     const activeTierLabels = TIER_FLAVOR_LABELS[selectedTierIndex + 1] || TIER_FLAVOR_LABELS[1];
 
     // ADD THIS HELPER FUNCTION:
     const enforceToppingBounds = (targetForm, targetTierIndex) => {
-        const activeKeys = Object.keys(toppingEnabled).filter(k => toppingEnabled[k]);
+        const activeKeys = Object.keys(toppingEnabled)
+            .filter(k => toppingEnabled[k])
+            .flatMap((key) => key === "cherry"
+                ? cherryLayouts.map((_, index) => `cherry-${index}`)
+                : [key]);
 
         activeKeys.forEach((key) => {
-            const currentLayout = toppingLayout[key];
+            const currentLayout = key.startsWith("cherry-")
+                ? cherryLayouts[Number.parseInt(key.slice("cherry-".length), 10)]
+                : toppingLayout[key];
             if (!currentLayout) return;
 
             let nextX = currentLayout.x;
@@ -1118,7 +1104,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             if (targetForm === 1) {
                 const dx = nextX - 50;
                 const dy = nextY - 50;
-                const radius = key === "cherry" ? 25 : 45;
+                const radius = 45;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 // If it's outside the circle, pull it back to the edge
@@ -1177,6 +1163,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             candle_color: candleColor,
             topping_layout: {
                 ...toppingLayout,
+                cherry: cherryLayouts,
                 candle: {
                     ...toppingLayout.candle,
                     mode: candleMode,
@@ -1588,6 +1575,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                 candleMode={candleMode}
                                 activeToppings={activeToppings}
                                 toppingLayout={toppingLayout}
+                                cherryLayouts={cherryLayouts}
                                 onMove={setToppingPosition}
                             />
                         </div>
@@ -1607,7 +1595,9 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                             <button
                                                 key={size}
                                                 type="button"
-                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${toppingLayout[topping.key].size === size
+                                                className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${(topping.key.startsWith("cherry-")
+                                                    ? cherryLayouts[Number.parseInt(topping.key.slice("cherry-".length), 10)]
+                                                    : toppingLayout[topping.key]).size === size
                                                     ? "bg-[#C05A11] text-white shadow-sm"
                                                     : "text-[#A07060] hover:text-[#6E473B]"
                                                     }`}
@@ -1619,6 +1609,20 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                     </div>
                                 </div>
                             ))}
+
+                            {cherry && (
+                                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm">
+                                    <span className="text-xs font-semibold text-[#6E473B]">Number of cherries</span>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        value={cherryCount}
+                                        onChange={(event) => setCherryCount(event.target.value)}
+                                        className="w-16 text-center px-2 py-1.5 text-sm font-bold rounded-lg bg-[#FFFDF9] border border-[#E6CCA2] text-[#6E473B] focus:outline-none focus:border-[#C05A11]"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (

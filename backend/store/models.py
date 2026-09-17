@@ -130,7 +130,7 @@ def get_default_custom_cake_price(*, tier, size, flavor):
 
 def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
                                 has_chocolate=False, has_balls=False, has_nuts=False,
-                                has_cherry=False, has_sprinkles=False):
+                                has_cherry=False, cherry_count=1, has_sprinkles=False):
     try:
         base_price = CustomCakePricing.objects.get(
             tier=tier,
@@ -165,6 +165,7 @@ def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
     )
     addon_total = sum(
         configured_addon_prices.get(key, DEFAULT_ADDON_PRICES.get(key, Decimal("0.00")))
+        * (max(1, int(cherry_count)) if key == "cherry" else 1)
         for key in selected_addons
     )
 
