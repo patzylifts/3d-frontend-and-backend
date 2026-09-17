@@ -41,7 +41,7 @@ const TEXTURE_URLS = {
 
 const TOPPING_3D_CONFIG = {
     candle: {
-        yOffset: 0.03,
+        yOffset: -0.010,
         rotation: [-Math.PI / 2, 0, 0],
         scale: -0.03,
         radius: 0.95,
@@ -53,7 +53,7 @@ const TOPPING_3D_CONFIG = {
         radius: 0.9,
     },
     balls: {
-        yOffset: 0.05,
+        yOffset: 0.02,
         rotation: [-2.24, 0.35, -0.42],
         scale: -0.06,
         radius: 0.95,
@@ -65,7 +65,7 @@ const TOPPING_3D_CONFIG = {
         radius: 0.92,
     },
     cherry: {
-        yOffset: 0.0,
+        yOffset: 0.60,
         rotation: [0, 0, 0],
         scale: 0.039,
         radius: 0.85,
@@ -81,7 +81,7 @@ const TOPPING_3D_CONFIG = {
 const NUT_TIER_SCALE = [1, 0.8, 0.6, 0.55]; // tune tier2 (index 1)
 const BALLS_TIER_SCALE = [1, 0.8, 0.6, 0.55];
 const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.73];
-const TIER_TOP_RADIUS = [1, 0.72, 0.78, 0.80];
+const TIER_TOP_RADIUS = [1, 0.72, 0.52, 0.40];
 const CANDLE_DIGIT_SPACING = 0.30;
 const CANDLE_DIGIT_FALLBACK_SCALE = 0.045;
 const CANDLE_NUMBER_Y_OFFSET = -0.12;
@@ -132,6 +132,7 @@ const getToppingPosition = (
 
     if (tierBounds) {
         const margin = 0.10 + footprint;
+        const tierScale = TIER_TOP_RADIUS[selectedTierIndex] ?? 1;
         const minX = tierBounds.min.x + margin;
         const maxX = tierBounds.max.x - margin;
         const minZ = tierBounds.min.z + margin;
@@ -1078,18 +1079,62 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
     const handleSizeChange = (e) => setSelectedSize(e.target.value);
     const handleShapeChange = (newForm) => {
-    setForm(newForm);
+        setForm(newForm);
 
-    // Reset cherry to the center of the cake
-    // so it is valid for both round and rectangle shapes.
-    if (cherry) {
-        setToppingPosition("cherry", 50, 50);
-    }
-};
+        // Reset cherry to the center of the cake
+        // so it is valid for both round and rectangle shapes.
+        // Automatically snap all active toppings into the new boundaries
+        enforceToppingBounds(newForm, selectedTierIndex);
+        if (cherry) {
+            setToppingPosition("cherry", 50, 50);
+        }
+    };
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
     const activeToppings = TOPPING_OPTIONS.filter((topping) => toppingEnabled[topping.key]);
     const activeTierLabels = TIER_FLAVOR_LABELS[selectedTierIndex + 1] || TIER_FLAVOR_LABELS[1];
 
+    // ADD THIS HELPER FUNCTION:
+    const enforceToppingBounds = (targetForm, targetTierIndex) => {
+        const activeKeys = Object.keys(toppingEnabled).filter(k => toppingEnabled[k]);
+
+        activeKeys.forEach((key) => {
+            const currentLayout = toppingLayout[key];
+            if (!currentLayout) return;
+
+            let nextX = currentLayout.x;
+            let nextY = currentLayout.y;
+
+            // 1. Enforce specific bounds based on tier
+            if (key === "candle") {
+                const [min, max] = getCandlePlacementBounds(targetTierIndex, candleMode);
+                nextX = Math.max(min, Math.min(max, nextX));
+                nextY = Math.max(min, Math.min(max, nextY));
+            } else {
+                nextX = Math.max(5, Math.min(95, nextX));
+                nextY = Math.max(5, Math.min(95, nextY));
+            }
+
+            // 2. Enforce radial bounds if switching to Round (form 1)
+            if (targetForm === 1) {
+                const dx = nextX - 50;
+                const dy = nextY - 50;
+                const radius = key === "cherry" ? 25 : 45;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // If it's outside the circle, pull it back to the edge
+                if (distance > radius) {
+                    const angle = Math.atan2(dy, dx);
+                    nextX = 50 + Math.cos(angle) * radius;
+                    nextY = 50 + Math.sin(angle) * radius;
+                }
+            }
+
+            // Update the state if coordinates needed adjusting
+            if (nextX !== currentLayout.x || nextY !== currentLayout.y) {
+                setToppingPosition(key, nextX, nextY);
+            }
+        });
+    };
     const handleAddToCart = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
