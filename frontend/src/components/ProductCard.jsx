@@ -1,13 +1,15 @@
 // src/components/ProductCard.jsx
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useCart } from "../context/CartContext"; 
 
 function ProductCard({ product }) {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const navigate = useNavigate();
     const { addToCart } = useCart(); // 2. Access the function from context
+    const [showSuccess, setShowSuccess] = useState(false);
 
-    const handleAddToCart = (e) => {
+    const handleAddToCart = async (e) => {
         // StopPropagation prevents the card's onClick (navigate) from firing
         e.stopPropagation();
         
@@ -17,8 +19,13 @@ function ProductCard({ product }) {
             return;
         }
 
-        // 4. Perform the action
-        addToCart(product.id);
+        // 4. Perform the action and show feedback only after the request succeeds
+        const result = await addToCart(product.id);
+
+        if (result?.success) {
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        }
     };
 
     return (
@@ -26,6 +33,17 @@ function ProductCard({ product }) {
             className="group bg-white border border-[#f3e1c6] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1" 
             onClick={() => navigate(`/product/${product.id}`)}
         >
+            {showSuccess && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-semibold text-white shadow-xl"
+                >
+                    <span aria-hidden="true">✓</span>
+                    Added to cart!
+                </div>
+            )}
+
             {/* Image Area */}
             <div className="relative w-full aspect-square bg-[#fffdf9] rounded-xl border border-stone-100 flex items-center justify-center overflow-hidden">
                 <img

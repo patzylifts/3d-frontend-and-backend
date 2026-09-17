@@ -10,6 +10,7 @@ function ProductDetails() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [reviewData, setReviewData] = useState({
         average_rating: 0,
         review_count: 0,
@@ -54,12 +55,18 @@ function ProductDetails() {
             });
     }, [id, BASEURL]);
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!localStorage.getItem('access_token')) {
             navigate("/login");
             return;
         }
-        addToCart(product.id);
+
+        const result = await addToCart(product.id);
+
+        if (result?.success) {
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        }
     };
 
     if (loading) {
@@ -151,11 +158,22 @@ function ProductDetails() {
 
                         {/* Pricing & Button Area */}
                         <div className="mt-8 pt-6 border-t border-stone-100 space-y-6">
-                            <div className="flex items-baseline space-x-1 text-[#844414]">
+                            <div className="relative flex items-baseline space-x-1 text-[#844414]">
                                 <span className="text-2xl font-bold">₱</span>
                                 <span className="text-4xl font-black tracking-tight">
                                     {Number(product.price).toLocaleString()}
                                 </span>
+
+                                {showSuccess && (
+                                    <div
+                                        role="status"
+                                        aria-live="polite"
+                                        className="absolute right-0 top-1/2 z-50 flex -translate-y-1/2 items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-semibold text-white shadow-xl"
+                                    >
+                                        <span aria-hidden="true">✓</span>
+                                        Added to cart!
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3">
