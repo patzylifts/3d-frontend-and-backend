@@ -378,17 +378,16 @@ def admin_update_order_status(request, order_id):
                 status=503
             )
 
-    # --------------------------------------------------
-    # DELIVERY REQUIRES FULL PAYMENT
-    # --------------------------------------------------
-
     if new_status == "delivered":
-        if order.payment_status != "paid":
+        if order.payment_status not in [
+            "partial",
+            "paid",
+        ]:
             return Response(
                 {
                     "error":
-                        "This order must be fully paid "
-                        "before it can be marked delivered."
+                        "This order must have a confirmed "
+                        "downpayment before it can be marked delivered."
                 },
                 status=400
             )
