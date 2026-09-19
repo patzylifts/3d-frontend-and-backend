@@ -78,7 +78,6 @@ const TOPPING_3D_CONFIG = {
     },
 };
 
-const NUT_TIER_SCALE = [1, 0.8, 0.6, 0.55]; // tune tier2 (index 1)
 const BALLS_TIER_SCALE = [1, 0.8, 0.6, 0.55];
 const TIER_TOP_Y = [2.35, 1.80, 2.35, 2.73];
 const TIER_TOP_RADIUS = [1, 0.72, 0.52, 0.40];
@@ -238,6 +237,60 @@ const getNodeWidth = (node) => {
     return (node.geometry.boundingBox?.max.x - node.geometry.boundingBox?.min.x || 0) *
         Math.abs(node.scale?.x || CANDLE_DIGIT_FALLBACK_SCALE);
 };
+
+const getCenteredNutTransform = (tierBounds, selectedTierIndex, form, geometries = []) => {
+    const baseScale = TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES.medium;
+
+    // 1. Permanently fix the off-center pivot by centering the 3D geometry
+    geometries.forEach((g) => {
+        if (g && !g.userData.isCentered) {
+            g.center();
+            g.userData.isCentered = true; 
+        }
+    });
+
+    // 2. Measure the cake surface width
+    const size = new THREE.Vector3();
+    if (tierBounds) tierBounds.getSize(size);
+    const topWidth = Math.min(size.x || 2, size.z || 2);
+
+    // 3. Measure the actual dimensions of the nuts 
+    let maxLocalX = 0, maxLocalY = 0, maxLocalZ = 0;
+    geometries.forEach((geometry) => {
+        if (!geometry) return;
+        geometry.computeBoundingBox();
+        const boxSize = geometry.boundingBox.getSize(new THREE.Vector3());
+        maxLocalX = Math.max(maxLocalX, boxSize.x);
+        maxLocalY = Math.max(maxLocalY, boxSize.y);
+        maxLocalZ = Math.max(maxLocalZ, boxSize.z);
+    });
+
+    // Because the nuts are rotated 90-degrees (Math.PI/2) on the X axis, 
+    // its vertical height in the 3D world is actually its local Z dimension.
+    const nutWorldWidth = Math.max(maxLocalX, maxLocalY);
+    const nutWorldHeight = maxLocalZ;
+
+    // 4. Calculate the proper scale-down size
+    const coverageRatio = form === 1 ? 0.55 : 0.55; 
+    const targetWidth = topWidth * coverageRatio;
+    
+    const currentBaseWidth = nutWorldWidth * Math.abs(baseScale);
+    const fitScale = currentBaseWidth > 0 ? (targetWidth / currentBaseWidth) : 0.5;
+    const finalScale = baseScale * fitScale;
+
+    // 5. Calculate perfect Y height to sit flush on the cake
+    const topY = tierBounds?.max?.y ?? TIER_TOP_Y[selectedTierIndex] ?? TIER_TOP_Y[0];
+    
+    // Since the pivot is now dead center, we lift it by exactly half 
+    // its scaled height so it rests beautifully on the icing.
+    const flushYOffset = (nutWorldHeight * Math.abs(finalScale)) / 2;
+
+    return {
+        // X and Z are locked to 0 for a perfect center placement!
+        position: [0, topY + flushYOffset -0.02, 0],
+        scale: finalScale,
+    };
+}
 
 const ICING_TRANSFORMS = {
     0: {
@@ -737,17 +790,12 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         nodes.cherry?.geometry,
         TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES.large
     );
-    const nutScale = Math.abs(
-        TOPPING_3D_CONFIG.nuts.scale *
-        TOPPING_SIZES[toppingLayout.nuts.size] *
-        (NUT_TIER_SCALE[selectedTierIndex] ?? 1)
+    const nutTransform = getCenteredNutTransform(
+        activeTierBounds,
+        selectedTierIndex,
+        form,
+        [nodes.nuts?.geometry, nodes.Mesh021?.geometry, nodes.Mesh021_1?.geometry]
     );
-    const nutFootprint = [nodes.nuts, nodes.Mesh021, nodes.Mesh021_1]
-        .filter((node) => node?.geometry)
-        .reduce((largestRadius, node) => {
-            node.geometry.computeBoundingSphere();
-            return Math.max(largestRadius, (node.geometry.boundingSphere?.radius || 0) * nutScale);
-        }, 0);
 
     const renderCandleNumber = () => {
         const selectedCandleMode = toppingLayout.candle?.mode || candleMode || "gold";
@@ -861,33 +909,17 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
                 <mesh
                     geometry={nodes.nuts.geometry}
                     material={materials.Default}
-                    position={getToppingPosition(
-                        toppingLayout.nuts,
-                        TOPPING_3D_CONFIG.nuts,
-                        selectedTierIndex,
-                        undefined,
-                        form,
-                        activeTierBounds,
-                        nutFootprint
-                    )}
+                    position={nutTransform.position}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
-                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
+                    scale={nutTransform.scale}
                 />
             )}
 
             {selectedToppings.nuts && !nodes.nuts?.geometry && nodes.Mesh021?.geometry && nodes.Mesh021_1?.geometry && (
                 <group
-                    position={getToppingPosition(
-                        toppingLayout.nuts,
-                        TOPPING_3D_CONFIG.nuts,
-                        selectedTierIndex,
-                        undefined,
-                        form,
-                        activeTierBounds,
-                        nutFootprint
-                    )}
+                    position={nutTransform.position}
                     rotation={TOPPING_3D_CONFIG.nuts.rotation}
-                    scale={TOPPING_3D_CONFIG.nuts.scale * TOPPING_SIZES[toppingLayout.nuts.size] * (NUT_TIER_SCALE[selectedTierIndex] ?? 1)}
+                    scale={nutTransform.scale}
                 >
                     <mesh geometry={nodes.Mesh021.geometry} material={materials.Default} />
                     <mesh geometry={nodes.Mesh021_1.geometry} material={materials.Default} />
@@ -1174,6 +1206,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
     const activeToppings = TOPPING_OPTIONS
         .filter((topping) => toppingEnabled[topping.key])
+        .filter((topping) => topping.key !== "nuts")
         .flatMap((topping) => topping.key === "cherry"
             ? cherryLayouts.map((_, index) => ({ ...topping, key: `cherry-${index}`, label: `Cherry ${index + 1}` }))
             : [topping]);
