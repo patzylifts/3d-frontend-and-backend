@@ -193,23 +193,76 @@ def create_order(request):
         return Response({"error": str(e)}, status=500)
             
 # REGISTER
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def register_view(request):
-    phone = request.data.get("phone")
-    verified = SMSVerification.objects.filter(
-        phone=phone,
-        is_verified=True
-    ).exists()
+    phone = str(
+        request.data.get("phone", "")
+    ).strip()
 
-    if not verified:
-        return Response({"error": "Phone not verified"}, status=400)
-    
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
+    serializer = RegisterSerializer(
+        data=request.data
+    )
+
+    if not serializer.is_valid():
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with transaction.atomic():
+        verification = (
+            SMSVerification.objects
+            .select_for_update()
+            .filter(
+                phone=phone,
+                is_verified=True,
+            )
+            .order_by(
+                "-verified_at",
+                "-created_at",
+            )
+            .first()
+        )
+
+        if not verification:
+            return Response(
+                {
+                    "error":
+                        "Phone number has not been verified."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if verification.is_verification_expired():
+            verification.delete()
+
+            return Response(
+                {
+                    "error":
+                        "Phone verification expired. "
+                        "Please verify your phone again."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = serializer.save()
-        return Response({"message":"User Created Successfully", "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verification is single-use.
+        SMSVerification.objects.filter(
+            phone=phone
+        ).delete()
+
+    return Response(
+        {
+            "message":
+                "User Created Successfully",
+
+            "user":
+                UserSerializer(user).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 # USER PROFILE
 @api_view(['GET', 'PUT'])

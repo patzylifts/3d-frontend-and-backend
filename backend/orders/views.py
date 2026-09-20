@@ -348,7 +348,6 @@ def product_review(request, order_id, item_id):
         status=400
     )
 
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def product_reviews(request, product_id):

@@ -16,8 +16,30 @@ FRONTEND_BASE_URL = os.getenv(
     "http://localhost:5173"
 )
 
-SMS_API_KEY = os.getenv("SMS_API_KEY")
-SMS_API_URL = os.getenv("SMS_API_URL")
+PHILSMS_API_TOKEN = os.getenv(
+    "PHILSMS_API_TOKEN"
+)
+
+PHILSMS_SENDER_ID = os.getenv(
+    "PHILSMS_SENDER_ID",
+    "PhilSMS"
+)
+
+PHILSMS_API_URL = os.getenv(
+    "PHILSMS_API_URL",
+    "https://dashboard.philsms.com/api/v3/sms/send"
+)
+
+# CHANGE SMS_DEBUG IN BACKEND ENV | TRUE (DEVELOPMENT) - FALSE (PHILSMS WILL SEND REAL MESSAGES)
+SMS_DEBUG = os.getenv(
+    "SMS_DEBUG",
+    "False"
+).lower() in [
+    "true",
+    "1",
+    "yes",
+    "on",
+]
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
