@@ -11,6 +11,8 @@ from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, 
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
 from .serializers import (AddonPricingSerializer, CakeCustomizationSerializer, CustomCakePricingSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer, UploadedCakeRequestSerializer,)
 from .models_verification import SMSVerification
+from .address_utils import resolve_address
+
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
@@ -130,17 +132,27 @@ def create_order(request):
     try:
         data = request.data
         profile = request.user.userprofile
-        street = data.get("street") or profile.street
-        city = data.get("city") or profile.city
-        province = data.get("province") or profile.province
-        postal_code = data.get("postal_code") or profile.postal_code
-        full_name = profile.user.first_name + " " + profile.user.last_name
+
+        address = resolve_address(
+            data=data,
+            profile=profile
+        )
+
+        full_name = (
+            profile.user.first_name
+            + " "
+            + profile.user.last_name
+        ).strip()
         phone = profile.phone
         delivery_date = data.get("delivery_date")
         delivery_time = data.get("delivery_time")
         notes = data.get("notes")
 
-        if not full_name or not phone or not street:
+        if (
+            not full_name
+            or not phone
+            or not address["street"]
+        ):
             return Response({"error": "Missing required fields"}, status=400)
 
         cart, created = Cart.objects.get_or_create(user=request.user)
@@ -153,10 +165,7 @@ def create_order(request):
             user=request.user, 
             full_name=full_name, 
             phone=phone, 
-            street=street, 
-            city=city, 
-            province=province, 
-            postal_code=postal_code, 
+            **address,
             delivery_date=delivery_date, 
             delivery_time=delivery_time, 
             order_notes=notes, 
@@ -383,15 +392,13 @@ def upload_sample_cake(request):
             uploaded_requests.append(upload)
 
         profile = request.user.userprofile
+        address = resolve_address(profile=profile)
 
         order = Order.objects.create(
             user=request.user,
-            full_name=f"{request.user.first_name} {request.user.last_name}",
+            full_name=f"{request.user.first_name} {request.user.last_name}".strip(),
             phone=profile.phone,
-            street=profile.street,
-            city=profile.city,
-            province=profile.province,
-            postal_code=profile.postal_code,
+            **address,
             delivery_date=request.data.get("delivery_date"),
             delivery_time=request.data.get("delivery_time"),
             order_notes=notes,
@@ -696,10 +703,10 @@ def update_uploaded_order(request, order_id):
     profile = request.user.userprofile
     data = request.data
 
-    order.street = data.get("street") or profile.street
-    order.city = data.get("city") or profile.city
-    order.province = data.get("province") or profile.province
-    order.postal_code = data.get("postal_code") or profile.postal_code
+    address = resolve_address(data=data, profile=profile)
+
+    for field, value in address.items():
+        setattr(order, field, value)
 
     order.delivery_date = data.get("delivery_date")
     order.delivery_time = data.get("delivery_time")

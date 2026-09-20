@@ -38,7 +38,7 @@ function CustomerProfile() {
     return (
         <div className="min-h-[calc(100vh-64px)] bg-[#FCF8EE] py-10 px-4 antialiased font-sans flex justify-center">
             <div className="max-w-xl w-full bg-white border border-[#E6CCA2] rounded-2xl shadow-sm p-6 md:p-10 flex flex-col gap-8">
-                
+
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-[#FCF8EE] border-4 border-[#E6CCA2] flex items-center justify-center shrink-0 shadow-inner">
@@ -50,7 +50,7 @@ function CustomerProfile() {
                             </span>
                         )}
                     </div>
-                    
+
                     <div className="text-center sm:text-left flex flex-col gap-1">
                         <h2 className="text-2xl font-black text-[#6E473B]">
                             {profile.user.first_name} {profile.middle_name ? `${profile.middle_name} ` : ""}{profile.user.last_name}
@@ -79,7 +79,23 @@ function CustomerProfile() {
                             {profile.street ? (
                                 <>
                                     {profile.street}<br />
-                                    {profile.city}, {profile.province} {profile.postal_code}
+
+                                    {profile.barangay && (
+                                        <>
+                                            {profile.barangay}<br />
+                                        </>
+                                    )}
+
+                                    {profile.city}
+                                    {profile.province ? `, ${profile.province}` : ""}
+                                    {profile.postal_code ? ` ${profile.postal_code}` : ""}
+
+                                    {profile.region && (
+                                        <>
+                                            <br />
+                                            {profile.region}
+                                        </>
+                                    )}
                                 </>
                             ) : (
                                 "No address set"
@@ -90,8 +106,8 @@ function CustomerProfile() {
 
                 {/* Footer Section */}
                 <div className="flex flex-col gap-4 border-t border-[#E6CCA2]/30 pt-6">
-                    <Link 
-                        to="/profile/edit" 
+                    <Link
+                        to="/profile/edit"
                         className="w-full py-3 bg-[#C05A11] hover:bg-[#A84E0E] text-white text-center text-sm font-bold rounded-xl shadow-md shadow-[#C05A11]/20 transition-all active:scale-[0.99]"
                     >
                         Edit Profile Settings

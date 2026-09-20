@@ -127,8 +127,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['user', 'middle_name', 'phone', 'street', 'city', 'province', 'postal_code', 'profile_picture']
-
+        fields = [
+            "user", "middle_name", "phone",
+            "street", "region", "region_code",
+            "province", "province_code",
+            "city", "city_code",
+            "barangay", "barangay_code",
+            "postal_code", "profile_picture",
+        ]
 class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
     customer_name = serializers.SerializerMethodField()
     customer_username = serializers.SerializerMethodField()

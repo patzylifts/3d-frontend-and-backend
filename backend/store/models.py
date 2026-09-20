@@ -175,23 +175,27 @@ def calculate_custom_cake_price(*, tier, size, flavor, has_candle=False,
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=30, blank=True, null=True)
-    phone = models.CharField(
-        max_length=11,
-        validators=[phone_validator],
-        blank=True,
-        null=True
-    )
+    phone = models.CharField(max_length=11, validators=[phone_validator], blank=True, null=True)
+
+    # Address
     street = models.CharField(max_length=150, blank=True, null=True)
-    city = models.CharField(max_length=50, blank=True, null=True)
+    region = models.CharField(max_length=100, blank=True, null=True)
+    region_code = models.CharField(max_length=10, blank=True, null=True)
     province = models.CharField(max_length=50, blank=True, null=True)
+    province_code = models.CharField(max_length=10, blank=True, null=True)
+    city = models.CharField(max_length=50, blank=True, null=True)
+    city_code = models.CharField(max_length=10, blank=True, null=True)
+    barangay = models.CharField(max_length=100, blank=True, null=True)
+    barangay_code = models.CharField(max_length=10, blank=True, null=True)
     postal_code = models.CharField(max_length=10, blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
+
+    profile_picture = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
     newsletter_subscribed = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.user} Profile"
-
+    
 # ORDER
 class Order(models.Model):
 
@@ -217,16 +221,20 @@ class Order(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=150, blank=True, null=True)
-    phone = models.CharField(
-        max_length=11,
-        validators=[phone_validator],
-        blank=True,
-        null=True
-    )
+    phone = models.CharField(max_length=11, validators=[phone_validator], blank=True, null=True)
+
+    # Delivery address snapshot
     street = models.CharField(max_length=200, blank=True, null=True)
-    city = models.CharField(max_length=100, blank=True, null=True)
+    region = models.CharField(max_length=100, blank=True, null=True)
+    region_code = models.CharField(max_length=10, blank=True, null=True)
     province = models.CharField(max_length=100, blank=True, null=True)
+    province_code = models.CharField(max_length=10, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    city_code = models.CharField(max_length=10, blank=True, null=True)
+    barangay = models.CharField(max_length=100, blank=True, null=True)
+    barangay_code = models.CharField(max_length=10, blank=True, null=True)
     postal_code = models.CharField(max_length=20, blank=True, null=True)
+
     delivery_date = models.DateField()
     delivery_time = models.TimeField(blank=True, null=True)
     order_notes = models.TextField(blank=True, null=True)
@@ -236,12 +244,7 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
     rejection_reason = models.TextField(blank=True, null=True)
     is_uploaded_cake = models.BooleanField(default=False)
-    quoted_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
+    quoted_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     def __str__(self):
         return f"Order {self.id} - {self.user}"
     

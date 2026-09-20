@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { authFetch } from "../utils/auth";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { regions, provinces, cities, barangays } from "phil-address";
+import AddressSelector from "../components/address/AddressSelector";
 
 function CheckoutPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -16,9 +16,13 @@ function CheckoutPage() {
     const [profileAddress, setProfileAddress] = useState({
         street: "",
         region: "",
+        region_code: "",
         province: "",
+        province_code: "",
         city: "",
+        city_code: "",
         barangay: "",
+        barangay_code: "",
         postal_code: "",
         full_name: "",
         phone: "",
@@ -27,42 +31,21 @@ function CheckoutPage() {
     const [customAddress, setCustomAddress] = useState({
         street: "",
         region: "",
+        region_code: "",
         province: "",
+        province_code: "",
         city: "",
+        city_code: "",
         barangay: "",
+        barangay_code: "",
         postal_code: "",
     });
-
-    // Phil-address API states
-    const [regionList, setRegionList] = useState([]);
-    const [provinceList, setProvinceList] = useState([]);
-    const [cityList, setCityList] = useState([]);
-    const [barangayList, setBarangayList] = useState([]);
-
-    // Allowed regions
-    const ALLOWED_REGIONS = ["Region 4A", "NCR"];
 
     const [deliveryDate, setDeliveryDate] = useState("");
     const [deliveryTime, setDeliveryTime] = useState("");
     const [notes, setNotes] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
-
-    // Load regions on mount
-    useEffect(() => {
-        const fetchRegions = async () => {
-            try {
-                const regionData = await regions();
-                const filteredRegions = regionData.filter(reg =>
-                    ALLOWED_REGIONS.includes(reg.name)
-                );
-                setRegionList(filteredRegions);
-            } catch (error) {
-                console.error("Error fetching regions:", error);
-            }
-        };
-        fetchRegions();
-    }, []);
 
     useEffect(() => {
         async function fetchProfile() {
@@ -71,84 +54,55 @@ function CheckoutPage() {
             setProfileAddress({
                 street: data.street || "",
                 region: data.region || "",
+                region_code: data.region_code || "",
                 province: data.province || "",
+                province_code: data.province_code || "",
                 city: data.city || "",
+                city_code: data.city_code || "",
                 barangay: data.barangay || "",
+                barangay_code: data.barangay_code || "",
                 postal_code: data.postal_code || "",
-                full_name: data.user.first_name + " " + data.user.last_name,
-                phone: data.phone,
+                full_name: `${data.user.first_name} ${data.user.last_name}`.trim(),
+                phone: data.phone || "",
             });
         }
         fetchProfile();
     }, [BASEURL]);
 
-    // Fetch provinces when custom region changes
-    useEffect(() => {
-        const fetchProvinces = async () => {
-            if (!customAddress.region) {
-                setProvinceList([]);
-                setCityList([]);
-                setBarangayList([]);
-                return;
-            }
-
-            try {
-                const provincesData = await provinces(customAddress.region);
-                setProvinceList(provincesData);
-                setCustomAddress(prev => ({ ...prev, province: "", city: "", barangay: "" }));
-                setCityList([]);
-                setBarangayList([]);
-            } catch (error) {
-                console.error("Error fetching provinces:", error);
-            }
-        };
-        fetchProvinces();
-    }, [customAddress.region]);
-
-    // Fetch cities when custom province changes
-    useEffect(() => {
-        const fetchCities = async () => {
-            if (!customAddress.province) {
-                setCityList([]);
-                setBarangayList([]);
-                return;
-            }
-
-            try {
-                const citiesData = await cities(customAddress.province);
-                setCityList(citiesData);
-                setCustomAddress(prev => ({ ...prev, city: "", barangay: "" }));
-                setBarangayList([]);
-            } catch (error) {
-                console.error("Error fetching cities:", error);
-            }
-        };
-        fetchCities();
-    }, [customAddress.province]);
-
-    // Fetch barangays when custom city changes
-    useEffect(() => {
-        const fetchBarangays = async () => {
-            if (!customAddress.city) {
-                setBarangayList([]);
-                return;
-            }
-
-            try {
-                const barangaysData = await barangays(customAddress.city);
-                setBarangayList(barangaysData);
-                setCustomAddress(prev => ({ ...prev, barangay: "" }));
-            } catch (error) {
-                console.error("Error fetching barangays:", error);
-            }
-        };
-        fetchBarangays();
-    }, [customAddress.city]);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setMessage("");
+
+        const selectedAddress = useProfileAddress
+            ? profileAddress
+            : customAddress;
+
+        if (!selectedAddress.street) {
+            setMessage("Please enter your house, unit, street, or subdivision.");
+            return;
+        }
+
+        if (!selectedAddress.region_code) {
+            setMessage("Please select a valid region.");
+            return;
+        }
+
+        if (!selectedAddress.city_code) {
+            setMessage("Please select a valid city or municipality.");
+            return;
+        }
+
+        if (!selectedAddress.barangay_code) {
+            setMessage("Please select a valid barangay.");
+            return;
+        }
+
+        if (!/^\d{4}$/.test(selectedAddress.postal_code)) {
+            setMessage("Postal code must contain exactly 4 digits.");
+            return;
+        }
+
+        setLoading(true);
 
         const payload = {
             ...(useProfileAddress ? profileAddress : customAddress),
@@ -256,9 +210,31 @@ function CheckoutPage() {
                                     {useProfileAddress && (
                                         <div className="bg-white border border-[#fdf2e2] rounded-xl p-3 mt-1 space-y-1 shadow-inner text-stone-600">
                                             <strong className="text-[#844414]">{profileAddress.full_name}</strong>
-                                            <p>{profileAddress.street}, {profileAddress.barangay}, {profileAddress.city}, {profileAddress.province}, {profileAddress.region}</p>
-                                            <p className="font-medium">{profileAddress.postal_code}</p>
-                                            <p className="text-xs font-bold text-[#d67b27] mt-1">📞 {profileAddress.phone}</p>
+                                            <strong className="text-[#844414]">
+                                                {profileAddress.full_name}
+                                            </strong>
+
+                                            <p>
+                                                {profileAddress.street || "No street address"}
+                                            </p>
+
+                                            {profileAddress.barangay && (
+                                                <p>{profileAddress.barangay}</p>
+                                            )}
+
+                                            <p>
+                                                {profileAddress.city}
+                                                {profileAddress.province ? `, ${profileAddress.province}` : ""}
+                                                {profileAddress.postal_code ? ` ${profileAddress.postal_code}` : ""}
+                                            </p>
+
+                                            {profileAddress.region && (
+                                                <p className="text-xs">{profileAddress.region}</p>
+                                            )}
+
+                                            <p className="text-xs font-bold text-[#d67b27] mt-1">
+                                                📞 {profileAddress.phone}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -279,98 +255,13 @@ function CheckoutPage() {
                             </label>
                         </div>
 
-                        {/* Custom Address Input Dropdowns */}
+                        {/* Custom Address */}
                         {!useProfileAddress && (
-                            <div className="p-5 bg-[#fffdf9] border border-[#f3e1c6] rounded-2xl space-y-4 animate-fadeIn">
-                                <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Street Address *</label>
-                                    <input
-                                        type="text"
-                                        placeholder="House No., Street Name, Phase/Block"
-                                        value={customAddress.street}
-                                        onChange={(e) => setCustomAddress({ ...customAddress, street: e.target.value })}
-                                        required={!useProfileAddress}
-                                        className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Region *</label>
-                                        <select
-                                            value={customAddress.region}
-                                            onChange={(e) => setCustomAddress({ ...customAddress, region: e.target.value })}
-                                            disabled={regionList.length === 0}
-                                            required={!useProfileAddress}
-                                            className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-3 py-2.5 text-sm outline-none transition-all disabled:bg-stone-50"
-                                        >
-                                            <option value="">Select Region</option>
-                                            {regionList.map(reg => (
-                                                <option key={reg.code} value={reg.code}>{reg.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Province *</label>
-                                        <select
-                                            value={customAddress.province}
-                                            onChange={(e) => setCustomAddress({ ...customAddress, province: e.target.value })}
-                                            disabled={!customAddress.region || provinceList.length === 0}
-                                            required={!useProfileAddress}
-                                            className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-3 py-2.5 text-sm outline-none transition-all disabled:bg-stone-100 disabled:text-stone-400"
-                                        >
-                                            <option value="">Select Province</option>
-                                            {provinceList.map(prov => (
-                                                <option key={prov.code} value={prov.code}>{prov.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">City/Municipality *</label>
-                                        <select
-                                            value={customAddress.city}
-                                            onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
-                                            disabled={!customAddress.province || cityList.length === 0}
-                                            required={!useProfileAddress}
-                                            className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-3 py-2.5 text-sm outline-none transition-all disabled:bg-stone-100 disabled:text-stone-400"
-                                        >
-                                            <option value="">Select City</option>
-                                            {cityList.map(city => (
-                                                <option key={city.code} value={city.code}>{city.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Barangay *</label>
-                                        <select
-                                            value={customAddress.barangay}
-                                            onChange={(e) => setCustomAddress({ ...customAddress, barangay: e.target.value })}
-                                            disabled={!customAddress.city || barangayList.length === 0}
-                                            required={!useProfileAddress}
-                                            className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-3 py-2.5 text-sm outline-none transition-all disabled:bg-stone-100 disabled:text-stone-400"
-                                        >
-                                            <option value="">Select Barangay</option>
-                                            {barangayList.map(bgy => (
-                                                <option key={bgy.code} value={bgy.code}>{bgy.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Postal Code *</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. 4102"
-                                        value={customAddress.postal_code}
-                                        onChange={(e) => setCustomAddress({ ...customAddress, postal_code: e.target.value })}
-                                        required={!useProfileAddress}
-                                        className="w-full bg-white border border-stone-200 focus:border-[#d67b27] focus:ring-1 focus:ring-[#d67b27] rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
-                                    />
-                                </div>
+                            <div className="p-5 bg-[#fffdf9] border border-[#f3e1c6] rounded-2xl animate-fadeIn">
+                                <AddressSelector
+                                    value={customAddress}
+                                    onChange={setCustomAddress}
+                                />
                             </div>
                         )}
                     </section>
