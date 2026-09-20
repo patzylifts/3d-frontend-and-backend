@@ -564,12 +564,9 @@ function RealisticLighting() {
 
 // ───── CakeModel ─────
 export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
-    const tier1 = useGLTF(TIER_MODEL_URLS.tier1);
-    const tier2 = useGLTF(TIER_MODEL_URLS.tier2);
-    const tier3 = useGLTF(TIER_MODEL_URLS.tier3);
-    const tier4 = useGLTF(TIER_MODEL_URLS.tier4);
-
-    const { nodes, materials } = tier1;
+    const activeTierUrl = TIER_MODEL_URLS[`tier${selectedTierIndex + 1}`] || TIER_MODEL_URLS.tier1;
+    const activeTier = useGLTF(activeTierUrl);
+    const { nodes, materials } = activeTier;
     const {
         form,
         cakeColor,
@@ -592,16 +589,11 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         textFont,
     } = useCustomization();
 
-    const chocoTexture = useTexture(TEXTURE_URLS.choco);
-    const milkshakeTexture = useTexture(TEXTURE_URLS.vanilla);
-    const abstractTexture = useTexture(TEXTURE_URLS.ube);
+    const baseFlavor = selectedTierFlavors?.[0] || flavor;
+    const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
+    const activeTexture = useTexture(TEXTURE_URLS[activeTextureKey]);
     const cherryTexture = useTexture(TIER1_CHERRY_TEXTURE);
-    const activeTierScene = [
-    tier1.scene,
-    tier2.scene,
-    tier3.scene,
-    tier4.scene,
-    ][selectedTierIndex];
+    const activeTierScene = activeTier.scene;
 
     const activeTierBounds = useMemo(() => {
         if (!activeTierScene) return null;
@@ -686,25 +678,9 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         form,
     ]);
 
-    const texturesByKey = useMemo(() => ({
-        choco: chocoTexture,
-        vanilla: milkshakeTexture,
-        ube: abstractTexture,
-    }), [chocoTexture, milkshakeTexture, abstractTexture]);
-
-    const baseFlavor = selectedTierFlavors?.[0] || flavor;
-    const activeTextureKey = flavorTextureMap[baseFlavor] || "choco";
-    const activeTexture = texturesByKey[activeTextureKey];
-
     const textureByFlavor = useMemo(
-        () =>
-            Object.fromEntries(
-                Object.entries(flavorTextureMap).map(([flavorName, textureKey]) => [
-                    flavorName,
-                    texturesByKey[textureKey],
-                ])
-            ),
-        [flavorTextureMap, texturesByKey]
+        () => ({ [baseFlavor]: activeTexture }),
+        [baseFlavor, activeTexture]
     );
 
     const matProps = useMemo(() => ({
@@ -736,32 +712,11 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
     }, [cherryTexture]);
 
     useEffect(() => {
-        applyMaterialsToScene(tier1?.scene, {
+        applyMaterialsToScene(activeTier.scene, {
             ...matProps,
-            tierIndex: 0,
+            tierIndex: selectedTierIndex,
         });
-    }, [tier1, matProps]);
-
-    useEffect(() => {
-        applyMaterialsToScene(tier2?.scene, {
-            ...matProps,
-            tierIndex: 1,
-        });
-    }, [tier2, matProps]);
-
-    useEffect(() => {
-        applyMaterialsToScene(tier3?.scene, {
-            ...matProps,
-            tierIndex: 2,
-        });
-    }, [tier3, matProps]);
-
-    useEffect(() => {
-        applyMaterialsToScene(tier4?.scene, {
-            ...matProps,
-            tierIndex: 3,
-        });
-    }, [tier4, matProps]);
+    }, [activeTier, matProps, selectedTierIndex]);
 
     useFrame((_, delta) => {
         if (autoSpin && cakeGroupRef.current) {
@@ -995,19 +950,12 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
 
     return (
         <group ref={cakeGroupRef} dispose={null} position={[0, -0.8, 0]}>
-            {selectedTierIndex === 1 && (
-                <primitive object={tier2.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-            {selectedTierIndex === 2 && (
-                <primitive object={tier3.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-            {selectedTierIndex === 3 && (
-                <primitive object={tier4.scene} position={[0, -0.95, 0]} scale={0.9} rotation={[0, Math.PI, 0]} />
-            )}
-
-            {selectedTierIndex === 0 && (
-                <primitive object={tier1.scene} />
-            )}
+            <primitive
+                object={activeTier.scene}
+                position={selectedTierIndex === 0 ? [0, 0, 0] : [0, -0.95, 0]}
+                scale={selectedTierIndex === 0 ? 1 : 0.9}
+                rotation={selectedTierIndex === 0 ? [0, 0, 0] : [0, Math.PI, 0]}
+            />
 
             {renderCustomToppings()}
             <CakeInscription selectedTierIndex={selectedTierIndex} text={inscriptionText} font={textFont} />
@@ -1206,7 +1154,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
     const toppingEnabled = { candle, chocolate, balls, nuts, cherry, sprinkles };
     const activeToppings = TOPPING_OPTIONS
         .filter((topping) => toppingEnabled[topping.key])
-        .filter((topping) => topping.key !== "nuts")
+        .filter((topping) => topping.key !== "nuts" && topping.key !== "sprinkles")
         .flatMap((topping) => topping.key === "cherry"
             ? cherryLayouts.map((_, index) => ({ ...topping, key: `cherry-${index}`, label: `Cherry ${index + 1}` }))
             : [topping]);
@@ -1729,23 +1677,25 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                         />
                                         {topping.label}
                                     </span>
-                                    <div className="flex gap-1 bg-[#FDF6E2] p-1 rounded-lg border border-[#ECD9B4]" aria-label={`${topping.label} size`}>
-                                        {Object.keys(TOPPING_SIZES).map((size) => (
-                                            <button
-                                                key={size}
-                                                type="button"
-                                               className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${(topping.key.startsWith("cherry-")
-                                                    ? cherryLayouts[Number.parseInt(topping.key.slice("cherry-".length), 10)]
-                                                    : (toppingLayout[topping.key] || { size: "M" })).size === size
-                                                    ? "bg-[#C05A11] text-white shadow-sm"
-                                                    : "text-[#A07060] hover:text-[#6E473B]"
-                                                    }`}
-                                                onClick={() => setToppingSize(topping.key, size)}
-                                            >
-                                                {size}
-                                            </button>
-                                        ))}
-                                    </div>
+                                    {topping.key !== "sprinkles" && (
+                                        <div className="flex gap-1 bg-[#FDF6E2] p-1 rounded-lg border border-[#ECD9B4]" aria-label={`${topping.label} size`}>
+                                            {Object.keys(TOPPING_SIZES).map((size) => (
+                                                <button
+                                                    key={size}
+                                                    type="button"
+                                                    className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${(topping.key.startsWith("cherry-")
+                                                        ? cherryLayouts[Number.parseInt(topping.key.slice("cherry-".length), 10)]
+                                                        : (toppingLayout[topping.key] || { size: "M" })).size === size
+                                                        ? "bg-[#C05A11] text-white shadow-sm"
+                                                        : "text-[#A07060] hover:text-[#6E473B]"
+                                                        }`}
+                                                    onClick={() => setToppingSize(topping.key, size)}
+                                                >
+                                                    {size}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
 
