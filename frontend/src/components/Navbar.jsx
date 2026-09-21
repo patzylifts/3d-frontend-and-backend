@@ -11,6 +11,7 @@ import UploadSampleCakeModal from "./UploadSampleCakeModal";
 
 function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [showBuilderModal, setShowBuilderModal] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const { cartItems, clearCart } = useCart();
@@ -44,6 +45,7 @@ function Navbar() {
         clearTokens();
         clearCart();
         setIsMenuOpen(false);
+        setIsProfileMenuOpen(false);
         navigate("/login");
     };
 
@@ -167,23 +169,51 @@ function Navbar() {
                                 <Link to="/login" className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">Login</Link>
                             ) : (
                                 <>
-                                    <Link to={isAdmin ? "/admin" : "/profile"} className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">
-                                        {isAdmin ? "Admin" : "Profile"}
-                                    </Link>
-
-                                    {!isAdmin && (
-                                        <Link
-                                            to="/orders"
-                                            className="relative text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors"
-                                        >
-                                            My Orders
-
-                                            {unreadMessages > 0 && (
-                                                <span className="absolute -top-2 -right-5 min-w-5 h-5 px-1 rounded-full bg-[#d67b27] text-white text-[10px] font-black flex items-center justify-center leading-none">
-                                                    {unreadMessages > 99 ? "99+" : unreadMessages}
-                                                </span>
-                                            )}
+                                    {isAdmin ? (
+                                        <Link to="/admin" className="text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors">
+                                            Admin
                                         </Link>
+                                    ) : (
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                aria-expanded={isProfileMenuOpen}
+                                                aria-haspopup="menu"
+                                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                                className="flex items-center gap-2 text-sm font-bold text-stone-600 hover:text-[#d67b27] transition-colors"
+                                            >
+                                                Profile
+                                                <svg className={`w-4 h-4 transition-transform ${isProfileMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+
+                                            {isProfileMenuOpen && (
+                                                <div className="absolute right-0 top-full mt-4 w-64 overflow-hidden rounded-2xl border border-stone-100 bg-white py-2 shadow-xl" role="menu">
+                                                    <Link
+                                                        to="/profile"
+                                                        role="menuitem"
+                                                        onClick={() => setIsProfileMenuOpen(false)}
+                                                        className="block px-5 py-3 text-sm font-semibold text-stone-700 hover:bg-[#fff8ef] hover:text-[#d67b27] transition-colors"
+                                                    >
+                                                        Profile
+                                                    </Link>
+                                                    <Link
+                                                        to="/orders"
+                                                        role="menuitem"
+                                                        onClick={() => setIsProfileMenuOpen(false)}
+                                                        className="relative block px-5 py-3 text-sm font-semibold text-stone-700 hover:bg-[#fff8ef] hover:text-[#d67b27] transition-colors"
+                                                    >
+                                                        Orders &amp; reordering
+                                                        {unreadMessages > 0 && (
+                                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 min-w-5 h-5 px-1 rounded-full bg-[#d67b27] text-white text-[10px] font-black flex items-center justify-center leading-none">
+                                                                {unreadMessages > 99 ? "99+" : unreadMessages}
+                                                            </span>
+                                                        )}
+                                                    </Link>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
 
                                     <button

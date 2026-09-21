@@ -3,7 +3,7 @@ import { useRef, Suspense, useState, useEffect, useMemo, Component } from "react
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
@@ -1933,8 +1933,11 @@ function BuildBentoContent() {
 }
 
 export default function BuildBentoPage() {
+    const location = useLocation();
+    const reorderCustomization = location.state?.reorderCustomization;
+
     return (
-        <CustomizationProvider>
+        <CustomizationProvider initialState={reorderCustomization}>
             <BuildBentoContent />
         </CustomizationProvider>
     );
