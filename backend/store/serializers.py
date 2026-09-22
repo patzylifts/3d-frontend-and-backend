@@ -42,7 +42,7 @@ class CakeCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CakeCustomization
         fields = ['id', 'shape', 'cake_color', 'icing_color', 'flavor', 'tier', 'size',
-                  'tier_flavors', 'inscription_text', 'text_font', 'topping_layout',
+                  'tier_flavors', 'inscription_text', 'text_font', 'inscription_color', 'topping_layout',
                   'candle_number', 'has_candle', 'has_chocolate', 'has_balls', 'has_nuts', 'has_cherry', 'has_sprinkles', 'price', 'created_at']
         read_only_fields = ['id', 'price', 'created_at']
 
@@ -143,7 +143,7 @@ class AdminCakeCustomizationSerializer(serializers.ModelSerializer):
         model = CakeCustomization
         fields = [
             'id', 'customer_name', 'customer_username', 'shape', 'cake_color', 'icing_color',
-            'flavor', 'tier', 'size', 'tier_flavors', 'inscription_text', 'text_font',
+            'flavor', 'tier', 'size', 'tier_flavors', 'inscription_text', 'text_font', 'inscription_color',
             'topping_layout', 'candle_number', 'has_candle', 'has_chocolate', 'has_balls',
             'has_nuts', 'has_cherry', 'has_sprinkles', 'price', 'created_at',
         ]

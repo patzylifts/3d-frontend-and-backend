@@ -46,6 +46,15 @@ export const TEXT_FONT_OPTIONS = [
     { value: "playful", label: "Playful", path: "/fonts/customization/playful.ttf" },
 ];
 
+export const INSCRIPTION_COLOR_OPTIONS = [
+    { value: "#EF4444", label: "Red" },
+    { value: "#FACC15", label: "Yellow" },
+    { value: "#22C55E", label: "Green" },
+    { value: "#3B82F6", label: "Blue" },
+    { value: "#FFFFFF", label: "White" },
+    { value: "#000000", label: "Black" },
+];
+
 export const TOPPING_OPTIONS = [
     { key: "candle", label: "Candle", color: "#FFD700" },
     { key: "chocolate", label: "Chocolate", color: "#8B4513" },
@@ -245,6 +254,9 @@ export const CustomizationProvider = (props) => {
 
     const [textFont, setTextFont] = useState(
         () => initialState?.text_font || TEXT_FONT_OPTIONS[0].value
+    );
+    const [inscriptionColor, setInscriptionColor] = useState(
+        () => initialState?.inscription_color || INSCRIPTION_COLOR_OPTIONS[0].value
     );
 
     const tier = CAKE_SIZES[selectedTierIndex] ?? CAKE_SIZES[0];
@@ -477,6 +489,7 @@ export const CustomizationProvider = (props) => {
                 flavorTextureMap,
                 FLAVOR_VISUALS,
                 TEXT_FONT_OPTIONS,
+                INSCRIPTION_COLOR_OPTIONS,
                 selectedTierFlavors,
                 candle,
                 setCandle,
@@ -515,6 +528,8 @@ export const CustomizationProvider = (props) => {
                 setInscriptionText,
                 textFont,
                 setTextFont,
+                inscriptionColor,
+                setInscriptionColor,
             }}
         >
             {props.children}

@@ -80,6 +80,7 @@ def build_customization_snapshot(data, price, customization_id=None):
         "tier_flavors": data.get("tier_flavors") or {},
         "inscription_text": data.get("inscription_text") or "",
         "text_font": data.get("text_font") or "",
+        "inscription_color": data.get("inscription_color") or "#EF4444",
         "topping_layout": data.get("topping_layout") or {},
         "candle_number": int(data.get("candle_number", 1)),
         "candle_mode": data.get("candle_mode") or data.get("topping_layout", {}).get("candle", {}).get("mode", "gold"),

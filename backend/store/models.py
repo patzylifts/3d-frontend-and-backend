@@ -329,6 +329,7 @@ class CakeCustomization(models.Model):
     inscription_size = models.CharField(max_length=50, blank=True, default="")  # ← ADD THIS
     inscription_font = models.CharField(max_length=50, blank=True, default="")  # ← ADD THIS
     text_font = models.CharField(max_length=50, blank=True, default="")
+    inscription_color = models.CharField(max_length=20, blank=True, default="#EF4444")
     topping_layout = models.JSONField(blank=True, default=dict)
     icing_color = models.CharField(max_length=20, default="#FFF7EA")
     candle_number = models.PositiveIntegerField(default=1)
@@ -358,6 +359,7 @@ class CakeCustomization(models.Model):
             "inscription_size": self.inscription_size,  # ← ADD THIS
             "inscription_font": self.inscription_font,  # ← ADD THIS
             "text_font": self.text_font,
+            "inscription_color": self.inscription_color,
             "topping_layout": self.topping_layout,
             "icing_color": self.icing_color,
             "candle_number": self.candle_number,

@@ -23,7 +23,7 @@ const cleanInscription = (text) =>
         .trim()
         .slice(0, 48);
 
-export function CakeInscription({ selectedTierIndex, text = "", font = "classic" }) {
+export function CakeInscription({ selectedTierIndex, text = "", font = "classic", color = "#EF4444", topY }) {
     const safeText = cleanInscription(text);
     const layout = TEXT_LAYOUT_BY_TIER[selectedTierIndex] ?? TEXT_LAYOUT_BY_TIER[0];
     const fontPath = FONT_PATHS[font] ?? TEXT_FONT_OPTIONS[0].path;
@@ -31,14 +31,14 @@ export function CakeInscription({ selectedTierIndex, text = "", font = "classic"
     const material = useMemo(
         () =>
             new THREE.MeshStandardMaterial({
-                color: "#fff7ea",
-                emissive: "#4a1f14",
-                emissiveIntensity: 0.18,
+                color,
+                emissive: color,
+                emissiveIntensity: 0.08,
                 roughness: 0.42,
                 metalness: 0.02,
                 side: THREE.DoubleSide,
             }),
-        []
+        [color]
     );
 
     const centerGeometry = useCallback((geometry) => {
@@ -63,7 +63,7 @@ export function CakeInscription({ selectedTierIndex, text = "", font = "classic"
                 respectExistingBreaks: true,
             }}
             material={material}
-            position={[0, layout.y, layout.z]}
+            position={[0, topY ?? layout.y, layout.z]}
             rotation={[-Math.PI / 2, 0, 0]}
             onLoad={centerGeometry}
             onError={(error) => console.error("Cake inscription failed:", error)}

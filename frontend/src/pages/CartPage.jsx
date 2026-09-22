@@ -2,6 +2,24 @@
 import { useCart } from "../context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 
+const INSCRIPTION_COLOR_NAMES = {
+    "#EF4444": "Red",
+    "#FACC15": "Yellow",
+    "#22C55E": "Green",
+    "#3B82F6": "Blue",
+    "#FFFFFF": "White",
+    "#000000": "Black",
+};
+
+const ICING_COLOR_NAMES = {
+    "#3B1F18": "Chocolate",
+    "#FFF7EA": "Vanilla Cream",
+    "#F7A8C8": "Pink",
+    "#B980F0": "Ube",
+    "#AEE8D5": "Mint",
+    "#F3C96B": "Caramel",
+};
+
 function CartPage() {
     const { cartItems, total, removeFromCart, updateQuantity } = useCart();
     const navigate = useNavigate();
@@ -66,6 +84,9 @@ function CartPage() {
                                                 const candleMode = d.candle_mode || candleLayout.mode || "gold";
                                                 const candleColor = d.candle_color || candleLayout.color || "gold";
                                                 const messageText = d.inscription_text || d.message || "";
+                                                const messageColor = d.inscription_color || "#EF4444";
+                                                const messageColorName = INSCRIPTION_COLOR_NAMES[messageColor.toUpperCase()] || "Custom";
+                                                const icingColorName = ICING_COLOR_NAMES[d.icing_color?.toUpperCase()] || "Custom";
                                                 const candleDescription = d.has_candle
                                                     ? candleMode === "number"
                                                         ? `Number ${d.candle_number || 1} (${candleColor})`
@@ -132,6 +153,15 @@ function CartPage() {
                                                             <span className="block mt-1 text-[11px] text-stone-500">
                                                                 Font: {d.text_font || "Default"}
                                                             </span>
+                                                            <span className="flex items-center gap-2 mt-1 text-[11px] text-stone-500">
+                                                                Message color:
+                                                                <span
+                                                                    className="w-3.5 h-3.5 rounded-full border border-stone-300 shadow-sm"
+                                                                    style={{ backgroundColor: messageColor }}
+                                                                    aria-label={`Message color ${messageColorName}`}
+                                                                />
+                                                                {messageColorName}
+                                                            </span>
                                                         </div>
 
                                                         {d.has_candle && candleMode === "number" && (
@@ -148,7 +178,7 @@ function CartPage() {
                                                                         className="w-4 h-4 rounded-full border border-stone-300 shadow-sm"
                                                                         style={{ background: d.icing_color }}
                                                                     />
-                                                                    {d.icing_color}
+                                                                    {icingColorName}
                                                                 </span>
                                                             </div>
                                                         )}

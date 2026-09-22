@@ -5,7 +5,7 @@ import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as THREE from "three";
-import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
+import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, INSCRIPTION_COLOR_OPTIONS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
 import CakeInscription from "../components/CakeInscription";
 import CakeCompass from "../components/CakeCompass";
@@ -188,7 +188,7 @@ const getCandlePlacementBounds = (selectedTierIndex, candleMode = "number") => {
     return [0, 100]; 
 };
 const getFlavorMaterialProps = (flavorName, textureByFlavor, fallbackColor) => ({
-    color: FLAVOR_VISUALS[flavorName]?.color || fallbackColor,
+    color: fallbackColor || FLAVOR_VISUALS[flavorName]?.color,
     roughness: 0.65,
     metalness: 0.0,
     ...(textureByFlavor[flavorName] || {}),
@@ -587,6 +587,7 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
         toppingLayout,
         inscriptionText,
         textFont,
+        inscriptionColor,
     } = useCustomization();
 
     const baseFlavor = selectedTierFlavors?.[0] || flavor;
@@ -958,7 +959,13 @@ export function CakeModel({ selectedTierIndex, autoSpin, cakeGroupRef }) {
             />
 
             {renderCustomToppings()}
-            <CakeInscription selectedTierIndex={selectedTierIndex} text={inscriptionText} font={textFont} />
+            <CakeInscription
+                selectedTierIndex={selectedTierIndex}
+                text={inscriptionText}
+                font={textFont}
+                color={inscriptionColor}
+                topY={activeTierBounds?.max.y}
+            />
         </group>
     );
 }
@@ -1128,6 +1135,8 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         setInscriptionText,
         textFont,
         setTextFont,
+        inscriptionColor,
+        setInscriptionColor,
     } = useCustomization();
 
     const { addCustomCakeToCart } = useCart();
@@ -1244,6 +1253,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             tier_flavors: tierFlavorPayload,
             inscription_text: inscriptionText.trim(),
             text_font: textFont,
+            inscription_color: inscriptionColor,
             has_candle: candle,
             candle_number: candleNumber,
             candle_mode: candleMode,
@@ -1500,6 +1510,22 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             ))}
                         </select>
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A05A2C] pointer-events-none text-xs">▼</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                        {INSCRIPTION_COLOR_OPTIONS.map((colorOption) => (
+                            <button
+                                key={colorOption.value}
+                                type="button"
+                                className={`w-8 h-8 rounded-full border-2 transition-all duration-200 cursor-pointer active:scale-90 hover:scale-105 focus:outline-none ${inscriptionColor === colorOption.value
+                                    ? "border-[#C05A11] ring-2 ring-[#C05A11]/30 scale-105 shadow-md"
+                                    : "border-[#E6CCA2] shadow-sm"
+                                    }`}
+                                style={{ backgroundColor: colorOption.value }}
+                                title={colorOption.label}
+                                aria-label={`Message color ${colorOption.label}`}
+                                onClick={() => setInscriptionColor(colorOption.value)}
+                            />
+                        ))}
                     </div>
                 </div>
             </ConfiguratorSection>
