@@ -235,7 +235,7 @@ class Order(models.Model):
     barangay_code = models.CharField(max_length=10, blank=True, null=True)
     postal_code = models.CharField(max_length=20, blank=True, null=True)
 
-    delivery_date = models.DateField()
+    delivery_date = models.DateField(blank=True, null=True)
     delivery_time = models.TimeField(blank=True, null=True)
     order_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -283,6 +283,10 @@ class CartItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     customization = models.JSONField(blank=True, null=True)
     quantity = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
     
     def __str__(self):
         if self.product:

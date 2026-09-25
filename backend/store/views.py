@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .token_serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.core.files.storage import default_storage
+from django.utils import timezone
 from .models import (AddonPricing, CakeCustomization, Cart, CartItem, Category, CustomCakePricing, Order, OrderItem, Product, UserProfile, calculate_custom_cake_price, UploadedCakeRequest,)
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer
 from .serializers import (AddonPricingSerializer, CakeCustomizationSerializer, CustomCakePricingSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer, UploadedCakeRequestSerializer,)
@@ -66,7 +67,8 @@ def add_to_cart(request):
     item, created = CartItem.objects.get_or_create(cart=cart, product=product)
     if not created:
         item.quantity += 1
-        item.save()
+        item.created_at = timezone.now()
+        item.save(update_fields=["quantity", "created_at"])
     return Response({'message': 'Product added to cart', "cart":CartSerializer(cart).data})
 
 def build_customization_snapshot(data, price, customization_id=None):

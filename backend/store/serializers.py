@@ -58,6 +58,7 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['id', 'cart', 'product', 'customization', 'quantity',
+                  'created_at',
                   'product_name', 'product_price', 'product_image',
                   'customization_detail', 'item_name', 'item_unit_price', 'is_custom_cake']
         

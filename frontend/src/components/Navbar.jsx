@@ -42,6 +42,8 @@ function Navbar() {
     }
 
     const handleLogout = () => {
+        if (!window.confirm("Are you sure you want to log out?")) return;
+
         clearTokens();
         clearCart();
         setIsMenuOpen(false);
@@ -211,17 +213,19 @@ function Navbar() {
                                                             </span>
                                                         )}
                                                     </Link>
+                                                    <div className="my-1 border-t border-stone-100" />
+                                                    <button
+                                                        type="button"
+                                                        role="menuitem"
+                                                        onClick={handleLogout}
+                                                        className="block w-full px-5 py-3 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                                                    >
+                                                        Logout
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
                                     )}
-
-                                    <button
-                                        onClick={handleLogout}
-                                        className="text-xs bg-[#d67b27] hover:bg-[#b56219] text-white font-bold px-4 py-2 rounded-full transition-colors duration-200 shadow-sm"
-                                    >
-                                        Logout
-                                    </button>
                                 </>
                             )}
                         </div>

@@ -12,6 +12,7 @@ const ACTIVE_STATUSES = new Set([
 ]);
 
 const FINISHED_STATUSES = new Set(["delivered", "completed"]);
+const ORDERS_PER_PAGE = 5;
 
 const formatDate = (value, fallback = "Date unavailable") => {
     if (!value) return fallback;
@@ -172,12 +173,42 @@ function PastOrderCard({ order, onReorder }) {
     );
 }
 
+function OrderPagination({ page, totalItems, onPageChange }) {
+    const totalPages = Math.ceil(totalItems / ORDERS_PER_PAGE);
+
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="mt-6 flex items-center justify-center gap-4 sm:gap-12">
+            <button
+                type="button"
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="rounded-xl bg-[#f1e4cf] px-5 py-3 text-sm font-bold text-[#6E473B] transition-colors hover:bg-[#ead6b7] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                ← Back
+            </button>
+            <span className="text-base font-black text-[#6E473B]">Page {page}</span>
+            <button
+                type="button"
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="rounded-xl bg-[#ead0a4] px-5 py-3 text-sm font-bold text-[#6E473B] transition-colors hover:bg-[#e2c38c] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                Next →
+            </button>
+        </div>
+    );
+}
+
 export default function CustomerOrdersPage() {
     const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [unreadOrders, setUnreadOrders] = useState({});
     const [reorderOrder, setReorderOrder] = useState(null);
+    const [activePage, setActivePage] = useState(1);
+    const [pastPage, setPastPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -239,6 +270,18 @@ export default function CustomerOrdersPage() {
     );
     const activeOrders = sortedOrders.filter((order) => ACTIVE_STATUSES.has(order.status));
     const pastOrders = sortedOrders.filter((order) => FINISHED_STATUSES.has(order.status));
+    const activePageCount = Math.max(1, Math.ceil(activeOrders.length / ORDERS_PER_PAGE));
+    const pastPageCount = Math.max(1, Math.ceil(pastOrders.length / ORDERS_PER_PAGE));
+    const currentActivePage = Math.min(activePage, activePageCount);
+    const currentPastPage = Math.min(pastPage, pastPageCount);
+    const visibleActiveOrders = activeOrders.slice(
+        (currentActivePage - 1) * ORDERS_PER_PAGE,
+        currentActivePage * ORDERS_PER_PAGE
+    );
+    const visiblePastOrders = pastOrders.slice(
+        (currentPastPage - 1) * ORDERS_PER_PAGE,
+        currentPastPage * ORDERS_PER_PAGE
+    );
 
     return (
         <div className="min-h-screen p-6 md:p-10 bg-[#FCF8EE]">
@@ -249,7 +292,7 @@ export default function CustomerOrdersPage() {
                         <p className="mt-5 text-lg text-stone-600">You have no active orders.</p>
                     ) : (
                         <div className="mt-5 grid grid-cols-1 gap-5">
-                            {activeOrders.map((order) => (
+                            {visibleActiveOrders.map((order) => (
                                 <ActiveOrderCard
                                     key={order.id}
                                     order={order}
@@ -259,6 +302,11 @@ export default function CustomerOrdersPage() {
                             ))}
                         </div>
                     )}
+                    <OrderPagination
+                        page={currentActivePage}
+                        totalItems={activeOrders.length}
+                        onPageChange={setActivePage}
+                    />
                 </section>
 
                 <section>
@@ -267,7 +315,7 @@ export default function CustomerOrdersPage() {
                         <p className="mt-5 text-lg text-stone-600">You have no past orders.</p>
                     ) : (
                         <div className="mt-5 grid grid-cols-1 gap-5">
-                            {pastOrders.map((order) => (
+                            {visiblePastOrders.map((order) => (
                                 <PastOrderCard
                                     key={order.id}
                                     order={order}
@@ -276,6 +324,11 @@ export default function CustomerOrdersPage() {
                             ))}
                         </div>
                     )}
+                    <OrderPagination
+                        page={currentPastPage}
+                        totalItems={pastOrders.length}
+                        onPageChange={setPastPage}
+                    />
                 </section>
             </div>
             <ReorderModal
