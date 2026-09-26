@@ -1,25 +1,27 @@
 /* src/pages/BuildBentoPage.css */
 .topping-board {
-    width: 220px;
-    height: 220px;
+    width: min(220px, 100%);
+    aspect-ratio: 1;
     margin: 0 auto;
     position: relative;
 }
 
 .topping-board__cake {
-    width: 100%;
-    height: 100%;
-    position: relative;
+    box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: #f5d7c3;
     border: 3px solid #d6a889;
     overflow: visible;
 }
 
-.topping-board--round .topping-board__cake {
+.topping-board__cake.topping-board--round {
     border-radius: 50%;
 }
 
-.topping-board--rectangle .topping-board__cake {
+.topping-board__cake.topping-board--rectangle {
     border-radius: 16px;
 }
 
@@ -38,6 +40,8 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,.2);
     z-index: 5;
+    touch-action: none;
+    user-select: none;
 }
 
 .topping-marker--dragging {

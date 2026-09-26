@@ -2,7 +2,7 @@
 import { useRef, Suspense, useState, useEffect, useMemo, Component } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture, OrbitControls, ContactShadows } from "@react-three/drei";
-import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CAKE_SIZES, CustomizationProvider, FLAVOR_VISUALS, INSCRIPTION_COLOR_OPTIONS, TEXT_FONT_OPTIONS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
@@ -1001,13 +1001,16 @@ function DraggableTopping({ topping, layout }) {
 }
 
 // ────── ToppingPlacementBoard ──────
-function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeToppings, toppingLayout, cherryLayouts, onMove }) {
+function ToppingPlacementBoard({ form, selectedTierIndex, activeToppings, toppingLayout, cherryLayouts, onMove }) {
     const boardRef = useRef(null);
     const { setNodeRef } = useDroppable({ id: "cake-placement" });
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: { distance: 4 },
-        })
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: { delay: 100, tolerance: 8 },
+        }),
     );
 
     const setBoardNode = (node) => {
@@ -1017,43 +1020,47 @@ function ToppingPlacementBoard({ form, selectedTierIndex, candleMode, activeTopp
 
     const handleDragEnd = ({ active, delta }) => {
         const key = active?.id;
+        if (!key || !boardRef.current) return;
+
         const currentLayout = key.startsWith("cherry-")
             ? cherryLayouts[Number.parseInt(key.slice("cherry-".length), 10)]
             : toppingLayout[key];
 
-        if (!key || !currentLayout || !boardRef.current) return;
+        if (!currentLayout) return;
 
         const rect = boardRef.current.getBoundingClientRect();
+        const markerDiameter = { small: 22, medium: 28, large: 36 }[currentLayout.size] ?? 28;
+        const marginX = (markerDiameter / (2 * rect.width)) * 100;
+        const marginY = (markerDiameter / (2 * rect.height)) * 100;
+        let nextX = Math.max(marginX, Math.min(100 - marginX, currentLayout.x + (delta.x / rect.width) * 100));
+        let nextY = Math.max(marginY, Math.min(100 - marginY, currentLayout.y + (delta.y / rect.height) * 100));
 
-        let nextX = currentLayout.x + (delta.x / rect.width) * 100;
-        let nextY = currentLayout.y + (delta.y / rect.height) * 100;
+        if (form === 1) {
+            const dx = nextX - 50;
+            const dy = nextY - 50;
+            const radiusX = 50 - marginX;
+            const radiusY = 50 - marginY;
+            const distance = Math.hypot(dx / radiusX, dy / radiusY);
 
-        const [minBound, maxBound] = key === "candle" 
-        ? getCandlePlacementBounds(selectedTierIndex, candleMode) 
-        : [0, 100];
-        
-    nextX = Math.max(minBound, Math.min(maxBound, nextX));
-    nextY = Math.max(minBound, Math.min(maxBound, nextY));
-
-    if (form === 1) {
-        const dx = nextX - 50;
-        const dy = nextY - 50;
-        // Allow candle to go to absolute edge (50 out of 50)
-        const radius = key === "candle" ? 50 : 46;
-    }
-
-        
+            if (distance > 1) {
+                nextX = 50 + (dx / distance);
+                nextY = 50 + (dy / distance);
+            }
+        }
 
         onMove(key, nextX, nextY);
     };
 
+    const tierScale = TIER_TOP_RADIUS[selectedTierIndex] ?? TIER_TOP_RADIUS[0];
+
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <div
-                ref={setBoardNode}
-                className={`topping-board ${form === 1 ? "topping-board--round" : "topping-board--rectangle"}`}
-            >
-                <div className="topping-board__cake">
+            <div className="topping-board">
+                <div
+                    ref={setBoardNode}
+                    className={`topping-board__cake ${form === 1 ? "topping-board--round" : "topping-board--rectangle"}`}
+                    style={{ width: `${tierScale * 100}%`, height: `${tierScale * 100}%` }}
+                >
                     {activeToppings.map((topping) => (
                         <DraggableTopping
                             key={topping.key}
@@ -1685,7 +1692,6 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                             <ToppingPlacementBoard
                                 form={form}
                                 selectedTierIndex={selectedTierIndex}
-                                candleMode={candleMode}
                                 activeToppings={activeToppings}
                                 toppingLayout={toppingLayout}
                                 cherryLayouts={cherryLayouts}
