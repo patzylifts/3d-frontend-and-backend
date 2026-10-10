@@ -43,6 +43,7 @@ urlpatterns = [
     path('cart/remove/', views.remove_from_cart),
     path('cart/update/', views.update_cart_quantity),
 
+    path('delivery-slots/', views.delivery_slots),
     path('orders/create/', views.create_order),
     path('cake-customization/', views.add_custom_cake_to_cart),
     path("upload-sample-cake/", views.upload_sample_cake),
