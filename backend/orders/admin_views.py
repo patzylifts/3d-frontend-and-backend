@@ -263,6 +263,12 @@ def admin_update_order_status(request, order_id):
         )
 
     valid_transitions = {
+        "pending_review": [
+            "cancelled",
+        ],
+        "awaiting_customer_response": [
+            "cancelled",
+        ],
         "awaiting_downpayment": [
             "processing",
             "cancelled",

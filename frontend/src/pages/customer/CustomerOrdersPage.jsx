@@ -28,6 +28,7 @@ const ACTIVE_STATUSES = new Set([
 ]);
 
 const FINISHED_STATUSES = new Set(["delivered", "completed"]);
+const CANCELLED_STATUSES = new Set(["cancelled"]);
 const ORDERS_PER_PAGE = 4;
 
 const formatDate = (value, fallback = "Date unavailable") => {
@@ -348,6 +349,8 @@ function ActiveOrderCard({ order, unreadCount, onView, onInvoice, onItemClick })
                 return "bg-[#FFEDD5] text-[#C05A11] border-[#FDBA74]";
             case "ready_for_delivery":
                 return "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]";
+            case "cancelled":
+                return "bg-rose-50 text-rose-700 border-rose-200";
             default:
                 return "bg-[#ECFDF5] text-[#047857] border-[#6EE7B7]";
         }
@@ -554,6 +557,7 @@ export default function CustomerOrdersPage() {
             if (!res.ok) throw new Error("Failed to fetch customer orders");
             const data = await res.json();
             setOrders(data);
+            setError(null);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -566,6 +570,15 @@ export default function CustomerOrdersPage() {
     useEffect(() => {
         fetchOrders();
         fetchUnreadOrders();
+
+        const interval = window.setInterval(fetchOrders, 30000);
+        const handleFocus = () => fetchOrders();
+        window.addEventListener("focus", handleFocus);
+
+        return () => {
+            window.clearInterval(interval);
+            window.removeEventListener("focus", handleFocus);
+        };
     }, []);
 
     useEffect(() => {
@@ -607,19 +620,25 @@ export default function CustomerOrdersPage() {
             if (activeTab === "awaiting") {
                 return o.status === "pending_review" || o.status === "awaiting_customer_response";
             }
-            if (activeTab === "in_oven") {
-                return o.status === "processing" || o.status === "awaiting_downpayment";
+            if (activeTab === "to_receive") {
+                return o.status === "processing";
             }
             if (activeTab === "completed") {
                 return FINISHED_STATUSES.has(o.status);
+            }
+            if (activeTab === "cancelled") {
+                return CANCELLED_STATUSES.has(o.status);
             }
             return true;
         });
     }, [orders, activeTab]);
 
     const activeOrders = useMemo(
-        () => filteredOrders.filter((order) => ACTIVE_STATUSES.has(order.status)),
-        [filteredOrders]
+        () => filteredOrders.filter((order) =>
+            ACTIVE_STATUSES.has(order.status) ||
+            ((activeTab === "all" || activeTab === "cancelled") && CANCELLED_STATUSES.has(order.status))
+        ),
+        [filteredOrders, activeTab]
     );
 
     const pastOrders = useMemo(
@@ -631,8 +650,9 @@ export default function CustomerOrdersPage() {
     const awaitingReviewCount = orders.filter(
         (o) => o.status === "pending_review" || o.status === "awaiting_customer_response"
     ).length;
-    const inOvenCount = orders.filter((o) => o.status === "processing").length;
+    const toReceiveCount = orders.filter((o) => o.status === "processing").length;
     const pastCompletedCount = orders.filter((o) => FINISHED_STATUSES.has(o.status)).length;
+    const cancelledCount = orders.filter((o) => CANCELLED_STATUSES.has(o.status)).length;
 
     const visibleActiveOrders = activeOrders.slice(
         (activePage - 1) * ORDERS_PER_PAGE,
@@ -703,15 +723,15 @@ export default function CustomerOrdersPage() {
 
                         <button
                             onClick={() => {
-                                setActiveTab("in_oven");
+                                setActiveTab("to_receive");
                                 setActivePage(1);
                             }}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeTab === "in_oven"
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeTab === "to_receive"
                                 ? "bg-[#6E473B] text-white shadow-sm"
                                 : "bg-white text-stone-600 border border-[#F3E5D0] hover:bg-[#FAF5EB]"
                                 }`}
                         >
-                            In The Oven ({inOvenCount})
+                            To Receive ({toReceiveCount})
                         </button>
 
                         <button
@@ -726,6 +746,19 @@ export default function CustomerOrdersPage() {
                         >
                             Past Completed ({pastCompletedCount})
                         </button>
+
+                        <button
+                            onClick={() => {
+                                setActiveTab("cancelled");
+                                setActivePage(1);
+                            }}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeTab === "cancelled"
+                                ? "bg-[#6E473B] text-white shadow-sm"
+                                : "bg-white text-stone-600 border border-[#F3E5D0] hover:bg-[#FAF5EB]"
+                                }`}
+                        >
+                            Cancelled ({cancelledCount})
+                        </button>
                     </div>
                 </div>
 
@@ -734,29 +767,37 @@ export default function CustomerOrdersPage() {
                     <section className="space-y-6">
                         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
                             <h2 className="text-2xl font-black text-[#6E473B] flex items-center gap-2">
-                                <span>Active Orders</span>
+                                <span>{activeTab === "all" ? "All Orders" : activeTab === "cancelled" ? "Cancelled Orders" : "Active Orders"}</span>
                                 <span className="text-xs font-bold bg-[#FFF8EF] text-[#C05A11] border border-[#F3E5D0] px-2.5 py-0.5 rounded-full">
-                                    {activeOrders.length} active
+                                    {activeOrders.length} {activeTab === "all" ? "orders" : activeTab === "cancelled" ? "cancelled" : "active"}
                                 </span>
                             </h2>
-                            <p className="text-xs text-stone-500">
-                                Orders are actively monitored by Lead Pastry Chef • Live updates
-                            </p>
+                            {activeTab !== "cancelled" && (
+                                <p className="text-xs text-stone-500">
+                                    Orders are actively monitored by Lead Pastry Chef • Live updates
+                                </p>
+                            )}
                         </div>
 
                         {activeOrders.length === 0 ? (
                             <div className="bg-white rounded-3xl p-10 border border-[#F3E5D0] text-center space-y-4">
                                 <Cake className="w-10 h-10 text-stone-300 mx-auto" />
-                                <h3 className="text-base font-bold text-[#6E473B]">No active orders right now</h3>
-                                <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                                    Ready to bake something special? Design your custom tiered cake with our 3D builder!
-                                </p>
-                                <button
-                                    onClick={() => navigate("/build")}
-                                    className="px-5 py-2.5 rounded-xl bg-[#C05A11] text-white font-bold text-xs shadow hover:bg-[#A84E0E] transition-colors"
-                                >
-                                    Start Designing Cake
-                                </button>
+                                <h3 className="text-base font-bold text-[#6E473B]">
+                                    {activeTab === "cancelled" ? "No cancelled orders" : "No active orders right now"}
+                                </h3>
+                                {activeTab !== "cancelled" && (
+                                    <>
+                                        <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                                            Ready to bake something special? Design your custom tiered cake with our 3D builder!
+                                        </p>
+                                        <button
+                                            onClick={() => navigate("/build")}
+                                            className="px-5 py-2.5 rounded-xl bg-[#C05A11] text-white font-bold text-xs shadow hover:bg-[#A84E0E] transition-colors"
+                                        >
+                                            Start Designing Cake
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-6">

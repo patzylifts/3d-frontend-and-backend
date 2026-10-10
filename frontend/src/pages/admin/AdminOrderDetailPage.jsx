@@ -165,6 +165,15 @@ export default function AdminOrderDetailPage() {
                             </div>
                         )}
 
+                        {["pending_review", "awaiting_customer_response", "awaiting_downpayment", "processing"].includes(order.status) && (
+                            <button
+                                className="w-full border border-rose-300 text-rose-700 py-2.5 rounded-xl font-bold hover:bg-rose-50 transition"
+                                onClick={() => updateStatus("cancelled")}
+                            >
+                                Cancel Order
+                            </button>
+                        )}
+
                         {isUploadedCake && (
                             <div className="space-y-3">
                                 <AdminQuotationPanel
