@@ -157,7 +157,7 @@ const LandingPage = () => {
                                             disabled={addingProductId === cake.id}
                                             className="w-full rounded-full border border-[#C05A11] bg-[#D9781F] px-4 py-3 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#C05A11] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 cursor-pointer"
                                         >
-                                            {addingProductId === cake.id ? 'Adding...' : addedProductId === cake.id ? 'Added to Bag' : failedProductId === cake.id ? "Couldn't Add. Try Again" : 'Add to Bag'}
+                                            {addingProductId === cake.id ? 'Adding...' : addedProductId === cake.id ? 'Added to Bag' : failedProductId === cake.id ? "Couldn't Add. Try Again" : 'Add to Cart'}
                                         </button>
                                         {addedProductId === cake.id && (
                                             <div

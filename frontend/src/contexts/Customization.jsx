@@ -80,7 +80,7 @@ const DEFAULT_TOPPING_LAYOUT = {
     chocolate: DEFAULT_CHOCOLATE_LAYOUT,
     balls: { x: 50, y: 50, size: "small" },
     nuts: { x: 50, y: 50, size: "medium" },
-    cherry: { x: 60, y: 40, size: "small" },
+    cherry: { x: 60, y: 40 },
     sprinkles: { x: 50, y: 50, size: "medium" },
 };
 
@@ -135,13 +135,20 @@ const hydrateTierFlavorOverrides = (initialState) => {
     ]));
 };
 
+const fixedCherryLayout = (layout = {}) => {
+    const fixed = { ...DEFAULT_TOPPING_LAYOUT.cherry, ...layout };
+    delete fixed.size;
+    return fixed;
+};
+
 const hydrateToppingLayout = (initialState) => {
     const savedLayout = initialState?.topping_layout || {};
 
     return Object.fromEntries(
         Object.entries(DEFAULT_TOPPING_LAYOUT).map(([key, defaultLayout]) => [
             key,
-            key === "inscription" ? normalizeCakeMessageLayout(savedLayout[key]) : {
+            key === "inscription" ? normalizeCakeMessageLayout(savedLayout[key]) : key === "cherry"
+                ? fixedCherryLayout(Array.isArray(savedLayout.cherry) ? savedLayout.cherry[0] : savedLayout.cherry) : {
                 ...defaultLayout,
                 ...(key === "chocolate" && Array.isArray(savedLayout[key]) ? savedLayout[key][0] : (savedLayout[key] || {})),
             },
@@ -157,10 +164,7 @@ const hydrateCherryLayouts = (initialState) => {
             ? [savedCherryLayout]
             : [DEFAULT_TOPPING_LAYOUT.cherry];
 
-    return layouts.map((layout) => ({
-        ...DEFAULT_TOPPING_LAYOUT.cherry,
-        ...layout,
-    }));
+    return layouts.map(fixedCherryLayout);
 };
 
 const normalizeCandleNumber = (value) => {
@@ -355,6 +359,7 @@ export const CustomizationProvider = (props) => {
     };
 
     const setToppingSize = (key, size) => {
+        if (key === "cherry" || key.startsWith("cherry-")) return;
         if (key.startsWith("chocolate-")) {
             const index = Number(key.slice("chocolate-".length));
             setChocolateLayouts((prev) => prev.map((layout, layoutIndex) => (
@@ -362,16 +367,6 @@ export const CustomizationProvider = (props) => {
             )));
             return;
         }
-        if (key.startsWith("cherry-")) {
-            const index = Number.parseInt(key.slice("cherry-".length), 10);
-            if (Number.isNaN(index)) return;
-
-            setCherryLayouts((prev) => prev.map((layout, layoutIndex) => (
-                layoutIndex === index ? { ...layout, size } : layout
-            )));
-            return;
-        }
-
         setToppingLayout((prev) => ({
             ...prev,
             [key]: { ...prev[key], size },
@@ -549,17 +544,9 @@ export const CustomizationProvider = (props) => {
             addonsPrice += getAddonPrice("nuts");
         }
 
-        // Cherry pricing: per cherry, based on size
+        // Cherries have one fixed size and one per-cherry price.
         if (cherry) {
-            if (cherryLayouts.length > 0) {
-                cherryLayouts.forEach((chLayout) => {
-                    const cSize = (chLayout.size || "medium").toLowerCase();
-                    const key = `cherry_${cSize}`;
-                    addonsPrice += getAddonPrice(key);
-                });
-            } else {
-                addonsPrice += getAddonPrice("cherry_medium");
-            }
+            addonsPrice += Math.max(1, cherryLayouts.length) * getAddonPrice("cherry_small");
         }
 
         // Sprinkles pricing

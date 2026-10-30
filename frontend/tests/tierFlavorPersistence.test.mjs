@@ -48,6 +48,34 @@ function createBuilder(initialState) {
     return { ...exports, render, select };
 }
 
+test("cherries discard saved sizes, ignore size edits, and save only their fixed-size placements", () => {
+    const legacy = { x: 61, y: 42, position: [0.2, 1.2, 0.3], size: "large" };
+    for (const cherry of [legacy, [legacy]]) {
+        const builder = createBuilder({ has_cherry: true, topping_layout: { cherry } });
+        let state = builder.render();
+        assert.equal(Object.hasOwn(state.toppingLayout.cherry, "size"), false);
+        assert.deepEqual(plain(state.cherryLayouts[0]), { x: 61, y: 42, position: [0.2, 1.2, 0.3] });
+        state.setToppingSize("cherry-0", "medium");
+        state.setToppingSize("cherry", "small");
+        state.setCherryCount(3);
+        state.setToppingSize("candle", "large");
+        state = builder.render();
+        assert.ok(state.cherryLayouts.every(layout => !Object.hasOwn(layout, "size")));
+        assert.equal(Object.hasOwn(state.toppingLayout.cherry, "size"), false);
+        assert.equal(state.toppingLayout.candle.size, "large");
+        const payload = saveDesign(builder);
+        assert.ok(payload.topping_layout.cherry.every(layout => !Object.hasOwn(layout, "size")));
+        assert.deepEqual(plain(createBuilder(payload).render().cherryLayouts), payload.topping_layout.cherry);
+    }
+});
+
+test("legacy cherry size choices cannot change the fixed per-cherry price", () => {
+    const price = size => createBuilder({ has_cherry: true, topping_layout: { cherry: [{ x: 60, y: 40, size }, { x: 40, y: 60, size }] } }).render().calculatePrice();
+    assert.equal(price("small"), price("medium"));
+    assert.equal(price("small"), price("large"));
+    assert.equal(price("small"), price(undefined));
+});
+
 test("Tier 1 flavor cascades to every layout and upper-tier overrides survive navigation", () => {
     const builder = createBuilder();
     const state = builder.render();
@@ -186,7 +214,7 @@ function cakeMaterials(builder) {
     const { CakeTierScene } = runInNewContext(sceneCode, {
         React, THREE, ...tierConfig, ...builder, getGroundedNutY, getChocolateQuaternion,
         useCustomization: builder.render,
-        useMemo: (calculate) => calculate(), useLayoutEffect: (effect) => effect(), useFrame() {},
+        useMemo: (calculate) => calculate(), useLayoutEffect: (effect) => effect(), useEffect() {}, useRef: (value) => ({ current: value }), useFrame() {},
         useGLTF: () => model,
         useTexture: (urls) => Object.fromEntries(Object.entries(urls).map(([key, url]) => {
             const texture = new THREE.Texture();
@@ -372,6 +400,7 @@ test("remounted models render their own saved layout in bottom-to-top order duri
         useCustomization: builder.render,
         useMemo: (calculate) => calculate(),
         useLayoutEffect: (effect) => effect(),
+        useEffect() {}, useRef: (value) => ({ current: value }),
         useFrame() {},
         useGLTF: (url) => models[Number(url.match(/tier(\d)/)[1]) - 1],
         useTexture: (urls) => Object.fromEntries(Object.entries(urls).map(([key, url]) => {

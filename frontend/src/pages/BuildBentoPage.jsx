@@ -215,7 +215,7 @@ function DraggableTopping({ topping, layout, isEnabled = true, form, boardWidth,
 
     const safeX = Number.isFinite(layout?.x) ? layout.x : 50;
     const safeY = Number.isFinite(layout?.y) ? layout.y : 50;
-    const sizeStr = (layout?.size || "medium").toLowerCase();
+    const sizeStr = topping.key.startsWith("cherry-") ? "small" : (layout?.size || "medium").toLowerCase();
     const markerDiameter = { small: 22, medium: 28, large: 36 }[sizeStr] ?? 28;
 
     let displayX = livePosition?.x ?? safeX;
@@ -304,7 +304,7 @@ function ToppingPlacementBoard({ form, selectedTierIndex, activeToppings, toppin
                     : toppingLayout[topping.key];
                 if (!layout) return;
 
-                const markerDiameter = { small: 22, medium: 28, large: 36 }[layout.size] ?? 28;
+                const markerDiameter = topping.key.startsWith("cherry-") ? 22 : { small: 22, medium: 28, large: 36 }[layout.size] ?? 28;
                 // Treat an already-corrupted (non-finite) stored value as
                 // needing correction too, using the board center as the
                 // starting point to clamp from.
@@ -1022,15 +1022,13 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
                                         />
                                         {topping.label}
                                     </span>
-                                    {topping.key !== "sprinkles" && (
+                                    {topping.key !== "sprinkles" && !topping.key.startsWith("cherry-") && (
                                         <div className="flex gap-1 bg-[#FDF6E2] p-1 rounded-lg border border-[#ECD9B4]" aria-label={`${topping.label} size`}>
                                             {Object.keys(TOPPING_SIZES).map((size) => (
                                                 <button
                                                     key={size}
                                                     type="button"
-                                                    className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${(topping.key.startsWith("cherry-")
-                                                        ? cherryLayouts[Number.parseInt(topping.key.slice("cherry-".length), 10)]
-                                                        : (placementLayout[topping.key] || { size: "M" })).size === size
+                                                    className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer ${(placementLayout[topping.key] || { size: "M" }).size === size
                                                         ? "bg-[#C05A11] text-white shadow-sm"
                                                         : "text-[#A07060] hover:text-[#6E473B]"
                                                         }`}

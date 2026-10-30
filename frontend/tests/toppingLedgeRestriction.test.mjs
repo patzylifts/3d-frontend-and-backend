@@ -8,26 +8,28 @@ const source = readFileSync(new URL("../src/components/ToppingDragControls.jsx",
     .replace(/^import .+;\r?$/gm, "").replace(/^export /gm, "");
 const { code } = await transformWithOxc(source, "ToppingDragControls.jsx", { jsx: { runtime: "classic" } });
 
-function mount(readOnly = false) {
+function mount(readOnly = false, useDocument = false) {
     const canvas = new EventTarget();
+    if (useDocument) canvas.ownerDocument = new EventTarget();
     const camera = {};
     const store = {};
     const moves = [];
+    const releases = [];
     const warnings = [];
+    const errors = [];
     const cleanup = [];
     let options;
-    const controller = { pointerMove: (...args) => moves.push(args), reconcile() {}, end() {} };
+    const controller = { pointerMove: (...args) => moves.push(args), pointerUp: (...args) => releases.push(args), reconcile() {}, end() {} };
     const { useToppingDragPlacement } = runInNewContext(`${code}\n;({ useToppingDragPlacement });`, {
-        Draggable: { DraggableCore() {} },
         createContext: () => ({}), useContext: () => store, useRef: () => ({ current: null }),
         useState: (initialize) => [initialize()], useFrame() {}, useLayoutEffect() {},
         useEffect: (effect) => { const dispose = effect(); if (dispose) cleanup.push(dispose); },
         useThree: () => ({ camera, gl: { domElement: canvas }, invalidate() {} }),
         createToppingDragController: (args) => { options = args; return controller; },
-        toast: { warn: (message, settings) => warnings.push({ message, ...settings }) },
+        toast: { warn: (message, settings) => warnings.push({ message, ...settings }), error: (message, settings) => errors.push({ message, ...settings }) },
     });
     useToppingDragPlacement({ scene: {}, cakeGroupRef: {}, controlsRef: {}, state: {}, readOnly });
-    return { canvas, camera, options, moves, warnings, unmount: () => cleanup.forEach((dispose) => dispose()) };
+    return { canvas, camera, options, moves, releases, warnings, errors, unmount: () => cleanup.forEach((dispose) => dispose()) };
 }
 
 test("the active canvas forwards pointermove events immediately and removes its listener on unmount", () => {
@@ -43,20 +45,129 @@ test("the active canvas forwards pointermove events immediately and removes its 
     assert.equal(view.moves.length, 1);
 });
 
-test("lower-ledge restrictions call toast.warn with one static toastId across topping types", () => {
+test("single-candle visibility and lower-ledge restrictions use stable warning toast IDs", () => {
     const view = mount();
     for (const id of ["chocolate-0", "balls", "candle"]) view.options.onLowerLedgeRestricted(id);
     assert.equal(view.warnings.length, 3);
-    assert.equal(new Set(view.warnings.map((warning) => warning.toastId)).size, 1);
+    assert.equal(new Set(view.warnings.slice(0, 2).map((warning) => warning.toastId)).size, 1);
     assert.equal(typeof view.warnings[0].toastId, "string");
     assert.ok(view.warnings[0].toastId.length > 0);
-    assert.match(view.warnings[0].message, /Only cherries and number candles/);
+    assert.match(view.warnings[0].message, /Chocolates and balls must stay on the top tier/);
+    assert.equal(view.warnings[2].message, "This topping is not visible here. Please put it in front so it can be seen.");
+    assert.equal(view.warnings[2].toastId, "single-candle-visibility-warning");
+    view.options.onLowerLedgeRestricted("candle");
+    assert.equal(view.warnings[3].toastId, view.warnings[2].toastId);
     view.unmount();
+});
+
+test("the active canvas forwards pointerup and removes its release listener on unmount", () => {
+    const view = mount();
+    const event = new Event("pointerup");
+    view.canvas.dispatchEvent(event);
+    assert.equal(view.releases.length, 1);
+    assert.equal(view.releases[0][0], event);
+    assert.equal(view.releases[0][1], view.camera);
+    assert.equal(view.releases[0][2], view.canvas);
+    view.unmount();
+    view.canvas.dispatchEvent(new Event("pointerup"));
+    assert.equal(view.releases.length, 1);
+});
+
+test("a cherry that cannot fit uses toast.error with the requested message and stable toastId", () => {
+    const view = mount();
+    view.options.onCherryFitRejected("cherry-0");
+    assert.deepEqual(view.errors, [{
+        message: "This topping does not fit on this lower ledge. Please place it on another tier.",
+        toastId: "cherry-fit-warning",
+    }]);
+    assert.equal(view.warnings.length, 0);
+    view.unmount();
+});
+
+test("document pointer events keep a drag moving and release it outside the canvas", () => {
+    const view = mount(false, true);
+    view.canvas.ownerDocument.dispatchEvent(new Event("pointermove"));
+    view.canvas.ownerDocument.dispatchEvent(new Event("pointerup"));
+    assert.equal(view.moves.length, 1);
+    assert.equal(view.releases.length, 1);
+    assert.equal(view.moves[0][2], view.canvas);
+    assert.equal(view.releases[0][2], view.canvas);
+    view.unmount();
+    view.canvas.ownerDocument.dispatchEvent(new Event("pointermove"));
+    view.canvas.ownerDocument.dispatchEvent(new Event("pointerup"));
+    assert.equal(view.moves.length, 1);
+    assert.equal(view.releases.length, 1);
+});
+
+test("the 3D topping group starts a native pointer drag without a React draggable wrapper", () => {
+    const camera = {};
+    const canvas = {};
+    const starts = [];
+    const controller = { enabled: true, interactive: true, begin: () => true, startPointer: (...args) => starts.push(args) };
+    const { DraggableCakeTopping } = runInNewContext(`${code}\n;({ DraggableCakeTopping });`, {
+        createContext: () => ({}), useRef: () => ({ current: null }), useLayoutEffect() {},
+        useThree: () => ({ camera, gl: { domElement: canvas } }),
+        React: { createElement: (type, props, ...children) => ({ type, props, children }) },
+    });
+    const rendered = DraggableCakeTopping({ id: "candle", controller, anchor: [0, 1, 0], layout: {}, children: "mesh" });
+    assert.equal(rendered.type, "group");
+    assert.equal(rendered.props.matrixAutoUpdate, false);
+    const event = { button: 0, isPrimary: true, pointerId: 7, clientX: 150, clientY: 200, stopPropagation() {} };
+    rendered.props.onPointerDown(event);
+    assert.equal(starts.length, 1);
+    assert.equal(starts[0][0], "candle");
+    assert.equal(starts[0][1], null);
+    assert.equal(starts[0][2], camera);
+    assert.equal(starts[0][3], canvas);
+    assert.equal(starts[0][4].x, 150);
+    assert.equal(starts[0][4].y, 200);
+    assert.equal(starts[0][4].pointerId, 7);
+    rendered.props.onPointerDown({ ...event, button: 2 });
+    rendered.props.onPointerDown({ ...event, isPrimary: false });
+    assert.equal(starts.length, 1);
+});
+
+test("drag-indicator coordinates update its DOM ref without notifying React during pointer movement", () => {
+    let store;
+    const indicator = { style: {} };
+    const effects = [];
+    const { ToppingDragProvider, ToppingDragIndicator } = runInNewContext(`${code}\n;({ ToppingDragProvider, ToppingDragIndicator });`, {
+        HandGrab() {},
+        React: { createElement: (type, props, ...children) => ({ type, props, children }) },
+        createContext: () => ({ Provider() {} }), useContext: () => store,
+        useState: (initialize) => { store = initialize(); return [store]; },
+        useRef: () => ({ current: indicator }),
+        useSyncExternalStore: (_, snapshot) => snapshot(),
+        useLayoutEffect: (effect) => effects.push(effect),
+    });
+    ToppingDragProvider({ children: null });
+    let notifications = 0;
+    const unsubscribe = store.subscribe(() => notifications++);
+    store.setDragging(true, { x: 100, y: 200 });
+    const activeSnapshot = store.getDragging();
+    const rendered = ToppingDragIndicator();
+    assert.equal(rendered.props.ref.current, indicator);
+    const dispose = effects[0]();
+    for (let point = 0; point < 100; point++) {
+        store.setDragging(true, { x: 100 + point, y: 200 + point });
+        assert.equal(indicator.style.transform, `translate3d(${52 + point}px, ${152 + point}px, 0)`);
+        assert.equal(store.getDragging(), activeSnapshot);
+    }
+    assert.equal(notifications, 1, "React only renders the indicator when drag visibility changes");
+    store.setDragging(false);
+    assert.equal(notifications, 2);
+    dispose();
+    indicator.style.transform = "unmounted";
+    store.setDragging(true, { x: 500, y: 500 });
+    assert.equal(indicator.style.transform, "unmounted");
+    unsubscribe();
 });
 
 test("read-only previews do not register a drag-monitoring pointermove listener", () => {
     const view = mount(true);
     view.canvas.dispatchEvent(new Event("pointermove"));
+    view.canvas.dispatchEvent(new Event("pointerup"));
     assert.equal(view.moves.length, 0);
+    assert.equal(view.releases.length, 0);
     view.unmount();
 });

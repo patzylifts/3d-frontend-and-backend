@@ -4,6 +4,7 @@ export const TOPPING_PLACEMENT_GAP = 0.002;
 export const TOPPING_SURFACE_OFFSET = 0.001;
 const TOPPING_COLLISION_FOOTPRINT_SCALE = 0.9;
 const EPSILON = 1e-8;
+const cherryLedgePlanes = new WeakMap();
 
 export function getToppingDragClientPoint(data) {
     // Undo DraggableCore's offset-parent coordinates before projecting into R3F.
@@ -216,22 +217,124 @@ function sweptObstacleEntry(box, from, to, obstacle, gap) {
     return exit > 0 && entry < 1 ? Math.max(0, entry) : null;
 }
 
-function cherryWallEntry(box, from, to, tier, gap) {
-    let outline = tier.outline;
-    if (!outline || outline.length < 3) {
-        const centerX = (tier.minX + tier.maxX) / 2;
-        const centerZ = (tier.minZ + tier.maxZ) / 2;
-        outline = tier.round ? Array.from({ length: 64 }, (_, index) => {
-            const angle = index * Math.PI / 32;
-            return {
-                x: centerX + (tier.maxX - tier.minX) / 2 * Math.cos(angle) / Math.cos(Math.PI / 64),
-                z: centerZ + (tier.maxZ - tier.minZ) / 2 * Math.sin(angle) / Math.cos(Math.PI / 64),
-            };
-        }) : [
-            { x: tier.minX, z: tier.minZ }, { x: tier.maxX, z: tier.minZ },
-            { x: tier.maxX, z: tier.maxZ }, { x: tier.minX, z: tier.maxZ },
-        ];
+function getCherryWallOutline(tier) {
+    if (tier.outline?.length >= 3) return tier.outline;
+    const centerX = (tier.minX + tier.maxX) / 2;
+    const centerZ = (tier.minZ + tier.maxZ) / 2;
+    return tier.round ? Array.from({ length: 64 }, (_, index) => {
+        const angle = index * Math.PI / 32;
+        return {
+            x: centerX + (tier.maxX - tier.minX) / 2 * Math.cos(angle) / Math.cos(Math.PI / 64),
+            z: centerZ + (tier.maxZ - tier.minZ) / 2 * Math.sin(angle) / Math.cos(Math.PI / 64),
+        };
+    }) : [
+        { x: tier.minX, z: tier.minZ }, { x: tier.maxX, z: tier.minZ },
+        { x: tier.maxX, z: tier.maxZ }, { x: tier.minX, z: tier.maxZ },
+    ];
+}
+
+function getCherryLedgePlanes(tier) {
+    if (cherryLedgePlanes.has(tier)) return cherryLedgePlanes.get(tier);
+    const outline = getCherryWallOutline(tier);
+    const area = outline.reduce((sum, point, index) => {
+        const next = outline[(index + 1) % outline.length];
+        return sum + point.x * next.z - next.x * point.z;
+    }, 0);
+    const axes = [{ x: 1, z: 0 }, { x: -1, z: 0 }, { x: 0, z: 1 }, { x: 0, z: -1 }];
+    outline.forEach((point, index) => {
+        const next = outline[(index + 1) % outline.length];
+        const length = Math.hypot(next.x - point.x, next.z - point.z);
+        if (length > EPSILON) axes.push({ x: Math.sign(area) * (next.z - point.z) / length, z: Math.sign(area) * (point.x - next.x) / length });
+    });
+    const planes = axes.map((axis) => ({ ...axis, wall: Math.max(...outline.map((point) => axis.x * point.x + axis.z * point.z)) }));
+    cherryLedgePlanes.set(tier, planes);
+    return planes;
+}
+
+export function canCherryFitOnLedge({ box, position, surface, gap = TOPPING_PLACEMENT_GAP }) {
+    const tier = getTierAtToppingHeight(box, position, surface);
+    if (isInsideSurface(box, position, surface, gap)) return true;
+    const cx = (tier.minX + tier.maxX) / 2, cz = (tier.minZ + tier.maxZ) / 2;
+    const bx = (box.min.x + box.max.x) / 2, bz = (box.min.z + box.max.z) / 2;
+    const hx = (box.max.x - box.min.x) / 2, hz = (box.max.z - box.min.z) / 2;
+    const direction = new Vector3(position.x + bx - cx, 0, position.z + bz - cz).normalize();
+    if (direction.lengthSq() < EPSILON) direction.x = 1;
+    const interval = (bounds, outer) => {
+        let min = 0, max = Infinity;
+        for (const plane of getCherryLedgePlanes(bounds)) {
+            const footprint = Math.abs(plane.x) * hx + Math.abs(plane.z) * hz;
+            const clearance = outer ? -footprint - gap : footprint + gap * (Math.abs(plane.x) + Math.abs(plane.z));
+            const available = plane.wall + clearance - plane.x * cx - plane.z * cz;
+            const velocity = plane.x * direction.x + plane.z * direction.z;
+            if (Math.abs(velocity) < EPSILON) {
+                if (available < -EPSILON) return null;
+            } else if (velocity > 0) max = Math.min(max, available / velocity);
+            else min = Math.max(min, available / velocity);
+            if (min > max) return null;
+        }
+        return [min, max];
+    };
+    const outer = interval(tier, true);
+    if (!outer) return false;
+    let available = [outer];
+    // Erode the lower outline by the physical footprint, then exclude each
+    // upper wall expanded by that footprint. An empty interval means no fit.
+    for (const upper of surface.tiers.filter((candidate) => candidate.topY > tier.topY)) {
+        const wall = interval(upper, false);
+        if (!wall) continue;
+        const remaining = [];
+        for (const [min, max] of available) {
+            if (wall[1] < min || wall[0] > max) remaining.push([min, max]);
+            else {
+                if (wall[0] - EPSILON >= min) remaining.push([min, Math.min(max, wall[0] - EPSILON)]);
+                if (wall[1] + EPSILON <= max) remaining.push([Math.max(min, wall[1] + EPSILON), max]);
+            }
+        }
+        available = remaining;
     }
+    if (!available.length) return false;
+    const requested = Math.hypot(position.x + bx - cx, position.z + bz - cz);
+    const distances = available.map(([min, max]) => Math.max(min, Math.min(max, requested)));
+    const distance = distances.reduce((nearest, value) => Math.abs(value - requested) < Math.abs(nearest - requested) ? value : nearest);
+    const result = new Vector3(cx + direction.x * distance - bx, position.y, cz + direction.z * distance - bz);
+    return isInsideSurface(box, result, surface, gap);
+}
+
+function clampCherryLedgePosition(box, position, surface, gap) {
+    if (isInsideSurface(box, position, surface, gap)) return position;
+    const tier = getTierAtToppingHeight(box, position, surface);
+    let nearest = null;
+    for (const upper of surface.tiers.filter((candidate) => candidate.topY > tier.topY)) {
+        const outline = getCherryWallOutline(upper);
+        const area = outline.reduce((sum, point, index) => {
+            const next = outline[(index + 1) % outline.length];
+            return sum + point.x * next.z - next.x * point.z;
+        }, 0);
+        const axes = [{ x: 1, z: 0 }, { x: -1, z: 0 }, { x: 0, z: 1 }, { x: 0, z: -1 }];
+        outline.forEach((point, index) => {
+            const next = outline[(index + 1) % outline.length];
+            const length = Math.hypot(next.x - point.x, next.z - point.z);
+            if (length > EPSILON) axes.push({ x: Math.sign(area) * (next.z - point.z) / length, z: Math.sign(area) * (point.x - next.x) / length });
+        });
+        for (const axis of axes) {
+            const wall = Math.max(...outline.map((point) => axis.x * point.x + axis.z * point.z));
+            const nearEdge = axis.x * (axis.x >= 0 ? box.min.x : box.max.x) + axis.z * (axis.z >= 0 ? box.min.z : box.max.z);
+            const distance = wall - nearEdge + gap * (Math.abs(axis.x) + Math.abs(axis.z)) + EPSILON - axis.x * position.x - axis.z * position.z;
+            if (distance < 0) continue;
+            const candidate = position.clone();
+            candidate.x += axis.x * distance;
+            candidate.z += axis.z * distance;
+            // Project to exact footprint contact with the upper wall, retaining
+            // tangential motion instead of snapping the cherry to a search grid.
+            if (isInsideSurface(box, candidate, surface, gap) &&
+                (!nearest || candidate.distanceToSquared(position) < nearest.distanceToSquared(position))) nearest = candidate;
+        }
+    }
+    return nearest;
+}
+
+function cherryWallEntry(box, from, to, tier, gap) {
+    const outline = getCherryWallOutline(tier);
     const axes = [{ x: 1, z: 0 }, { x: 0, z: 1 }];
     outline.forEach((point, index) => {
         const next = outline[(index + 1) % outline.length];
@@ -319,7 +422,9 @@ export function constrainToppingPosition({ box, surfaceBox = box, from, to, surf
             const origin = findToppingPosition({ box, surfaceBox, position: center, surface: targetTier, gap });
             clamped = origin && constrainToppingPath(box, origin, target, targetTier, [], gap, surfaceBox);
             if (clamped && getTierAtToppingHeight(surfaceBox, from, surface) !== targetTier) {
-                clamped = findToppingPosition({ box, surfaceBox, position: clamped, surface: { ...targetTier, tiers: surface.tiers, tierFromHeight: true }, gap });
+                const ledge = { ...targetTier, tiers: surface.tiers, tierFromHeight: true };
+                clamped = clampCherryLedgePosition(surfaceBox, clamped, ledge, gap) ||
+                    findToppingPosition({ box, surfaceBox, position: clamped, surface: ledge, gap });
             }
         } else clamped = constrainToppingPath(box, from, target, targetTier, [], gap, surfaceBox);
         if (!clamped) return from.clone();

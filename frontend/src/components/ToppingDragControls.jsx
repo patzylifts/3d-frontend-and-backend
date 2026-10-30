@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import Draggable from "react-draggable-3d";
 import { HandGrab } from "lucide-react";
 import { toast } from "react-toastify";
 import * as THREE from "three";
@@ -8,19 +7,25 @@ import { getToppingCollisionBox, getTransformedToppingBox } from "../utils/toppi
 import { createToppingDragController } from "../utils/toppingDragController.js";
 
 const DragPlacementContext = createContext(null);
-const DraggableCore = Draggable.DraggableCore;
 
 export function ToppingDragProvider({ children }) {
     const [store] = useState(() => {
         const listeners = new Set();
+        const dragPositionListeners = new Set();
         let positions = new Map();
         let dragging = { isDragging: false, x: 0, y: 0 };
+        let dragPosition = { x: 0, y: 0 };
         return {
             controller: null,
             subscribe: (listener) => { listeners.add(listener); return () => listeners.delete(listener); },
             get: (id) => positions.get(id),
             getDragging: () => dragging,
-            setDragging(isDragging, point = dragging) {
+            getDragPosition: () => dragPosition,
+            subscribeDragPosition: (listener) => { dragPositionListeners.add(listener); return () => dragPositionListeners.delete(listener); },
+            setDragging(isDragging, point = dragPosition) {
+                dragPosition = { x: point.x, y: point.y };
+                dragPositionListeners.forEach((listener) => listener());
+                if (dragging.isDragging === isDragging) return;
                 dragging = { isDragging, x: point.x, y: point.y };
                 listeners.forEach((listener) => listener());
             },
@@ -52,10 +57,21 @@ export function useToppingDragMarker(id) {
 
 export function ToppingDragIndicator() {
     const store = useToppingDragStore();
+    const ref = useRef(null);
     const { isDragging, x, y } = useSyncExternalStore(store.subscribe, store.getDragging, store.getDragging);
+    useLayoutEffect(() => {
+        if (!isDragging) return;
+        const updatePosition = () => {
+            const point = store.getDragPosition();
+            if (ref.current) ref.current.style.transform = `translate3d(${point.x - 48}px, ${point.y - 48}px, 0)`;
+        };
+        updatePosition();
+        return store.subscribeDragPosition(updatePosition);
+    }, [store, isDragging]);
     if (!isDragging) return null;
     return (
         <div
+            ref={ref}
             aria-hidden="true"
             data-topping-drag-indicator="true"
             style={{ position: "fixed", left: 0, top: 0, transform: `translate3d(${x - 48}px, ${y - 48}px, 0)`, pointerEvents: "none", zIndex: 9999, filter: "drop-shadow(0 2px 4px #0008)" }}
@@ -77,9 +93,15 @@ export function useToppingDragPlacement({ scene, cakeGroupRef, controlsRef, stat
             latest.current.state.rejectToppingAdditions(ids);
             toast.warning("No more space for this topping. Try arranging the other toppings");
         },
-        onLowerLedgeRestricted: () => toast.warn(
-            "Only cherries and number candles can be placed on lower ledges. Chocolates, balls, and single candles must stay on the top tier.",
-            { toastId: "topping-lower-ledge-restriction" }
+        onLowerLedgeRestricted: (id) => toast.warn(
+            id === "candle"
+                ? "This topping is not visible here. Please put it in front so it can be seen."
+                : "Chocolates and balls must stay on the top tier. Single candles can only use lower ledges facing the camera.",
+            { toastId: id === "candle" ? "single-candle-visibility-warning" : "topping-lower-ledge-restriction" }
+        ),
+        onCherryFitRejected: () => toast.error(
+            "This topping does not fit on this lower ledge. Please place it on another tier.",
+            { toastId: "cherry-fit-warning" }
         ),
     }));
     controller.enabled = enabled;
@@ -88,9 +110,15 @@ export function useToppingDragPlacement({ scene, cakeGroupRef, controlsRef, stat
     useEffect(() => {
         if (!enabled || readOnly) return;
         const canvas = gl.domElement;
+        const pointerTarget = canvas.ownerDocument || canvas;
         const onPointerMove = (event) => controller.pointerMove(event, camera, canvas);
-        canvas.addEventListener("pointermove", onPointerMove);
-        return () => canvas.removeEventListener("pointermove", onPointerMove);
+        const onPointerUp = (event) => controller.pointerUp(event, camera, canvas);
+        pointerTarget.addEventListener("pointermove", onPointerMove);
+        pointerTarget.addEventListener("pointerup", onPointerUp);
+        return () => {
+            pointerTarget.removeEventListener("pointermove", onPointerMove);
+            pointerTarget.removeEventListener("pointerup", onPointerUp);
+        };
     }, [controller, enabled, readOnly, gl, camera]);
     useLayoutEffect(() => { if (enabled) controller.reconcile(false); });
     useEffect(() => {
@@ -109,7 +137,6 @@ export function useToppingDragPlacement({ scene, cakeGroupRef, controlsRef, stat
 export function DraggableCakeTopping({ id, controller, anchor, layout, insertionDepth = 0, children }) {
     const ref = useRef(null);
     const { camera, gl } = useThree();
-    const canvasRef = useMemo(() => ({ current: gl.domElement }), [gl.domElement]);
     useLayoutEffect(() => {
         if (!controller.enabled) return;
         const measure = () => {
@@ -131,41 +158,17 @@ export function DraggableCakeTopping({ id, controller, anchor, layout, insertion
     if (!controller.enabled) return children;
     if (!controller.interactive) return <group ref={ref} matrixAutoUpdate={false}>{children}</group>;
     return (
-        <DraggableCore
-            nodeRef={canvasRef}
-            enableUserSelectHack={false}
-            onStart={(_, data) => controller.startPointer(id, data, camera, gl.domElement)}
-            onDrag={(_, data) => controller.drag(id, data, camera, gl.domElement)}
-            onStop={(_, data) => { controller.drag(id, data, camera, gl.domElement); controller.end(id); }}
-        >
-            <ToppingDragHandle objectRef={ref} canvas={gl.domElement} id={id} controller={controller}>
-                {children}
-            </ToppingDragHandle>
-        </DraggableCore>
-    );
-}
-
-// DraggableCore normally clones DOM children. Here its real native start events
-// come from the canvas, while R3F's pointer picking chooses the topping group.
-// No HTML overlay, CSS transform, or extra visible mesh is introduced.
-function ToppingDragHandle({ objectRef, canvas, id, controller, onMouseDown, onTouchStart, children }) {
-    useEffect(() => {
-        canvas.addEventListener("mousedown", onMouseDown);
-        canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-        return () => {
-            canvas.removeEventListener("mousedown", onMouseDown);
-            canvas.removeEventListener("touchstart", onTouchStart);
-        };
-    }, [canvas, onMouseDown, onTouchStart]);
-    return (
         <group
-            ref={objectRef}
+            ref={ref}
             matrixAutoUpdate={false}
             userData={{ toppingId: id }}
             onPointerDown={(event) => {
                 if (event.button !== 0 || event.isPrimary === false) return;
                 event.stopPropagation();
-                controller.begin(id);
+                if (!controller.begin(id)) return;
+                controller.startPointer(id, null, camera, gl.domElement, {
+                    x: event.clientX, y: event.clientY, pointerId: event.pointerId,
+                });
             }}
         >
             {children}

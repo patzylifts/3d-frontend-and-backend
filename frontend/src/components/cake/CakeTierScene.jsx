@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF, useTexture } from "@react-three/drei";
 import * as THREE from "three";
@@ -8,6 +8,7 @@ import { DraggableCakeTopping, useToppingDragPlacement } from "../ToppingDragCon
 import { CAKE_GROUP_POSITION, TIER_TOP_Y, TIER_TOP_RADIUS } from "./tierConfig";
 import { getGroundedNutY } from "../../utils/nutPlacement";
 import { getChocolateQuaternion } from "../../utils/chocolateRotation";
+import { findToppingPosition, TOPPING_PLACEMENT_GAP, TOPPING_SURFACE_OFFSET } from "../../utils/toppingDragPlacement.js";
 
 const TIER_MODEL_URLS = {
     tier1: "https://cake-assets-decc.patrickticoy78.workers.dev/tier1/tier1.gltf",
@@ -67,7 +68,8 @@ const TOPPING_3D_CONFIG = {
     cherry: {
         yOffset: -0.12,
         rotation: [0, 0, 0],
-        scale: 0.039,
+        // Narrowest ledge: (0.03531237 - 2 * 0.002) / 5.16109991 = 0.006067.
+        scale: 0.018,
         radius: 0.85,
     },
     sprinkles: {
@@ -680,6 +682,40 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
     }, [activeTier, matProps, selectedTierIndex, onReady]);
 
     const toppingDrag = useToppingDragPlacement({ scene: activeTier.scene, cakeGroupRef, controlsRef, state: customization, readOnly: readOnlyToppings });
+    const tierCount = selectedTierIndex + 1;
+    const previousSingleCandleTier = useRef(null);
+    useEffect(() => {
+        if (!candle || (toppingLayout.candle?.mode || candleMode || "gold") !== "gold" || readOnlyToppings) {
+            previousSingleCandleTier.current = null;
+            return;
+        }
+        if (toppingDrag.isDragging.current) return;
+        const entry = toppingDrag.entries?.get("candle");
+        if (!entry?.position) return;
+        const bounds = toppingDrag.placementBounds(entry);
+        const { surface, surfaceBox: footprint } = bounds;
+        const previous = previousSingleCandleTier.current;
+        previousSingleCandleTier.current = {
+            tierCount,
+            position: entry.position.clone(),
+            isOnTop: Math.abs(entry.position.y + footprint.min.y + entry.insertionDepth - surface.topY) <= 0.08,
+        };
+        if (!previous || previous.tierCount === tierCount || !previous.isOnTop) return;
+
+        const target = previous.position.clone();
+        target.x = THREE.MathUtils.clamp(target.x, surface.minX + TOPPING_PLACEMENT_GAP - footprint.min.x, surface.maxX - TOPPING_PLACEMENT_GAP - footprint.max.x);
+        target.z = THREE.MathUtils.clamp(target.z, surface.minZ + TOPPING_PLACEMENT_GAP - footprint.min.z, surface.maxZ - TOPPING_PLACEMENT_GAP - footprint.max.z);
+        target.y = surface.topY - footprint.min.y - entry.insertionDepth + TOPPING_SURFACE_OFFSET;
+        const position = findToppingPosition({
+            box: entry.box, position: target, ...bounds,
+            obstacles: toppingDrag.obstacles("candle"),
+        });
+        if (!position) return;
+        position.y = toppingDrag.height(entry, position);
+        toppingDrag.commit(toppingDrag.apply(entry, position, false));
+        previousSingleCandleTier.current.position.copy(position);
+        previousSingleCandleTier.current.isOnTop = true;
+    }, [tierCount, activeTierBounds, candle, candleMode, toppingLayout.candle, readOnlyToppings, toppingDrag]);
     const inscriptionDragging = useMemo(() => ({ current: false }), []);
 
     useFrame((_, delta) => {
@@ -702,7 +738,7 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
     );
     const cherryFootprint = getToppingFootprint(
         nodes.cherry?.geometry,
-        TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES.large
+        TOPPING_3D_CONFIG.cherry.scale
     );
     const nutTransform = getCenteredNutTransform(
         activeTierBounds,
@@ -715,6 +751,7 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
         const selectedCandleMode = toppingLayout.candle?.mode || candleMode || "gold";
         const selectedCandleColor = toppingLayout.candle?.color || candleColor || "gold";
         const digitScaleMultiplier = TOPPING_SIZES[toppingLayout.candle.size] || 1;
+        const singleCandleScale = TOPPING_3D_CONFIG.candle.scale * digitScaleMultiplier;
         const digits = String(Math.max(1, Math.min(100, Number(candleNumber) || 1))).split("");
         const candleNodes = selectedCandleMode === "gold"
             ? [nodes.chandel || nodes.Candle_White_Default].filter(Boolean)
@@ -732,7 +769,7 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
         const candleExtents = candleNodes.map((node) => getNodeHorizontalHalfExtents(
             node,
             selectedCandleMode === "gold"
-                ? Array(3).fill(Math.abs(TOPPING_3D_CONFIG.candle.scale * effectiveCandleScale))
+                ? Array(3).fill(Math.abs(singleCandleScale))
                 : getNodeScaleArray(node, effectiveCandleScale),
             selectedCandleMode === "gold" ? TOPPING_3D_CONFIG.candle.rotation : [0, 0, 0]
         ));
@@ -775,7 +812,7 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
                     material={materials.chandel || materials.Candle_White_Default || materials.Default}
                     position={candlePosition}
                     rotation={TOPPING_3D_CONFIG.candle.rotation}
-                    scale={TOPPING_3D_CONFIG.candle.scale * effectiveCandleScale}
+                    scale={singleCandleScale}
                     castShadow
                     receiveShadow
                 />
@@ -958,7 +995,7 @@ return (
                             cherryFootprint
                         )}
                         rotation={TOPPING_3D_CONFIG.cherry.rotation}
-                        scale={TOPPING_3D_CONFIG.cherry.scale * TOPPING_SIZES[layout.size]}
+                        scale={TOPPING_3D_CONFIG.cherry.scale}
                         castShadow
                     />
                     </DraggableCakeTopping>
