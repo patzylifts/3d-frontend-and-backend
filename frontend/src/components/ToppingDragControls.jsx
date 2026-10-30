@@ -87,6 +87,7 @@ export function useToppingDragPlacement({ scene, cakeGroupRef, controlsRef, stat
     const latest = useRef(null);
     latest.current = { scene, cakeGroupRef, controlsRef, state };
     const { camera, gl, invalidate } = useThree();
+    latest.current.camera = camera;
     const [controller] = useState(() => createToppingDragController({
         getCurrent: () => latest.current, store, invalidate,
         onPlacementRejected: (ids) => {
@@ -95,9 +96,9 @@ export function useToppingDragPlacement({ scene, cakeGroupRef, controlsRef, stat
         },
         onLowerLedgeRestricted: (id) => toast.warn(
             id === "candle"
-                ? "This topping is not visible here. Please put it in front so it can be seen."
-                : "Chocolates and balls must stay on the top tier. Single candles can only use lower ledges facing the camera.",
-            { toastId: id === "candle" ? "single-candle-visibility-warning" : "topping-lower-ledge-restriction" }
+                ? "Single candle must stay on the top tier. Number candles can only use lower ledges facing the camera"
+                : "Chocolates and balls must stay on the top tier.",
+            { toastId: id === "candle" ? "candle-tier-restriction" : "topping-lower-ledge-restriction" }
         ),
         onCherryFitRejected: () => toast.error(
             "This topping does not fit on this lower ledge. Please place it on another tier.",

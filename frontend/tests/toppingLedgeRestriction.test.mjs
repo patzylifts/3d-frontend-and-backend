@@ -53,8 +53,8 @@ test("single-candle visibility and lower-ledge restrictions use stable warning t
     assert.equal(typeof view.warnings[0].toastId, "string");
     assert.ok(view.warnings[0].toastId.length > 0);
     assert.match(view.warnings[0].message, /Chocolates and balls must stay on the top tier/);
-    assert.equal(view.warnings[2].message, "This topping is not visible here. Please put it in front so it can be seen.");
-    assert.equal(view.warnings[2].toastId, "single-candle-visibility-warning");
+    assert.equal(view.warnings[2].message, "Single candle must stay on the top tier. Number candles can only use lower ledges facing the camera");
+    assert.equal(view.warnings[2].toastId, "candle-tier-restriction");
     view.options.onLowerLedgeRestricted("candle");
     assert.equal(view.warnings[3].toastId, view.warnings[2].toastId);
     view.unmount();

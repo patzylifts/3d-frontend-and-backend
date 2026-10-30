@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Box3, BoxGeometry, CylinderGeometry, Group, Mesh, PerspectiveCamera, Vector3 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createToppingDragController } from "../src/utils/toppingDragController.js";
-import { getTransformedToppingBox, TOPPING_PLACEMENT_GAP } from "../src/utils/toppingDragPlacement.js";
+import { getTransformedToppingBox, TOPPING_PLACEMENT_GAP, TOPPING_SURFACE_OFFSET } from "../src/utils/toppingDragPlacement.js";
 
 function setup({ tierCount = 1, round = false, combined = false, candleMode = "gold", tierRadii, tierHeights } = {}) {
     const parent = new Group();
@@ -73,8 +73,8 @@ function setup({ tierCount = 1, round = false, combined = false, candleMode = "g
         const screen = parent.localToWorld(position.clone()).project(camera);
         return { node: canvas, x: (screen.x + 1) * 400, y: (1 - screen.y) * 300 };
     };
-    const start = (id, pointerId) => {
-        const position = controller.entries.get(id).position;
+    const start = (id, pointerId, grabAt) => {
+        const position = grabAt || controller.entries.get(id).position;
         assert.equal(controller.begin(id), true);
         const data = dataAt(position);
         assert.equal(pointerId === undefined
@@ -201,7 +201,125 @@ test("number candles and cherries reach every exposed lower ledge and preserve t
     }
 });
 
-test("single candles stop at the original rear limit before reaching a lower ledge behind the cake", () => {
+test("single candles freeze at the physical top-tier rim for both front and back lower-ledge attempts", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) {
+        const { controller, current, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, combined: true });
+        const topping = register("candle", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        const saved = current.state.toppingLayout.candle;
+        const radius = 2 - (tierCount - 1) * 0.5;
+        start("candle", 7);
+        const xs = [];
+        for (const x of [-0.15, 0, 0.15]) {
+            pointerMove(new Vector3(x, tierCount - 1, -radius - 0.25), 7);
+            for (const delta of [1 / 240, 1 / 60, 0.2]) controller.update(delta);
+            const bounds = getTransformedToppingBox(topping.object, parent);
+            assert.ok(Math.abs(bounds.min.y - tierCount - TOPPING_SURFACE_OFFSET) < 1e-6);
+            assert.ok(bounds.getCenter(new Vector3()).z < -0.2, "a blocked drag must freeze at the rim instead of snapping to the center");
+            const extent = Math.max(...[bounds.min.x, bounds.max.x].flatMap(cx => [bounds.min.z, bounds.max.z].map(cz => round ? Math.hypot(cx, cz) : Math.max(Math.abs(cx), Math.abs(cz)))));
+            assert.ok(extent <= radius - TOPPING_PLACEMENT_GAP + 1e-7);
+            assert.ok(extent > radius - 0.01, "the full physical footprint must contact the top rim");
+            xs.push(bounds.getCenter(new Vector3()).x);
+            assert.equal(current.state.toppingLayout.candle, saved);
+        }
+        assert.ok(Math.max(...xs) - Math.min(...xs) > 0.1, "the held candle can slide along the rim");
+        pointerUp(new Vector3(0, tierCount - 1, radius + 0.25), 7);
+        controller.reconcile();
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - tierCount - TOPPING_SURFACE_OFFSET) < 1e-6);
+        assert.deepEqual(ledgeRestrictions, ["candle"], "restricted lower-ledge attempts warn only once per held drag");
+    }
+});
+
+test("number candles use camera-facing ledges and stop at the top-tier back edge", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) {
+        const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, candleMode: "number" });
+        const topping = register("candle", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        const radius = 2 - (tierCount - 1) * 0.5;
+        start("candle", 7);
+        pointerMove(new Vector3(0, tierCount - 1, radius + 0.25), 7);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - (tierCount - 1) - TOPPING_SURFACE_OFFSET) < 1e-6);
+        assert.deepEqual(ledgeRestrictions, []);
+        for (let move = 0; move < 4; move++) {
+            pointerMove(new Vector3(0, tierCount - 1, -radius - 0.25), 7);
+            controller.update(1 / 60);
+            const bounds = getTransformedToppingBox(topping.object, parent);
+            assert.ok(Math.abs(bounds.min.y - tierCount - TOPPING_SURFACE_OFFSET) < 1e-6);
+            assert.ok(bounds.min.z >= -radius + TOPPING_PLACEMENT_GAP - 1e-7);
+            const extent = Math.max(...[bounds.min.x, bounds.max.x].flatMap(x => [bounds.min.z, bounds.max.z].map(z => round ? Math.hypot(x, z) : Math.max(Math.abs(x), Math.abs(z)))));
+            assert.ok(extent > radius - 0.01);
+            assert.ok(bounds.getCenter(new Vector3()).z < -0.2);
+        }
+        assert.deepEqual(ledgeRestrictions, ["candle"]);
+        pointerUp(new Vector3(0, tierCount - 1, radius + 0.25), 7);
+        controller.reconcile();
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - (tierCount - 1) - TOPPING_SURFACE_OFFSET) < 1e-6);
+    }
+});
+
+test("grabbing the single candle near its tip keeps its offset and stays quiet until a restricted move", () => {
+    for (const round of [false, true]) {
+        const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round });
+        const topping = register("candle", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        const original = controller.entries.get("candle").position.clone().setZ(-0.9);
+        controller.commit(controller.apply(controller.entries.get("candle"), original, false));
+        camera.position.copy(parent.localToWorld(new Vector3(0, 4.8, 5)));
+        camera.lookAt(parent.localToWorld(new Vector3(0, 2.5, 0)));
+        camera.updateWorldMatrix(true, false);
+        const grabAt = original.clone().add(new Vector3(0, 0.35, 0));
+        start("candle", 7, grabAt);
+        pointerMove(grabAt, 7);
+        assert.ok(controller.entries.get("candle").position.distanceTo(original) < 1e-6);
+        assert.deepEqual(ledgeRestrictions, []);
+        let target;
+        for (const pull of [0.1, 0.3, 1]) {
+            target = grabAt.clone().add(new Vector3(0, 0, -pull));
+            pointerMove(target, 7);
+            controller.update(1 / 60);
+            const bounds = getTransformedToppingBox(topping.object, parent);
+            assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+            assert.ok(bounds.getCenter(new Vector3()).z < -0.8);
+            assert.ok(bounds.min.z >= -1 + TOPPING_PLACEMENT_GAP - 1e-7);
+        }
+        pointerUp(target, 7);
+        controller.reconcile();
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
+    }
+});
+
+test("placement-board candle drags enforce the same top-tier and camera-facing ledge restrictions", () => {
+    for (const round of [false, true]) for (const candleMode of ["gold", "number"]) {
+        const { controller, current, register, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round, candleMode });
+        const topping = register("candle", 0, 0, 0.14, 0.10);
+        current.camera = camera;
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        controller.reconcile();
+        controller.moveMarker("candle", 50, candleMode === "number" ? 6.25 : 0);
+        for (let frame = 0; frame < 20; frame++) controller.update(1 / 30);
+        controller.end();
+        let bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+        assert.ok(bounds.getCenter(new Vector3()).z < -0.8);
+        assert.ok(bounds.min.z >= -1 + TOPPING_PLACEMENT_GAP - 1e-7);
+        assert.deepEqual(ledgeRestrictions, ["candle"]);
+        controller.moveMarker("candle", 50, candleMode === "number" ? 93.75 : 100);
+        controller.end();
+        bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(Math.abs(bounds.min.y - (candleMode === "number" ? 1.001 : 3.001)) < 1e-6);
+        assert.equal(ledgeRestrictions.length, candleMode === "number" ? 1 : 2);
+    }
+});
+
+test("single candles stop at the rear top rim before reaching a lower ledge behind the cake", () => {
     for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const viewSign of [-1, 1]) {
         const { controller, current, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
@@ -220,7 +338,7 @@ test("single candles stop at the original rear limit before reaching a lower led
             controller.update(1 / 60);
             const bounds = getTransformedToppingBox(topping.object, parent);
             assert.ok(Math.abs(bounds.min.y - tierCount - 0.001) < 1e-6, "a single candle cannot drop behind a tier");
-            assert.ok(Math.abs(controller.entries.get("candle").position.z) < 1e-6, "back pulls stop at the original position");
+            assert.ok(controller.entries.get("candle").position.z < -0.2, "back pulls stop at the rim instead of the center");
             for (const x of [bounds.min.x, bounds.max.x]) for (const z of [bounds.min.z, bounds.max.z]) {
                 assert.ok((round ? Math.hypot(x, z) : Math.max(Math.abs(x), Math.abs(z))) <= topRadius - TOPPING_PLACEMENT_GAP + 1e-7);
             }
@@ -238,13 +356,13 @@ test("single candles stop at the original rear limit before reaching a lower led
     }
 });
 
-test("single candles keep the original rear boundary while allowing front and side movement", () => {
+test("single candles keep physical top-tier boundaries during front and side movement and camera rotation", () => {
     for (const round of [false, true]) for (const tierCount of [1, 2, 3, 4]) {
         const { controller, current, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round });
         const topping = register("candle", 0, 0, 0.14, 0.10);
         controller.reconcile();
         const original = controller.entries.get("candle").position.clone();
-        const rearZ = getTransformedToppingBox(topping.object, parent).min.z;
+        const radius = 2 - (tierCount - 1) * 0.5;
         camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
         camera.lookAt(parent.localToWorld(new Vector3()));
         camera.updateWorldMatrix(true, false);
@@ -253,7 +371,7 @@ test("single candles keep the original rear boundary while allowing front and si
             pointerMove(target, 7);
             for (const delta of [1 / 240, 1 / 60, 0.2]) controller.update(delta);
             const bounds = getTransformedToppingBox(topping.object, parent);
-            assert.ok(bounds.min.z >= rearZ - 1e-7, "no part of the candle may move behind its original rear limit");
+            assert.ok(bounds.min.z >= -radius + TOPPING_PLACEMENT_GAP - 1e-7, "the full candle must stop inside the physical top-tier rim");
             assert.ok(Math.abs(bounds.min.y - tierCount - 0.001) < 1e-6);
         }
         assert.ok(controller.entries.get("candle").position.x > 0.2, "sideways motion must continue while the rear limit is held");
@@ -267,13 +385,14 @@ test("single candles keep the original rear boundary while allowing front and si
         pointerUp(new Vector3(0, tierCount, -8), 8);
         controller.reconcile();
         const finalBounds = getTransformedToppingBox(topping.object, parent);
-        assert.ok(Math.abs(finalBounds.min.z - rearZ) < 1e-6, "camera rotation and a second drag must not move or tighten the original rear limit");
+        assert.ok(finalBounds.getCenter(new Vector3()).z < -0.2, "camera rotation and a second drag must still reach the rear top rim");
+        assert.ok(finalBounds.min.z >= -radius + TOPPING_PLACEMENT_GAP - 1e-7);
         assert.ok(Math.abs(finalBounds.min.y - tierCount - 0.001) < 1e-6);
         assert.deepEqual(current.state.toppingLayout.candle.position, controller.entries.get("candle").position.toArray());
     }
 });
 
-test("single candles initially placed near the rear rim keep that boundary and can slide sideways", () => {
+test("single candles initially placed near the rear rim slide along the physical edge and never drop", () => {
     for (const round of [false, true]) for (const tierCount of [2, 3, 4]) {
         const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round, combined: true });
         const topping = register("candle", 0, 0, 0.14, 0.10);
@@ -285,7 +404,6 @@ test("single candles initially placed near the rear rim keep that boundary and c
         const edge = controller.entries.get("candle").position.clone();
         edge.z = -radius + 0.08;
         controller.commit(controller.apply(controller.entries.get("candle"), edge, false));
-        const rearZ = getTransformedToppingBox(topping.object, parent).min.z;
         start("candle", 7);
         const xPositions = [];
         for (const x of [-0.2, 0, 0.2]) {
@@ -297,15 +415,14 @@ test("single candles initially placed near the rear rim keep that boundary and c
             assert.ok(Math.abs(bounds.min.y - tierCount - 0.001) < 1e-6);
             const distances = [bounds.min.x, bounds.max.x].flatMap((cx) => [bounds.min.z, bounds.max.z].map((cz) => round ? Math.hypot(cx, cz) : Math.max(Math.abs(cx), Math.abs(cz))));
             assert.ok(Math.max(...distances) <= radius - TOPPING_PLACEMENT_GAP + 1e-7);
-            assert.ok(bounds.min.z >= rearZ - 1e-7);
-            assert.ok(Math.abs(bounds.min.z - rearZ) < 1e-6 || Math.max(...distances) > radius - 0.01, "sideways movement must contact the original rear limit or the physical rim");
+            assert.ok(Math.max(...distances) > radius - 0.01, "sideways movement must contact the physical rim");
             xPositions.push(center.x);
         }
         assert.ok(Math.max(...xPositions) - Math.min(...xPositions) > 0.1, "sideways pointer movement must slide along the rear rim");
         const front = new Vector3(0, tierCount - 1, radius + 0.25);
         pointerUp(front, 7);
         controller.reconcile();
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - tierCount + 1 - 0.001) < 1e-6, "a visible front-ledge drop must persist after release");
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - tierCount - 0.001) < 1e-6, "front-ledge attempts must also remain on the top tier after release");
         start("candle", 8);
         pointerUp(new Vector3(0.1, tierCount - 1, -radius - 0.3), 8);
         controller.reconcile();
@@ -315,7 +432,7 @@ test("single candles initially placed near the rear rim keep that boundary and c
     }
 });
 
-test("an embedded single candle stays at its original rear limit through frames, release and reconciliation", () => {
+test("an embedded single candle stays at the physical rear rim through frames, release and reconciliation", () => {
     for (const round of [false, true]) {
         const { controller, current, register, start, pointerMove, pointerUp, parent, camera } = setup({
             tierCount: 3, round, combined: true, tierRadii: [1.4, 1.2, 1], tierHeights: [2.6, 2.8, 3],
@@ -324,7 +441,6 @@ test("an embedded single candle stays at its original rear limit through frames,
         const insertionDepth = 0.15;
         controller.register("candle", { ...controller.entries.get("candle"), insertionDepth });
         controller.reconcile();
-        const rearZ = getTransformedToppingBox(topping.object, parent).min.z;
         camera.position.copy(parent.localToWorld(new Vector3(0, 4.8, 5)));
         camera.lookAt(parent.localToWorld(new Vector3(0, 1.2, 0)));
         camera.updateWorldMatrix(true, false);
@@ -334,9 +450,10 @@ test("an embedded single candle stays at its original rear limit through frames,
         const assertRearRim = () => {
             const bounds = getTransformedToppingBox(topping.object, parent);
             assert.ok(Math.abs(bounds.min.y + insertionDepth - 3.001) < 1e-6, "the embedded base must remain seated on the highest cap");
-            assert.ok(Math.abs(bounds.min.z - rearZ) < 1e-6);
+            assert.ok(bounds.getCenter(new Vector3()).z < -0.8);
             const distances = [bounds.min.x, bounds.max.x].flatMap(x => [bounds.min.z, bounds.max.z].map(z => round ? Math.hypot(x, z) : Math.max(Math.abs(x), Math.abs(z))));
             assert.ok(Math.max(...distances) <= 1 - TOPPING_PLACEMENT_GAP + 1e-7);
+            assert.ok(Math.max(...distances) > 0.99);
         };
         start("candle", 7);
         for (const x of [-0.1, 0, 0.1]) {
@@ -353,9 +470,9 @@ test("an embedded single candle stays at its original rear limit through frames,
     }
 });
 
-test("a front-ledge candle can return to its original rear limit past an occupied front rim and cancel back to its ledge", () => {
+test("a number candle returns from a front ledge to the rear top rim past an occupied front rim and can cancel", () => {
     for (const round of [false, true]) {
-        const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount: 3, round });
+        const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount: 3, round, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
         register("nuts", 0, 0.85, 0.2, 0.2);
         controller.reconcile();
@@ -373,7 +490,7 @@ test("a front-ledge candle can return to its original rear limit past an occupie
             const entry = controller.entries.get("candle");
             const bounds = getTransformedToppingBox(topping.object, parent);
             assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
-            assert.ok(Math.abs(controller.entries.get("candle").position.z) < 1e-6);
+            assert.ok(controller.entries.get("candle").position.z < -0.8);
             assert.equal(controller.valid(entry, entry.position), true, "top-rim clamping must still avoid other toppings");
         }
         controller.cancel();
@@ -382,7 +499,7 @@ test("a front-ledge candle can return to its original rear limit past an occupie
     }
 });
 
-test("single-candle visibility warnings ignore top-tier edges and fire only beyond the original rear limit on lower ledges", () => {
+test("single-candle restriction warnings ignore top-tier motion and fire once on any lower-ledge attempt", () => {
     for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const viewSign of [-1, 1]) {
         const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round });
         const topping = register("candle", 0, 0, 0.14, 0.10);
@@ -395,11 +512,10 @@ test("single-candle visibility warnings ignore top-tier edges and fire only beyo
         for (const target of [
             new Vector3(0, tierCount, -0.2),
             new Vector3(0, tierCount, -radius + 0.01),
-            new Vector3(0, tierCount - 1, radius + 0.3),
             new Vector3(0, tierCount - 1, -8),
         ]) {
             pointerMove(target, 7);
-            assert.deepEqual(ledgeRestrictions, [], "a top edge, visible front ledge, or empty background must not trigger the visibility popup");
+            assert.deepEqual(ledgeRestrictions, [], "top-tier motion and empty background must not trigger a lower-ledge warning");
         }
         const lowerBack = new Vector3(0, tierCount - 1, -radius - 0.3);
         for (let event = 0; event < 6; event++) {
@@ -412,9 +528,9 @@ test("single-candle visibility warnings ignore top-tier edges and fire only beyo
     }
 });
 
-test("single candles reach original front and side ledges from every camera quadrant and retain saved placements", () => {
-    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const angle of [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) for (const edgeAngle of [0, Math.PI / 2, Math.PI]) {
-        const { controller, current, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, combined: true });
+test("number candles reach camera-facing front and side ledges from every camera quadrant and retain saved placements", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const angle of [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) for (const edgeAngle of [angle - 0.6, angle, angle + 0.6]) {
+        const { controller, current, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, combined: true, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
         controller.reconcile();
         camera.position.copy(parent.localToWorld(new Vector3(2 * Math.cos(angle), 20, 2 * Math.sin(angle))));
@@ -425,7 +541,7 @@ test("single candles reach original front and side ledges from every camera quad
         start("candle", 7);
         let target;
         for (let tier = tierCount - 2; tier >= 0; tier--) {
-            const radius = 2 - tier * 0.5 - 0.25;
+            const radius = (2 - tier * 0.5 - 0.25) / (round ? 1 : Math.max(Math.abs(Math.cos(edgeAngle)), Math.abs(Math.sin(edgeAngle))));
             target = new Vector3(radius * Math.cos(edgeAngle), tier + 1, radius * Math.sin(edgeAngle));
             pointerMove(target, 7);
             controller.update(1 / 60);
@@ -448,7 +564,7 @@ test("single candles reach original front and side ledges from every camera quad
         controller.reconcile();
         assert.ok(controller.entries.get("candle").position.distanceTo(position) < 1e-8, "reconciliation must preserve the visible lower-ledge placement");
         assert.deepEqual(current.state.toppingLayout.candle.position, position.toArray());
-        const preview = setup({ tierCount, round, combined: true });
+        const preview = setup({ tierCount, round, combined: true, candleMode: "number" });
         const previewCandle = preview.register("candle", 0, 0, 0.14, 0.10);
         preview.controller.interactive = false;
         preview.controller.register("candle", { ...preview.controller.entries.get("candle"), layout: current.state.toppingLayout.candle });
@@ -457,7 +573,7 @@ test("single candles reach original front and side ledges from every camera quad
     }
 });
 
-test("single candles block original rear drags on the top tier and warn once per held drag from any camera angle", () => {
+test("single candles remain on the top tier and warn once per held drag from any camera angle", () => {
     for (const round of [false, true]) for (const angle of Array.from({ length: 8 }, (_, index) => index * Math.PI / 4)) {
         const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round });
         const topping = register("candle", 0, 0, 0.14, 0.10);
@@ -476,7 +592,7 @@ test("single candles block original rear drags on the top tier and warn once per
             for (const x of [bounds.min.x, bounds.max.x]) for (const z of [bounds.min.z, bounds.max.z]) {
                 assert.ok((round ? Math.hypot(x, z) : Math.max(Math.abs(x), Math.abs(z))) <= 1 - TOPPING_PLACEMENT_GAP + 1e-7, "the entire candle must stay inside the top tier on a rear drag");
             }
-            assert.ok(Math.abs(controller.entries.get("candle").position.z) < 1e-6, "the rear limit must stay at the original position");
+            assert.ok(controller.entries.get("candle").position.z < -0.15, "rear top-tier placements remain accessible");
             assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
             assert.equal(controller.isDragging.current, true);
         }
@@ -491,7 +607,7 @@ test("single candles block original rear drags on the top tier and warn once per
     }
 });
 
-test("single-candle original rear limits contain the full selected size with an offset pivot", () => {
+test("single-candle top-tier limits contain the full selected size with an offset pivot", () => {
     for (const round of [false, true]) for (const tierCount of [1, 2, 3, 4]) for (const size of [0.8, 1, 1.2]) {
         const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round, combined: true });
         const topping = register("candle", 0, 0, 0.14 * size, 0.10 * size);
@@ -500,7 +616,6 @@ test("single-candle original rear limits contain the full selected size with an 
         const box = getTransformedToppingBox(topping.object, parent).translate(topping.anchor.clone().negate());
         controller.register("candle", { ...controller.entries.get("candle"), box, messageBox: box });
         controller.reconcile();
-        const rearZ = getTransformedToppingBox(topping.object, parent).min.z;
         camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
         camera.lookAt(parent.localToWorld(new Vector3()));
         camera.updateWorldMatrix(true, false);
@@ -514,7 +629,6 @@ test("single-candle original rear limits contain the full selected size with an 
             controller.update(1 / 60);
             const bounds = getTransformedToppingBox(topping.object, parent);
             assert.ok(Math.abs(bounds.min.y - tierCount - 0.001) < 1e-6);
-            assert.ok(bounds.min.z >= rearZ - 1e-7);
             assert.ok(bounds.getSize(new Vector3()).distanceTo(originalSize) < 1e-8);
             for (const cx of [bounds.min.x, bounds.max.x]) for (const cz of [bounds.min.z, bounds.max.z]) {
                 assert.ok((round ? Math.hypot(cx, cz) : Math.max(Math.abs(cx), Math.abs(cz))) <= radius - TOPPING_PLACEMENT_GAP + 1e-7, "no physical edge of the candle may overflow the tier");
@@ -527,9 +641,9 @@ test("single-candle original rear limits contain the full selected size with an 
     }
 });
 
-test("single-candle original front ledges and rear limits stay fixed when the camera rotates during a drag", () => {
+test("number-candle front ledges and rear top-rim limits follow camera rotation during a drag", () => {
     for (const round of [false, true]) {
-        const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round });
+        const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
         controller.reconcile();
         const lookFrom = (z) => {
@@ -544,13 +658,13 @@ test("single-candle original front ledges and rear limits stay fixed when the ca
         lookFrom(-2);
         pointerMove(new Vector3(0, 2, 1.3), 7);
         controller.update(1 / 60);
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6, "orbiting must not change the original front boundary");
-        assert.deepEqual(ledgeRestrictions, []);
-        pointerMove(new Vector3(0, 2, -1.3), 7);
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6, "the original rear remains blocked even when viewed from behind");
-        assert.ok(Math.abs(controller.entries.get("candle").position.z) < 1e-6);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6, "a newly hidden lower ledge must clamp onto the top rim immediately");
+        assert.ok(getTransformedToppingBox(topping.object, parent).max.z <= 1 - TOPPING_PLACEMENT_GAP + 1e-7);
         assert.deepEqual(ledgeRestrictions, ["candle"]);
-        pointerUp(new Vector3(0, 2, -1.3), 7);
+        pointerMove(new Vector3(0, 2, -1.3), 7);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6, "the newly camera-facing ledge becomes usable");
+        assert.deepEqual(ledgeRestrictions, ["candle"]);
+        pointerUp(new Vector3(0, 2, 1.3), 7);
         assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6, "release cannot commit a hidden back-ledge drop");
         controller.reconcile();
         assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
@@ -589,7 +703,7 @@ test("single-candle hidden ledge warning probes preserve rear rim placement and 
         }
         pointerMove(new Vector3(0, tierCount - 1, topRadius + 0.3), 7);
         assert.equal(pointerRaycasts, 5, "front movement raycasts once to select its visible tier");
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - (tierCount - 1) - 0.001) < 1e-6);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - tierCount - 0.001) < 1e-6);
         const count = pointerRaycasts;
         pointerUp(back, 7);
         assert.equal(pointerRaycasts, count + 1, "a release probe must not place the candle on the lower ledge");
@@ -597,7 +711,7 @@ test("single-candle hidden ledge warning probes preserve rear rim placement and 
     }
 });
 
-test("single-candle drop adjustment clears front ledge text without crossing the original rear boundary", () => {
+test("single-candle drop adjustment clears front ledge text while remaining on the top tier", () => {
     const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount: 3 });
     const topping = register("candle", 0, 0, 0.14, 0.10);
     controller.reconcile();
@@ -608,11 +722,11 @@ test("single-candle drop adjustment clears front ledge text without crossing the
     start("candle", 7);
     const target = new Vector3(0, 2, 1.3);
     pointerMove(target, 7);
-    assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
+    assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
     pointerUp(target, 7);
     const bounds = getTransformedToppingBox(topping.object, parent);
     const position = controller.entries.get("candle").position.clone();
-    assert.ok(bounds.min.z >= -0.05 - 1e-7);
+    assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
     assert.equal(controller.valid(controller.entries.get("candle"), position), true);
     controller.reconcile();
     assert.ok(controller.entries.get("candle").position.distanceTo(position) < 1e-8);
@@ -647,7 +761,7 @@ test("rendered number candles retain lower-ledge dragging when the shared mode i
     controller.end();
 });
 
-test("switching from Single to Number mode removes the original rear drag restriction", () => {
+test("switching from Single to Number mode enables front ledges while keeping the back at the top rim", () => {
     const { controller, current, register, start, pointerMove, parent, camera } = setup({ tierCount: 3 });
     const topping = register("candle", 0, 0, 0.14, 0.10);
     controller.reconcile();
@@ -656,15 +770,17 @@ test("switching from Single to Number mode removes the original rear drag restri
     camera.updateWorldMatrix(true, false);
     start("candle", 7);
     pointerMove(new Vector3(0, 2, -1.3), 7);
-    assert.ok(Math.abs(controller.entries.get("candle").position.z) < 1e-6);
+    assert.ok(controller.entries.get("candle").position.z < -0.8);
     controller.end();
     current.state.toppingLayout.candle.mode = "number";
     controller.reconcile();
     start("candle", 8);
-    pointerMove(new Vector3(0, 2, -1.3), 8);
+    pointerMove(new Vector3(0, 2, 1.3), 8);
     const bounds = getTransformedToppingBox(topping.object, parent);
     assert.ok(Math.abs(bounds.min.y - 2.001) < 1e-6);
-    assert.ok(bounds.getCenter(new Vector3()).z < -1.2);
+    assert.ok(bounds.getCenter(new Vector3()).z > 1.2);
+    pointerMove(new Vector3(0, 2, -1.3), 8);
+    assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
     controller.end();
 });
 
@@ -731,7 +847,7 @@ test("top-tier drags and cakes without lower tiers do not show ledge restriction
     }
 });
 
-test("changing a number candle to a single candle preserves its visible front ledge placement", () => {
+test("changing a number candle to a single candle confines its saved placement to the top tier", () => {
     const { controller, current, register, start, pointerMove, parent, ledgeRestrictions } = setup({ tierCount: 3, candleMode: "number" });
     const topping = register("candle", 0, 0, 0.14, 0.10);
     controller.reconcile();
@@ -742,7 +858,7 @@ test("changing a number candle to a single candle preserves its visible front le
     assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
     current.state.candleMode = "gold";
     controller.reconcile();
-    assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
+    assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
     assert.deepEqual(ledgeRestrictions, []);
 });
 

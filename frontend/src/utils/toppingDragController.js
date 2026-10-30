@@ -110,15 +110,17 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
     let rejectionQueued = false;
     const isSingleCandle = (entry) => entry?.id === "candle" &&
         (getCurrent().state.toppingLayout?.candle?.mode || getCurrent().state.candleMode || entry.layout?.mode) !== "number";
-    const singleCandlePositionAllowed = (entry, position) => {
-        const view = active?.singleCandleView;
-        if (!isSingleCandle(entry) || !view || view.direction.lengthSq() <= 1e-8 ||
-            position.y + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08) return true;
+    const candlePositionAllowed = (entry, position) => {
+        if (entry?.id !== "candle") return true;
+        if (position.y + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08) return true;
+        if (isSingleCandle(entry)) return false;
+        const view = active?.candleView;
+        if (!view || view.direction.lengthSq() <= 1e-8) return true;
         const x = position.x + (view.direction.x >= 0 ? entry.messageBox.min.x : entry.messageBox.max.x) - view.centerX;
         const z = position.z + (view.direction.z >= 0 ? entry.messageBox.min.z : entry.messageBox.max.z) - view.centerZ;
         return x * view.direction.x + z * view.direction.z >= TOPPING_PLACEMENT_GAP - 1e-8;
     };
-    const singleCandleTopPosition = (entry, target) => {
+    const candleTopPosition = (entry, target) => {
         const center = new THREE.Vector3(
             (surface.minX + surface.maxX - entry.messageBox.min.x - entry.messageBox.max.x) / 2,
             surface.topY - entry.messageBox.min.y - (entry.insertionDepth || 0) + TOPPING_SURFACE_OFFSET,
@@ -200,7 +202,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             invalidate();
         },
         canUseLowerLedges(entry) {
-            if (isSingleCandle(entry)) return active?.id === entry.id ? Boolean(active.singleCandlePointer) : Boolean(entry.layout.position);
+            if (isSingleCandle(entry)) return false;
             return /^cherry(?:-\d+)?$/.test(entry?.id) || (entry?.id === "candle" &&
                 (getCurrent().state.toppingLayout?.candle?.mode || getCurrent().state.candleMode || entry.layout?.mode) === "number");
         },
@@ -208,11 +210,14 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             const ledges = controller.canUseLowerLedges(entry);
             const physicalBounds = /^(candle|cherry(?:-\d+)?|chocolate(?:-\d+)?|balls)$/.test(entry?.id);
             const tierFromHeight = (/^cherry(?:-\d+)?$/.test(entry?.id) &&
-                (active?.id === entry.id ? active.surfaceHit : entry.layout.position)) || (isSingleCandle(entry) && ledges);
+                (active?.id === entry.id ? active.surfaceHit : entry.layout.position)) || (entry?.id === "candle" && ledges &&
+                    (active?.id === entry.id ? active.candlePointer : entry.layout.position));
             const candleY = active?.id === entry.id ? active.requestedTarget.y : entry.layout.position?.[1];
             // Keep the top cap as the rear boundary through frames and release.
-            const candleOnTop = isSingleCandle(entry) && (active?.id === entry.id && active.singleCandleBackRim ||
-                candleY + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08);
+            const candleOnTop = entry?.id === "candle" && (isSingleCandle(entry) ||
+                active?.id === entry.id && active.candleBackRim ||
+                (active?.id !== entry.id || active.candlePointer) &&
+                    candleY + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08);
             const bounds = ledges && !candleOnTop ? surface.ledges : surface;
             return { surface: tierFromHeight ? { ...bounds, tierFromHeight: true } : bounds, surfaceBox: physicalBounds ? entry.messageBox : entry.box };
         },
@@ -238,7 +243,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 box: surfaceBox, position, surface: bounds, insertionDepth: entry.insertionDepth,
                 parent: getCurrent().cakeGroupRef.current, raycaster,
             });
-            if (!isSingleCandle(entry)) return height;
+            if (entry.id !== "candle" || !isSingleCandle(entry) && !active?.candlePointer && !active?.candleBackRim) return height;
             const bottomY = position.y + surfaceBox.min.y + (entry.insertionDepth || 0);
             const tier = bounds.tiers?.reduce((nearest, candidate) => Math.abs(candidate.topY - bottomY) < Math.abs(nearest.topY - bottomY) ? candidate : nearest) || bounds;
             // A missed cap ray must not drop the candle below its selected tier.
@@ -285,11 +290,32 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             return obstacles;
         },
         constrain(entry, target) {
+            const current = getCurrent();
+            if (entry.id === "candle" && active?.id === entry.id && !active.candlePointer && current.camera) {
+                const view = current.cakeGroupRef.current.worldToLocal(current.camera.getWorldPosition(new THREE.Vector3()));
+                const centerX = (surface.minX + surface.maxX) / 2, centerZ = (surface.minZ + surface.maxZ) / 2;
+                const direction = new THREE.Vector3(view.x - centerX, 0, view.z - centerZ).normalize();
+                if (direction.lengthSq() < 1e-8) direction.set(0, 0, 1);
+                active.candleView = { centerX, centerZ, direction };
+                const x = target.x + (direction.x >= 0 ? entry.messageBox.min.x : entry.messageBox.max.x) - centerX;
+                const z = target.z + (direction.z >= 0 ? entry.messageBox.min.z : entry.messageBox.max.z) - centerZ;
+                active.candleBackRim = x * direction.x + z * direction.z < TOPPING_PLACEMENT_GAP - 1e-8;
+                if (isSingleCandle(entry) || active.candleBackRim) {
+                    const boundary = candleTopPosition(entry, target);
+                    if (!active.warnedLowerLedge && surface.ledges.tiers?.length > 1 &&
+                        (Math.abs(boundary.x - target.x) > 1e-7 || Math.abs(boundary.z - target.z) > 1e-7)) {
+                        active.warnedLowerLedge = true;
+                        onLowerLedgeRestricted(entry.id);
+                    }
+                    target = boundary;
+                    active.requestedTarget.copy(boundary);
+                }
+            }
             const bounds = controller.placementBounds(entry);
-            const topCandle = isSingleCandle(entry) && active?.singleCandlePointer && !bounds.surface.tiers;
+            const topCandle = entry.id === "candle" && (active?.candlePointer || active?.candleBackRim) && !bounds.surface.tiers;
             const obstacles = controller.obstacles(entry.id, false);
             const from = topCandle && !isToppingPositionValid({ box: entry.box, ...bounds, position: entry.position, obstacles }) ? findToppingPosition({
-                box: entry.box, ...bounds, position: singleCandleTopPosition(entry, entry.position), obstacles,
+                box: entry.box, ...bounds, position: candleTopPosition(entry, entry.position), obstacles,
             }) || entry.position : entry.position;
             return constrainToppingPosition({
                 box: entry.box, from, to: target, ...bounds, obstacles,
@@ -297,7 +323,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             });
         },
         valid(entry, position, obstacles = controller.obstacles(entry.id)) {
-            return singleCandlePositionAllowed(entry, position) &&
+            return candlePositionAllowed(entry, position) &&
                 isToppingPositionValid({ box: entry.box, position, ...controller.placementBounds(entry), obstacles });
         },
         apply(entry, position, publish = true) {
@@ -419,7 +445,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
         startPointer(id, data, camera, canvas, clientPoint) {
             // R3F selects the mesh; native pointer events move that same ref.
             if (active?.id !== id) return false;
-            active.singleCandlePointer = isSingleCandle(entries.get(id));
+            active.candlePointer = id === "candle";
             const parent = getCurrent().cakeGroupRef.current;
             parent.updateWorldMatrix(true, true);
             active.plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
@@ -456,13 +482,14 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             const entry = entries.get(id);
             let point, target, isBackHalf;
             let backLedge = false;
-            if (active.singleCandlePointer && active.grabOffset) {
+            const singleCandle = isSingleCandle(entry);
+            if (active.candlePointer && active.grabOffset) {
                 const view = parent.worldToLocal(camera.getWorldPosition(new THREE.Vector3()));
                 const centerX = (surface.minX + surface.maxX) / 2;
                 const centerZ = (surface.minZ + surface.maxZ) / 2;
                 const direction = new THREE.Vector3(view.x - centerX, 0, view.z - centerZ).normalize();
                 if (direction.lengthSq() < 1e-8) direction.set(0, 0, 1);
-                active.singleCandleView = { centerX, centerZ, direction };
+                active.candleView = { centerX, centerZ, direction };
                 isBackHalf = (position) => {
                     const x = position.x + (direction.x >= 0 ? entry.messageBox.min.x : entry.messageBox.max.x) - centerX;
                     const z = position.z + (direction.z >= 0 ? entry.messageBox.min.z : entry.messageBox.max.z) - centerZ;
@@ -472,10 +499,10 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 // must never choose a lower tier through the cake raycast.
                 const topPoint = projectToppingDrag({ data, clientPoint, canvas, camera, parent, plane: active.plane, raycaster });
                 const topTarget = topPoint?.clone().add(active.grabOffset);
-                if (topTarget && isBackHalf(topTarget)) {
+                if (topTarget && (singleCandle || isBackHalf(topTarget))) {
                     point = topPoint;
                     target = topTarget;
-                    backLedge = true;
+                    backLedge = isBackHalf(topTarget);
                 }
             }
             if (!point) {
@@ -483,29 +510,27 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 target = point && active.grabOffset ? point.clone().add(active.grabOffset) : null;
                 if (target && isBackHalf) backLedge = isBackHalf(target);
             }
-            if (active.singleCandlePointer && target) active.singleCandleBackRim = backLedge;
-            const topBoundary = active.singleCandlePointer && backLedge && target ? singleCandleTopPosition(entry, target) : null;
+            if (active.candlePointer && target) active.candleBackRim = backLedge;
+            const topBoundary = active.candlePointer && (singleCandle || backLedge) && target ? candleTopPosition(entry, target) : null;
             const lowerLedge = point && surface.ledges.tiers?.length > 1 && point.y < surface.topY - 0.08;
+            const outsideTop = topBoundary && (Math.abs(topBoundary.x - target.x) > 1e-7 || Math.abs(topBoundary.z - target.z) > 1e-7);
             let hiddenLowerLedge = false;
-            if (active.singleCandlePointer && backLedge && surface.ledges.tiers?.length > 1) {
+            if (active.candlePointer && outsideTop && surface.ledges.tiers?.length > 1) {
                 // Probe the real surface only for the warning. Placement still
                 // uses the top-plane clamp, so a probe cannot lower the candle.
                 const hit = projectToppingDrag({ data, clientPoint, canvas, camera, parent, meshes: surface.meshes, raycaster, topSurfacesOnly: true });
                 if (hit && hit.y < surface.topY - 0.08) {
-                    const view = active.singleCandleView;
-                    const x = hit.x + active.grabOffset.x + (entry.messageBox.min.x + entry.messageBox.max.x) / 2 - view.centerX;
-                    const z = hit.z + active.grabOffset.z + (entry.messageBox.min.z + entry.messageBox.max.z) / 2 - view.centerZ;
-                    hiddenLowerLedge = x * view.direction.x + z * view.direction.z < -1e-8;
+                    hiddenLowerLedge = singleCandle || !candlePositionAllowed(entry, hit.clone().add(active.grabOffset));
                 }
             }
-            const restricted = active.singleCandlePointer ? hiddenLowerLedge : lowerLedge && !controller.canUseLowerLedges(entry);
+            const restricted = active.candlePointer ? hiddenLowerLedge : lowerLedge && !controller.canUseLowerLedges(entry);
             if (restricted && !active.warnedLowerLedge) {
                 active.warnedLowerLedge = true;
                 onLowerLedgeRestricted(id);
             }
             if (point && active.surfaceHit) active.plane.setFromNormalAndCoplanarPoint(active.plane.normal, parent.localToWorld(new THREE.Vector3(0, point.y, 0)));
             if (target) {
-                if (active.singleCandlePointer) {
+                if (active.candlePointer) {
                     target.y = point.y - entry.messageBox.min.y - (entry.insertionDepth || 0) + TOPPING_SURFACE_OFFSET;
                     if (topBoundary) target.copy(topBoundary);
                 }
@@ -527,8 +552,8 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                     }
                 }
                 controller.move(id, target);
-                if (active.singleCandlePointer && !singleCandlePositionAllowed(entry, active.target)) {
-                    controller.move(id, singleCandleTopPosition(entry, active.target));
+                if (active.candlePointer && !candlePositionAllowed(entry, active.target)) {
+                    controller.move(id, candleTopPosition(entry, active.target));
                 }
                 if (active.surfaceHit) {
                     // The referenced group holds an already positioned mesh;
@@ -553,7 +578,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             const entry = entries.get(active.id);
             if (entry) {
                 const obstacles = controller.obstacles(entry.id);
-                const visibility = active.singleCandlePointer ? { isPositionAllowed: (position) => singleCandlePositionAllowed(entry, position) } : {};
+                const visibility = active.candlePointer ? { isPositionAllowed: (position) => candlePositionAllowed(entry, position) } : {};
                 const position = controller.valid(entry, active.target, obstacles)
                     ? active.target.clone()
                     // Resolve from the drop point so exact edge candidates pick
@@ -582,9 +607,9 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
         },
         cancel() {
             if (active) {
-                active.singleCandleView = null;
-                active.singleCandleBackRim = false;
-                if (active.singleCandlePointer) active.requestedTarget.copy(active.position);
+                active.candleView = null;
+                active.candleBackRim = false;
+                if (active.candlePointer) active.requestedTarget.copy(active.position);
                 const entry = entries.get(active.id);
                 if (entry) active.target.copy(active.position);
             }
