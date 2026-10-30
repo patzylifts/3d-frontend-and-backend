@@ -98,7 +98,7 @@ test("pointer moves update mesh refs immediately and save coordinates only once 
         const { controller, current, store, register, parent, camera, start, pointerMove, pointerUp, drag } = setup({ round });
         const topping = register(id, 0, 0, 0.2, 0.2);
         controller.reconcile();
-        if (id === "candle") {
+        if (id === "candle" || id.startsWith("cherry-")) {
             camera.position.copy(parent.localToWorld(new Vector3(0, 6, 6)));
             camera.lookAt(parent.localToWorld(new Vector3()));
             camera.updateWorldMatrix(true, false);
@@ -945,6 +945,165 @@ test("cherry pointer drags clamp to the intersected middle tier instead of remai
     }
 });
 
+test("cherries drop to front ledges and freeze at the visible half boundary from every camera angle", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (let quadrant = 0; quadrant < 8; quadrant++) {
+        const { controller, current, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round, combined: true });
+        const topping = register("cherry-0", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        const angle = quadrant * Math.PI / 4;
+        const front = new Vector3(Math.cos(angle), 0, Math.sin(angle));
+        const tangent = new Vector3(-front.z, 0, front.x);
+        camera.position.copy(parent.localToWorld(front.clone().multiplyScalar(2).setY(20)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        let radius, height;
+        let commits = 0;
+        const save = current.state.setToppingPosition;
+        current.state.setToppingPosition = (...args) => { commits++; save(...args); };
+        start("cherry-0", 7);
+        for (let tier = tierCount - 2; tier >= 0; tier--) {
+            height = tier + 1;
+            radius = (2 - tier * 0.5 - 0.25) / (round ? 1 : Math.max(Math.abs(tangent.x), Math.abs(tangent.z)));
+            pointerMove(tangent.clone().multiplyScalar(radius).addScaledVector(front, 0.15).setY(height), 7);
+            assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - height - TOPPING_SURFACE_OFFSET) < 1e-6, "every visible lower tier must seat the cherry flush");
+        }
+        let last;
+        for (const pull of [0.1, 0.5, 3]) {
+            last = tangent.clone().multiplyScalar(radius).addScaledVector(front, -pull).setY(height);
+            pointerMove(last, 7);
+            for (let frame = 0; frame < 4; frame++) controller.update(1 / 60);
+            const bounds = getTransformedToppingBox(topping.object, parent);
+            const depths = [bounds.min.x, bounds.max.x].flatMap(x => [bounds.min.z, bounds.max.z].map(z => x * front.x + z * front.z));
+            assert.ok(Math.min(...depths) >= TOPPING_PLACEMENT_GAP - 1e-7, "the full cherry footprint must stop at the visible-half boundary");
+            assert.ok(Math.min(...depths) < TOPPING_PLACEMENT_GAP + 0.003, "continued backward pulls must freeze at the boundary");
+            assert.ok(Math.abs(bounds.min.y - height - TOPPING_SURFACE_OFFSET) < 1e-6, "a blocked back pull must keep its current ledge height");
+            assert.equal(controller.valid(controller.entries.get("cherry-0"), controller.entries.get("cherry-0").position), true);
+            assert.equal(commits, 0);
+        }
+        const before = getTransformedToppingBox(topping.object, parent).getCenter(new Vector3()).dot(tangent);
+        last.addScaledVector(tangent, 0.1);
+        pointerMove(last, 7);
+        assert.ok(getTransformedToppingBox(topping.object, parent).getCenter(new Vector3()).dot(tangent) > before + 0.05, "sideways motion must remain available along the boundary");
+        pointerUp(last, 7);
+        controller.reconcile();
+        const bounds = getTransformedToppingBox(topping.object, parent);
+        for (const x of [bounds.min.x, bounds.max.x]) for (const z of [bounds.min.z, bounds.max.z]) assert.ok(x * front.x + z * front.z >= TOPPING_PLACEMENT_GAP - 1e-7);
+        assert.ok(Math.abs(bounds.min.y - height - TOPPING_SURFACE_OFFSET) < 1e-6);
+        assert.equal(commits, 1);
+    }
+});
+
+test("cherries move through all 360 degrees of the top tier without the lower-ledge halfway clamp", () => {
+    for (const round of [false, true]) for (const tierCount of [1, 2, 3, 4]) {
+        const { controller, current, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round, combined: true });
+        const topping = register("cherry-0", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        const saved = current.state.cherryLayouts[0];
+        const radius = 2 - (tierCount - 1) * 0.5;
+        start("cherry-0", 7);
+        for (let step = 0; step < 36; step++) {
+            const angle = step * Math.PI / 18;
+            const distance = (radius - 0.02) / (round ? 1 : Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))));
+            pointerMove(new Vector3(distance * Math.cos(angle), tierCount, distance * Math.sin(angle)), 7);
+            controller.update(1 / 60);
+            const bounds = getTransformedToppingBox(topping.object, parent);
+            const center = bounds.getCenter(new Vector3());
+            assert.ok(center.x * Math.cos(angle) + center.z * Math.sin(angle) > radius - 0.2, "the cherry must follow the pointer around the full top rim, including the back half");
+            assert.ok(Math.abs(bounds.min.y - tierCount - TOPPING_SURFACE_OFFSET) < 1e-6);
+            for (const x of [bounds.min.x, bounds.max.x]) for (const z of [bounds.min.z, bounds.max.z]) {
+                assert.ok((round ? Math.hypot(x, z) : Math.max(Math.abs(x), Math.abs(z))) <= radius - TOPPING_PLACEMENT_GAP + 1e-7);
+            }
+            assert.equal(current.state.cherryLayouts[0], saved);
+        }
+        pointerUp(new Vector3(0, tierCount, -radius + 0.15), 7);
+        const position = controller.entries.get("cherry-0").position.clone();
+        controller.reconcile();
+        assert.ok(position.z < -radius + 0.2);
+        assert.ok(controller.entries.get("cherry-0").position.distanceTo(position) < 1e-8);
+    }
+});
+
+test("cherries can return from a front lower ledge to the back of the top tier and stop at its rear edge", () => {
+    for (const round of [false, true]) {
+        const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount: 3, round });
+        const topping = register("cherry-0", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        start("cherry-0", 7);
+        pointerMove(new Vector3(0, 2, 1.3), 7);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
+        pointerMove(new Vector3(0, 3, -0.7), 7);
+        let bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+        assert.ok(bounds.getCenter(new Vector3()).z < -0.65, "returning to the top must remove the halfway clamp immediately");
+        pointerUp(new Vector3(0, 2, -1.3), 7);
+        controller.reconcile();
+        bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+        assert.ok(bounds.getCenter(new Vector3()).z < -0.8, "a blocked back-ledge drop must stay at the rear top rim, not jump to the halfway line");
+        assert.ok(bounds.min.z >= -1 + TOPPING_PLACEMENT_GAP - 1e-7);
+    }
+});
+
+test("a cherry at the back of the top tier preserves its offset footprint and drops clear of text", () => {
+    for (const round of [false, true]) {
+        const { controller, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount: 3, round });
+        const topping = register("cherry-0", 0, -0.3, 0.14, 0.10);
+        topping.mesh.geometry.translate(0.12, 0, 0.08);
+        topping.object.visible = true;
+        const box = getTransformedToppingBox(topping.object, parent).translate(topping.anchor.clone().negate());
+        controller.register("cherry-0", { ...controller.entries.get("cherry-0"), box, messageBox: box });
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        start("cherry-0", 7);
+        pointerMove(new Vector3(0.2, 3, -0.8), 7);
+        let bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(bounds.min.z < -0.7, "the offset mesh must remain draggable on the back half of the top tier");
+        assert.ok(Math.abs(controller.entries.get("cherry-0").position.x - 0.2) < 0.001);
+        assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+        controller.setMessageFootprint(new Box3(new Vector3(-0.4, 0, -1), new Vector3(0.4, 0.2, -0.4)), new Vector3());
+        pointerUp(new Vector3(0, 3, -0.8), 7);
+        const entry = controller.entries.get("cherry-0");
+        assert.equal(controller.valid(entry, entry.position), true);
+        controller.reconcile();
+        bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(bounds.min.z < -0.4, "top-tier drop adjustment may use the back half while clearing text");
+        assert.ok(Math.abs(bounds.min.y - 3.001) < 1e-6);
+    }
+});
+
+test("placement-board cherry drags share the back-half boundary and cancellation restores their support", () => {
+    for (const round of [false, true]) {
+        const { controller, current, register, parent, camera } = setup({ tierCount: 3, round });
+        const topping = register("cherry-0", 0, 0.2, 0.14, 0.10);
+        current.camera = camera;
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        controller.reconcile();
+        controller.moveMarker("cherry-0", 81.25, 60);
+        controller.end();
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
+        controller.moveMarker("cherry-0", 81.25, 0);
+        controller.end();
+        const bounds = getTransformedToppingBox(topping.object, parent);
+        assert.ok(Math.abs(bounds.min.z - TOPPING_PLACEMENT_GAP) < 1e-6);
+        assert.ok(Math.abs(bounds.min.y - 2.001) < 1e-6);
+        const original = controller.entries.get("cherry-0").position.clone();
+        controller.moveMarker("cherry-0", 18.75, 0);
+        controller.cancel();
+        controller.reconcile();
+        assert.ok(controller.entries.get("cherry-0").position.distanceTo(original) < 1e-8);
+    }
+});
+
 test("cherry pointer transitions clamp exactly at the upper wall without snapping along the ledge", () => {
     for (const axis of ["x", "z"]) for (const sign of [-1, 1]) {
         const { controller, register, start, pointerMove, parent, camera } = setup({ tierCount: 3, combined: true });
@@ -1133,8 +1292,8 @@ test("an oversized cherry freezes at the exact tier edge without shrinking or en
         assert.equal(current.state.cherryLayouts[0], saved);
     }
     assert.deepEqual(cherryFitWarnings, ["cherry-0"], "continued pressure must warn only once per held drag");
-    pointerMove(new Vector3(-0.2, 3, 0), 7);
-    assert.ok(Math.abs(controller.entries.get("cherry-0").position.x + 0.2) < 0.003, "dragging away from the wall resumes immediately");
+    pointerMove(new Vector3(-0.4, 3, 0.4), 7);
+    assert.ok(Math.abs(controller.entries.get("cherry-0").position.x + 0.4) < 0.003, "dragging into clear visible space resumes immediately");
     pointerUp(new Vector3(-1.25, 2, 0), 7);
     const frozen = controller.entries.get("cherry-0").position.clone();
     controller.reconcile();

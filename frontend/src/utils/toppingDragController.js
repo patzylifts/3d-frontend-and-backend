@@ -136,6 +136,54 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
         goal.y = center.y;
         return constrainToppingPosition({ box: entry.box, surfaceBox: entry.messageBox, from: center, to: goal, surface });
     };
+    const updateCherryView = (camera) => {
+        const parent = getCurrent().cakeGroupRef.current;
+        const cameraPosition = parent.worldToLocal(camera.getWorldPosition(new THREE.Vector3()));
+        const centerX = (surface.ledges.minX + surface.ledges.maxX) / 2;
+        const centerZ = (surface.ledges.minZ + surface.ledges.maxZ) / 2;
+        const direction = new THREE.Vector3(cameraPosition.x - centerX, 0, cameraPosition.z - centerZ);
+        // Directly overhead, both halves are visible.
+        if (direction.lengthSq() < 1e-8) { active.cherryView = null; return; }
+        direction.normalize();
+        const previous = active.cherryView;
+        if (previous && previous.centerX === centerX && previous.centerZ === centerZ && previous.direction.distanceToSquared(direction) < 1e-16) return;
+        active.cherryView = { centerX, centerZ, direction, surfaces: new WeakMap() };
+    };
+    const cherryOnTop = (entry, position) => position.y + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08;
+    const clampCherryDepth = (entry, position) => {
+        const view = active?.cherryView;
+        if (!view || cherryOnTop(entry, position)) return false;
+        const x = position.x + (view.direction.x >= 0 ? entry.messageBox.min.x : entry.messageBox.max.x) - view.centerX;
+        const z = position.z + (view.direction.z >= 0 ? entry.messageBox.min.z : entry.messageBox.max.z) - view.centerZ;
+        const correction = Math.max(0, TOPPING_PLACEMENT_GAP - x * view.direction.x - z * view.direction.z);
+        if (correction > 1e-8 && cherryOnTop(entry, entry.position)) {
+            // Reject a hidden lower-ledge drop at the rear top rim, not the midpoint.
+            position.y = entry.position.y;
+            return true;
+        }
+        position.addScaledVector(view.direction, correction);
+        return correction > 1e-8;
+    };
+    const cherryFrontSurface = (bounds) => {
+        if (!bounds.tiers && bounds.topY >= surface.topY - 0.08) return bounds;
+        const view = active.cherryView;
+        if (view.surfaces.has(bounds)) return view.surfaces.get(bounds);
+        const depth = point => (point.x - view.centerX) * view.direction.x + (point.z - view.centerZ) * view.direction.z;
+        const outline = [];
+        bounds.outline.forEach((point, index) => {
+            const next = bounds.outline[(index + 1) % bounds.outline.length];
+            const a = depth(point), b = depth(next);
+            if (a >= 0) outline.push(point);
+            if ((a >= 0) !== (b >= 0)) {
+                const fraction = a / (a - b);
+                outline.push({ x: point.x + (next.x - point.x) * fraction, z: point.z + (next.z - point.z) * fraction });
+            }
+        });
+        const front = { ...bounds, outline, ...(outline.length < 3 ? { minX: 1, maxX: 0 } : {}) };
+        if (bounds.tiers) front.tiers = bounds.tiers.map(cherryFrontSurface);
+        view.surfaces.set(bounds, front);
+        return front;
+    };
     const controller = {
         get entries() { return entries; },
         get hasUnplacedToppings() { return [...entries.values()].some((entry) => !entry.position); },
@@ -218,7 +266,8 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 active?.id === entry.id && active.candleBackRim ||
                 (active?.id !== entry.id || active.candlePointer) &&
                     candleY + entry.messageBox.min.y + (entry.insertionDepth || 0) >= surface.topY - 0.08);
-            const bounds = ledges && !candleOnTop ? surface.ledges : surface;
+            let bounds = ledges && !candleOnTop ? surface.ledges : surface;
+            if (/^cherry(?:-\d+)?$/.test(entry?.id) && active?.id === entry.id && active.cherryView) bounds = cherryFrontSurface(bounds);
             return { surface: tierFromHeight ? { ...bounds, tierFromHeight: true } : bounds, surfaceBox: physicalBounds ? entry.messageBox : entry.box };
         },
         fromLayout(layout, y = 0, entry) {
@@ -291,6 +340,15 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
         },
         constrain(entry, target) {
             const current = getCurrent();
+            let cherryFrom;
+            if (/^cherry(?:-\d+)?$/.test(entry.id) && active?.id === entry.id) {
+                if (!active.surfaceHit && current.camera) updateCherryView(current.camera);
+                target = target.clone();
+                if (clampCherryDepth(entry, target)) target.y = Math.max(target.y, entry.position.y);
+                active.requestedTarget.copy(target);
+                const origin = entry.position.clone();
+                if (clampCherryDepth(entry, origin)) cherryFrom = origin;
+            }
             if (entry.id === "candle" && active?.id === entry.id && !active.candlePointer && current.camera) {
                 const view = current.cakeGroupRef.current.worldToLocal(current.camera.getWorldPosition(new THREE.Vector3()));
                 const centerX = (surface.minX + surface.maxX) / 2, centerZ = (surface.minZ + surface.maxZ) / 2;
@@ -314,7 +372,8 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             const bounds = controller.placementBounds(entry);
             const topCandle = entry.id === "candle" && (active?.candlePointer || active?.candleBackRim) && !bounds.surface.tiers;
             const obstacles = controller.obstacles(entry.id, false);
-            const from = topCandle && !isToppingPositionValid({ box: entry.box, ...bounds, position: entry.position, obstacles }) ? findToppingPosition({
+            const from = cherryFrom ? findToppingPosition({ box: entry.box, ...bounds, position: cherryFrom, obstacles }) || entry.position
+                : topCandle && !isToppingPositionValid({ box: entry.box, ...bounds, position: entry.position, obstacles }) ? findToppingPosition({
                 box: entry.box, ...bounds, position: candleTopPosition(entry, entry.position), obstacles,
             }) || entry.position : entry.position;
             return constrainToppingPosition({
@@ -528,7 +587,6 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 active.warnedLowerLedge = true;
                 onLowerLedgeRestricted(id);
             }
-            if (point && active.surfaceHit) active.plane.setFromNormalAndCoplanarPoint(active.plane.normal, parent.localToWorld(new THREE.Vector3(0, point.y, 0)));
             if (target) {
                 if (active.candlePointer) {
                     target.y = point.y - entry.messageBox.min.y - (entry.insertionDepth || 0) + TOPPING_SURFACE_OFFSET;
@@ -537,9 +595,12 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                 // Seat the cherry from this frame's tier hit, independently of
                 // the height at which its stem or fruit was initially grabbed.
                 if (active.surfaceHit) {
+                    updateCherryView(camera);
                     target.y = point.y - entry.messageBox.min.y + TOPPING_SURFACE_OFFSET;
-                    if (surface.ledges.tiers && point.y < surface.topY - 0.08) {
-                        const fits = canCherryFitOnLedge({ box: entry.messageBox, position: target, surface: surface.ledges });
+                    if (clampCherryDepth(entry, target)) target.y = Math.max(target.y, entry.position.y);
+                    const cherrySurface = controller.placementBounds(entry).surface;
+                    if (cherrySurface.tiers && target.y + entry.messageBox.min.y < surface.topY - 0.08) {
+                        const fits = canCherryFitOnLedge({ box: entry.messageBox, position: target, surface: cherrySurface });
                         if (!fits) {
                             // Keep the held cherry on its current support and
                             // clamp X/Z at that tier's edge, without teleporting.
@@ -550,6 +611,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                             }
                         }
                     }
+                    active.plane.setFromNormalAndCoplanarPoint(active.plane.normal, parent.localToWorld(new THREE.Vector3(0, target.y + entry.messageBox.min.y - TOPPING_SURFACE_OFFSET, 0)));
                 }
                 controller.move(id, target);
                 if (active.candlePointer && !candlePositionAllowed(entry, active.target)) {
@@ -607,6 +669,7 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
         },
         cancel() {
             if (active) {
+                active.cherryView = null;
                 active.candleView = null;
                 active.candleBackRim = false;
                 if (active.candlePointer) active.requestedTarget.copy(active.position);

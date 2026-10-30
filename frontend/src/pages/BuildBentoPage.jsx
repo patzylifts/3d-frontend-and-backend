@@ -1014,6 +1014,7 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
 
                         <div className="flex flex-col gap-2.5">
                             {activeToppings.map((topping) => (
+                                !topping.key.startsWith("cherry-") &&
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-[#E6CCA2] shadow-sm" key={topping.key}>
                                     <span className="flex items-center gap-2 text-xs font-semibold text-[#6E473B]">
                                         <span

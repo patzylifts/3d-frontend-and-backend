@@ -150,7 +150,7 @@ test("fixed-size cherries fit and drag flush around every measured lower ledge w
     }
 });
 
-test("cherry size controls are absent while other topping size controls remain", async () => {
+test("individual cherry rows are hidden while other topping size controls remain", async () => {
     const page = readFileSync(new URL("../src/pages/BuildBentoPage.jsx", import.meta.url), "utf8");
     const start = page.indexOf("{activeToppings.map((topping) => (", page.indexOf('<div className="flex flex-col gap-2.5">'));
     const finish = page.indexOf("{chocolate && chocolateLayouts.map", start);
@@ -158,6 +158,6 @@ test("cherry size controls are absent while other topping size controls remain",
     const { Sizes } = runInNewContext(`${controls}\n;({ Sizes });`, { React, activeToppings: [{ key: "cherry-0", label: "Cherry 1" }, { key: "candle", label: "Candle" }],
         TOPPING_SIZES: { small: 0.8, medium: 1, large: 1.2 }, placementLayout: { candle: { size: "small" } }, setToppingSize() {} });
     const rows = Sizes().props.children[0];
-    assert.equal(rows[0].props.children[1], false);
+    assert.equal(rows[0], false);
     assert.equal(rows[1].props.children[1].props["aria-label"], "Candle size");
 });
