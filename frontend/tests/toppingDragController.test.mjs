@@ -528,8 +528,8 @@ test("single-candle restriction warnings ignore top-tier motion and fire once on
     }
 });
 
-test("number candles reach camera-facing front and side ledges from every camera quadrant and retain saved placements", () => {
-    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const angle of [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) for (const edgeAngle of [angle - 0.6, angle, angle + 0.6]) {
+test("number candles reach camera-facing front and side ledges from every forward-facing camera quadrant and retain saved placements", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const angle of [0, Math.PI / 2, Math.PI]) for (const edgeAngle of [angle - 0.6, angle, angle + 0.6]) {
         const { controller, current, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount, round, combined: true, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
         controller.reconcile();
@@ -570,6 +570,78 @@ test("number candles reach camera-facing front and side ledges from every camera
         preview.controller.register("candle", { ...preview.controller.entries.get("candle"), layout: current.state.toppingLayout.candle });
         preview.controller.reconcile();
         assert.ok(getTransformedToppingBox(previewCandle.object, preview.parent).min.distanceTo(getTransformedToppingBox(topping.object, parent).min) < 1e-8);
+    }
+});
+
+test("inverted number candles freeze at the latest accepted coordinates through pointer moves, frames and release", () => {
+    for (const round of [false, true]) for (const tierCount of [2, 3, 4]) for (const ancestorRotation of [0, 1.2]) {
+        const { controller, current, register, start, pointerMove, pointerUp, parent, camera } = setup({ tierCount, round, candleMode: "number" });
+        if (ancestorRotation) {
+            const ancestor = new Group();
+            ancestor.position.set(-3, 0.6, 2);
+            ancestor.rotation.y = ancestorRotation;
+            ancestor.add(parent);
+        }
+        const topping = register("candle", 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        const forwardRotation = parent.rotation.y;
+        const saved = current.state.toppingLayout.candle;
+        const radius = 2 - (tierCount - 1) * 0.5;
+        const front = new Vector3(0, tierCount - 1, radius + 0.25);
+        start("candle", 7);
+        pointerMove(front, 7);
+        const lastValid = controller.entries.get("candle").position.clone();
+        const frozenMatrix = topping.object.matrix.toArray();
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - (tierCount - 1) - TOPPING_SURFACE_OFFSET) < 1e-6);
+        for (const rotation of [3 * Math.PI / 4, Math.PI, 5 * Math.PI / 4, -Math.PI, 3 * Math.PI]) {
+            parent.rotation.y = forwardRotation + rotation;
+            for (const target of [front.clone().setX(0.3), front.clone().setZ(-radius - 0.25), new Vector3(-0.3, tierCount, 0.2)]) {
+                pointerMove(target, 7);
+                assert.deepEqual(controller.entries.get("candle").position.toArray(), lastValid.toArray(), "inverted pointer destinations must be ignored entirely");
+                for (const delta of [1 / 240, 1 / 60, 0.2]) {
+                    controller.update(delta);
+                    assert.deepEqual(controller.entries.get("candle").position.toArray(), lastValid.toArray(), "animation frames must not shift or raise the frozen candle");
+                    assert.deepEqual(topping.object.matrix.toArray(), frozenMatrix);
+                }
+                assert.equal(current.state.toppingLayout.candle, saved);
+            }
+        }
+        parent.rotation.y = forwardRotation + 2 * Math.PI;
+        const resumedTarget = front.clone().setX(0.25);
+        pointerMove(resumedTarget, 7);
+        const resumed = controller.entries.get("candle").position.clone();
+        assert.ok(resumed.x > lastValid.x + 0.2, "a valid forward angle must immediately re-enable dragging");
+        assert.equal(controller.isDragging.current, true);
+        assert.equal(current.state.toppingLayout.candle, saved);
+        parent.rotation.y = forwardRotation + Math.PI;
+        pointerMove(front.clone().setX(-0.25), 7);
+        assert.deepEqual(controller.entries.get("candle").position.toArray(), resumed.toArray(), "a second inversion must use the newly saved location");
+        pointerUp(new Vector3(0, tierCount, 0), 7);
+        controller.reconcile();
+        assert.ok(controller.entries.get("candle").position.distanceTo(resumed) < 1e-8, "release while inverted must preserve the saved placement");
+        assert.deepEqual(current.state.toppingLayout.candle.position, controller.entries.get("candle").position.toArray());
+    }
+});
+
+test("a drag that begins inverted keeps its initial location and leaves single candles and other toppings unchanged", () => {
+    for (const [id, mode, frozen] of [["candle", "number", true], ["candle", "gold", false], ["nuts", "gold", false], ["cherry-0", "gold", false], ["chocolate-0", "number", false]]) {
+        const { controller, register, start, pointerMove, parent, camera } = setup({ tierCount: 3, candleMode: mode });
+        register(id, 0, 0, 0.14, 0.10);
+        controller.reconcile();
+        camera.position.copy(parent.localToWorld(new Vector3(0, 20, 2)));
+        camera.lookAt(parent.localToWorld(new Vector3()));
+        camera.updateWorldMatrix(true, false);
+        parent.rotation.y += Math.PI;
+        const initial = controller.entries.get(id).position.clone();
+        start(id, 7);
+        pointerMove(new Vector3(0.3, 3, 0.25), 7);
+        if (frozen) assert.deepEqual(controller.entries.get(id).position.toArray(), initial.toArray());
+        else assert.ok(controller.entries.get(id).position.distanceTo(initial) > 0.1);
+        controller.cancel();
+        assert.ok(controller.entries.get(id).position.distanceTo(initial) < 1e-8);
     }
 });
 
@@ -641,7 +713,7 @@ test("single-candle top-tier limits contain the full selected size with an offse
     }
 });
 
-test("number-candle front ledges and rear top-rim limits follow camera rotation during a drag", () => {
+test("number candles freeze when the camera sees their back and unlock when the tier faces the camera again", () => {
     for (const round of [false, true]) {
         const { controller, register, start, pointerMove, pointerUp, parent, camera, ledgeRestrictions } = setup({ tierCount: 3, round, candleMode: "number" });
         const topping = register("candle", 0, 0, 0.14, 0.10);
@@ -652,22 +724,25 @@ test("number-candle front ledges and rear top-rim limits follow camera rotation 
             camera.updateWorldMatrix(true, false);
         };
         lookFrom(2);
+        const forwardRotation = parent.rotation.y;
         start("candle", 7);
         pointerMove(new Vector3(0, 2, 1.3), 7);
         assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
+        const lastValid = controller.entries.get("candle").position.clone();
         lookFrom(-2);
         pointerMove(new Vector3(0, 2, 1.3), 7);
         controller.update(1 / 60);
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6, "a newly hidden lower ledge must clamp onto the top rim immediately");
-        assert.ok(getTransformedToppingBox(topping.object, parent).max.z <= 1 - TOPPING_PLACEMENT_GAP + 1e-7);
-        assert.deepEqual(ledgeRestrictions, ["candle"]);
+        assert.deepEqual(controller.entries.get("candle").position.toArray(), lastValid.toArray(), "inversion must preserve the last location instead of jumping onto the top rim");
+        assert.deepEqual(ledgeRestrictions, []);
         pointerMove(new Vector3(0, 2, -1.3), 7);
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6, "the newly camera-facing ledge becomes usable");
-        assert.deepEqual(ledgeRestrictions, ["candle"]);
-        pointerUp(new Vector3(0, 2, 1.3), 7);
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6, "release cannot commit a hidden back-ledge drop");
+        assert.deepEqual(controller.entries.get("candle").position.toArray(), lastValid.toArray(), "changing the pointer destination must not unlock an inverted number candle");
+        parent.rotation.y = forwardRotation + Math.PI;
+        const target = new Vector3(0.25, 2, 1.3);
+        pointerMove(target, 7);
+        assert.ok(controller.entries.get("candle").position.x > 0.2, "turning the tier forward must unlock dragging");
+        pointerUp(target, 7);
         controller.reconcile();
-        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 3.001) < 1e-6);
+        assert.ok(Math.abs(getTransformedToppingBox(topping.object, parent).min.y - 2.001) < 1e-6);
     }
 });
 

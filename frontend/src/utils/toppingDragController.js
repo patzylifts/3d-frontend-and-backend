@@ -543,6 +543,30 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
             let backLedge = false;
             const singleCandle = isSingleCandle(entry);
             if (active.candlePointer && active.grabOffset) {
+                if (!singleCandle) {
+                    parent.updateWorldMatrix(true, true);
+                    const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+                    const tierCenter = parent.localToWorld(new THREE.Vector3(
+                        (surface.minX + surface.maxX) / 2, 0, (surface.minZ + surface.maxZ) / 2
+                    ));
+                    // Compare both angles in the tier parent's coordinate frame.
+                    // Cosine also handles negative angles and complete turns.
+                    if (parent.parent) {
+                        parent.parent.worldToLocal(cameraPosition);
+                        parent.parent.worldToLocal(tierCenter);
+                    }
+                    const dx = cameraPosition.x - tierCenter.x, dz = cameraPosition.z - tierCenter.z;
+                    const cameraAngle = Math.atan2(dx, dz);
+                    const epsilon = 1e-8;
+                    active.numberCandleInverted = dx * dx + dz * dz > epsilon * epsilon &&
+                        Math.cos(parent.rotation.y - cameraAngle) < -epsilon;
+                    if (active.numberCandleInverted) {
+                        active.target.copy(active.lastValidPosition);
+                        active.requestedTarget.copy(active.lastValidPosition);
+                        controller.apply(entry, active.lastValidPosition, false);
+                        return;
+                    }
+                }
                 const view = parent.worldToLocal(camera.getWorldPosition(new THREE.Vector3()));
                 const centerX = (surface.minX + surface.maxX) / 2;
                 const centerZ = (surface.minZ + surface.maxZ) / 2;
@@ -625,7 +649,10 @@ export function createToppingDragController({ getCurrent, store, invalidate = ()
                     entry.object.updateWorldMatrix(false, true);
                     active.pointerSettled = true;
                     invalidate();
-                } else controller.apply(entry, active.target, false);
+                } else {
+                    controller.apply(entry, active.target, false);
+                    if (active.candlePointer && !singleCandle) active.lastValidPosition.copy(active.target);
+                }
             }
         },
         moveMarker(id, x, y) {
