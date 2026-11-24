@@ -7,7 +7,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { CAKE_SIZES, CustomizationProvider, DEFAULT_FLAVOR, FLAVOR_VISUALS, INSCRIPTION_COLOR_OPTIONS, TEXT_FONT_OPTIONS, TIER_FLAVOR_LABELS, TOPPING_OPTIONS, TOPPING_SIZES, useCustomization } from "../contexts/Customization";
 import { useCart } from "../context/CartContext";
-import CakeModel, { TierLoadingFallback } from "../components/cake/CakeModel";
+import CakeModel, { CakeAssetPreloader, TierLoadingFallback } from "../components/cake/CakeModel";
+import { getFlavorTextureKeys } from "../components/cake/cakeTextures";
 import { TIER_TOP_RADIUS } from "../components/cake/tierConfig";
 import CakeCompass from "../components/CakeCompass";
 import CakePreviewCapture from "../components/CakePreviewCapture";
@@ -460,8 +461,9 @@ function ConfiguratorSection({
 }
 
 // ────── Configurator ──────
-function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize, capturePreview }) {
+function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, setSelectedSize, capturePreview, preloadCakeAssets }) {
     const customization = useCustomization();
+    const [isRandomizing, setIsRandomizing] = useState(false);
     const {
         cakeColors, cakeColor, setCakeColor,
         defaultCakeColor,
@@ -503,6 +505,19 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
         textSize,
         setTextSize,
     } = customization;
+
+    const handleRandomize = async () => {
+        if (isRandomizing) return;
+        setIsRandomizing(true);
+        try {
+            const loaded = await generateRandomCake(preloadCakeAssets);
+            if (!loaded) throw new Error("The requested cake assets could not be loaded.");
+        } catch (error) {
+            console.warn("Random cake was not applied because its flavor textures could not be loaded.", error);
+        } finally {
+            setIsRandomizing(false);
+        }
+    };
 
     const { addCustomCakeToCart } = useCart();
     const dragStore = useToppingDragStore();
@@ -1209,10 +1224,13 @@ function Configurator({ selectedTierIndex, setSelectedTierIndex, selectedSize, s
             {/* ── Randomize ── */}
             <button
                 type="button"
-                className="w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
-                onClick={generateRandomCake}
+                className={`w-full py-3 text-sm font-semibold text-[#C05A11] bg-white border-2 border-[#C05A11] rounded-xl shadow-sm hover:bg-[#C05A11]/5 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 ${isRandomizing ? "opacity-70 cursor-wait" : ""}`}
+                onClick={handleRandomize}
+                disabled={isRandomizing}
+                aria-busy={isRandomizing}
             >
-                <Dices className="w-4 h-4" /> Randomize My Cake!
+                <Dices className={`w-4 h-4 ${isRandomizing ? "animate-spin" : ""}`} />
+                {isRandomizing ? "Loading cake textures..." : "Randomize My Cake!"}
             </button>
 
             {/* ── Price ── */}
@@ -1260,15 +1278,33 @@ function BuildBentoContent() {
         setSelectedTierIndex,
         selectedSize,
         setSelectedSize,
+        flavorTextureMap,
     } = useCustomization();
 
     const navigate = useNavigate();
     const [autoSpin, setAutoSpin] = useState(false);
     const [isCakeReady, setIsCakeReady] = useState(false);
+    const [pendingCakeAssets, setPendingCakeAssets] = useState(null);
+    const nextCakeAssetRequestId = useRef(0);
 
     const cakeGroupRef = useRef(null);
     const orbitControlsRef = useRef(null);
     const capturePreviewRef = useRef(null);
+
+    const preloadCakeAssets = ({ tierIndex, flavors, decoration }) => new Promise((resolve) => {
+        const id = nextCakeAssetRequestId.current + 1;
+        nextCakeAssetRequestId.current = id;
+        setPendingCakeAssets({
+            id,
+            tierIndex,
+            textureKeys: getFlavorTextureKeys(flavors, flavorTextureMap),
+            includeCherry: decoration === "cherry",
+            onComplete: (loaded) => {
+                setPendingCakeAssets(null);
+                resolve(loaded);
+            },
+        });
+    });
 
     const handleResetView = () => {
         setAutoSpin(false);
@@ -1378,6 +1414,12 @@ function BuildBentoContent() {
                                             controlsRef={orbitControlsRef}
                                             onReady={setIsCakeReady}
                                         />
+                                        {pendingCakeAssets && (
+                                            <CakeAssetPreloader
+                                                request={pendingCakeAssets}
+                                                onComplete={pendingCakeAssets.onComplete}
+                                            />
+                                        )}
                                         <CakePreviewCapture captureRef={capturePreviewRef} />
 
                                         <ContactShadows
@@ -1421,6 +1463,7 @@ function BuildBentoContent() {
                         selectedSize={selectedSize}
                         setSelectedSize={setSelectedSize}
                         capturePreview={() => capturePreviewRef.current?.()}
+                        preloadCakeAssets={preloadCakeAssets}
                     />
                 </div>
             </div>

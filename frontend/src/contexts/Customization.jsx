@@ -630,22 +630,34 @@ export const CustomizationProvider = (props) => {
         setSelectedSize(CAKE_SIZES[idx].sizes[0]);
     };
 
-    const generateRandomCake = () => {
+    const generateRandomCake = async (beforeApply) => {
         const randomForm = Math.random() < 0.5 ? 1 : 2;
         const randomTierIdx = Math.floor(Math.random() * CAKE_SIZES.length);
         const randomCakeColor = cakeColors[Math.floor(Math.random() * cakeColors.length)];
         const randomFlavor = flavors[Math.floor(Math.random() * flavors.length)];
         const decorationOptions = ["candle", "chocolate", "balls", "nuts", "cherry", "sprinkles"];
         const randomDecoration = decorationOptions[Math.floor(Math.random() * decorationOptions.length)];
+        const randomIcingColor = icingColors[Math.floor(Math.random() * icingColors.length)];
+        const randomCandleNumber = Math.floor(Math.random() * 100) + 1;
+        const randomCandleMode = Math.random() < 0.5 ? "gold" : "number";
+        const randomLayers = [randomFlavor, ...Array.from({ length: 3 }, () => flavors[Math.floor(Math.random() * flavors.length)])];
+
+        if (beforeApply) {
+            const assetsLoaded = await beforeApply({
+                tierIndex: randomTierIdx,
+                flavors: randomLayers.slice(0, randomTierIdx + 1),
+                decoration: randomDecoration,
+            });
+            if (!assetsLoaded) return false;
+        }
 
         setForm(randomForm);
         setSelectedTierIndex(randomTierIdx);
         setSelectedSize(CAKE_SIZES[randomTierIdx].sizes[0]);
         setCakeColor(randomCakeColor);
-        setIcingColor(icingColors[Math.floor(Math.random() * icingColors.length)]);
-        setCandleNumber(Math.floor(Math.random() * 100) + 1);
-        setCandleMode(Math.random() < 0.5 ? "gold" : "number");
-        const randomLayers = [randomFlavor, ...Array.from({ length: 3 }, () => flavors[Math.floor(Math.random() * flavors.length)])];
+        setIcingColor(randomIcingColor);
+        setCandleNumber(randomCandleNumber);
+        setCandleMode(randomCandleMode);
         setTierFlavors(Object.fromEntries(CAKE_SIZES.map(({ tierKey }, index) => [tierKey, randomLayers.slice(0, index + 1)])));
         setTierFlavorOverrides(hydrateTierFlavorOverrides());
         setTierColors((previous) => previous.map((tier, index) => ({
@@ -684,6 +696,7 @@ export const CustomizationProvider = (props) => {
             default:
                 break;
         }
+        return true;
     };
 
     return (

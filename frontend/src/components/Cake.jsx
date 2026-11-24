@@ -13,7 +13,7 @@ import * as THREE from "three";
 
 export function Cake(props) {
     const { nodes, materials } = useGLTF('https://cake-assets-decc.patrickticoy78.workers.dev/tier1/tier1.gltf');
-    const plate = useGLTF('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/scene.gltf');
+    const plate = useGLTF('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/scene.gltf');
     const { flavor, flavorTextureMap, form, cakeColor, icingColor, nuts, chocolate, balls, candle, candleNumber } = useCustomization();
     const material = flavorTextureMap?.[flavor] || flavor;
     const { gl } = useThree();
@@ -55,26 +55,26 @@ export function Cake(props) {
 
     //Choco
     const coffeeTextureProps = useTexture({
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_normal.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/textures/choco_chiffon/Abstract_Organic_006_normal.jpg",
+        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
     });
 
     //Vanilla
     const milkshakeTextureProps = useTexture({
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_diffuseOriginal.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_normal.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_ao.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla_chiffon_roughness.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/vanilla/vanilla_chiffon_diffuseOriginal.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/vanilla/vanilla_chiffon_normal.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/vanilla/vanilla_chiffon_ao.jpg",
+        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/vanilla/vanilla_chiffon_roughness.jpg",
     });
 
     //Ube
     const abstractTextureProps = useTexture({
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_diffuseOriginal.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_normal.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_roughness.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_ao.jpg",
+        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/ube/ube_chiffon_diffuseOriginal.jpg",
+        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/ube/ube_chiffon_normal.jpg",
+        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/ube/ube_chiffon_roughness.jpg",
+        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/ube/ube_chiffon_ao.jpg",
     });
     ;
 
@@ -232,5 +232,5 @@ export function Cake(props) {
     );
 }
 
-useGLTF.preload('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/scene.gltf');
+useGLTF.preload('https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@94d6637d22bcd802effa1525834f1da59d71d3ab/scene.gltf');
 useGLTF.preload('https://cake-assets-decc.patrickticoy78.workers.dev/tier1/tier1.gltf');

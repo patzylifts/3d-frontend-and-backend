@@ -1,44 +1,17 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { use, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useGLTF, useTexture } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { DEFAULT_FLAVOR, FLAVOR_VISUALS, TOPPING_SIZES, useCustomization } from "../../contexts/Customization";
 import CakeInscription from "../CakeInscription";
 import { DraggableCakeTopping, useToppingDragPlacement } from "../ToppingDragControls";
 import { CAKE_GROUP_POSITION, TIER_TOP_Y, TIER_TOP_RADIUS } from "./tierConfig";
+import { CAKE_TEXTURE_URLS, TIER_MODEL_URLS, getFlavorTextureKeys, getFlavorTextureUrls, loadCakeTextureSet, preloadCakeTextureKeys } from "./cakeTextures";
 import { getGroundedNutY } from "../../utils/nutPlacement";
 import { getChocolateQuaternion } from "../../utils/chocolateRotation";
 import { findToppingPosition, TOPPING_PLACEMENT_GAP, TOPPING_SURFACE_OFFSET } from "../../utils/toppingDragPlacement.js";
 
-const TIER_MODEL_URLS = {
-    tier1: "https://cake-assets-decc.patrickticoy78.workers.dev/tier1/tier1.gltf",
-    tier2: "https://cake-assets-decc.patrickticoy78.workers.dev/tier2/tier2.gltf",
-    tier3: "https://cake-assets-decc.patrickticoy78.workers.dev/tier3/tier3.gltf",
-    tier4: "https://cake-assets-decc.patrickticoy78.workers.dev/tier4/tier4.gltf",
-};
-
-const TIER1_CHERRY_TEXTURE = "https://cake-assets-decc.patrickticoy78.workers.dev/tier1/Cherry.jpg";
-
-const TEXTURE_URLS = {
-    choco: {
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_007_basecolor.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_normal.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_roughness.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/textures/choco_chiffon/Abstract_Organic_006_ambientOcclusion.jpg",
-    },
-    vanilla: {
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_diffuseOriginal.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_normal.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_roughness.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/vanilla/vanilla_chiffon_ao.jpg",
-    },
-    ube: {
-        map: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_diffuseOriginal.jpg",
-        normalMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_normal.jpg",
-        roughnessMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_roughness.jpg",
-        aoMap: "https://cdn.jsdelivr.net/gh/patzylifts/cake-assets@main/ube/ube_chiffon_ao.jpg",
-    },
-};
+const TIER1_CHERRY_TEXTURE = "/models/tier1/Cherry.jpg";
 
 const TOPPING_3D_CONFIG = {
     candle: {
@@ -330,6 +303,10 @@ const ICING_TRANSFORMS = {
 
 const sceneMaterialStates = new WeakMap();
 
+function disposeMaterial(material) {
+    (Array.isArray(material) ? material : [material]).forEach((item) => item?.dispose());
+}
+
 function applyMaterialsToScene(scene, {
     cakeColor,
     defaultCakeColor,
@@ -380,7 +357,7 @@ function applyMaterialsToScene(scene, {
                 (isRoundIcing && form === 1) ||
                 (isRectangleIcing && form === 2);
 
-            child.material = new THREE.MeshPhysicalMaterial({
+            const icingMaterial = new THREE.MeshPhysicalMaterial({
                 color: icingColor?.color || "#3B1F18",
                 roughness: 0.3,
                 metalness: 0,
@@ -388,6 +365,8 @@ function applyMaterialsToScene(scene, {
                 clearcoatRoughness: 0.4,
                 side: THREE.DoubleSide,
             });
+            disposeMaterial(child.material);
+            child.material = icingMaterial;
 
             if (child.visible) {
                 const type = isRectangleIcing
@@ -412,6 +391,7 @@ function applyMaterialsToScene(scene, {
         if (lname.includes("cherry")) {
             // The selected topping is rendered with its configurable position below.
             child.visible = false;
+            disposeMaterial(child.material);
             child.material = new THREE.MeshStandardMaterial(cherryMatProps);
             child.castShadow = true;
             child.receiveShadow = true;
@@ -489,6 +469,7 @@ function applyMaterialsToScene(scene, {
         const materialProps = getFlavorMaterialProps(flavorName, textureByFlavor, effectiveCakeColor);
         const previousLayer = cakeLayers.get(mesh);
         if (!previousLayer || previousLayer.material !== mesh.material) {
+            disposeMaterial(mesh.material);
             mesh.material = new THREE.MeshStandardMaterial(materialProps);
         } else if (previousLayer.flavorName !== flavorName ||
             ["map", "normalMap", "roughnessMap", "aoMap"].some((key) => mesh.material[key] !== (materialProps[key] ?? null))) {
@@ -512,20 +493,6 @@ function applyMaterialsToScene(scene, {
 
 export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, controlsRef, onReady, readOnlyToppings = false }) {
     const activeTierUrl = TIER_MODEL_URLS[`tier${selectedTierIndex + 1}`] || TIER_MODEL_URLS.tier1;
-    const loadedTier = useGLTF(activeTierUrl);
-    // Each canvas needs its own scene graph and material instances. Reusing the
-    // cached scene reparents it when several rotatable previews are mounted.
-    const activeTier = useMemo(() => {
-        // Clone per mesh, even when tiers share a material in the source GLTF.
-        const copyMaterial = (material) => material.clone();
-        const scene = loadedTier.scene.clone(true);
-        scene.traverse((object) => {
-            if (object.isMesh) object.material = Array.isArray(object.material)
-                ? object.material.map(copyMaterial) : copyMaterial(object.material);
-        });
-        return { ...loadedTier, scene, materials: Object.fromEntries(Object.entries(loadedTier.materials).map(([name, material]) => [name, copyMaterial(material)])) };
-    }, [loadedTier]);
-    const { nodes, materials } = activeTier;
     const customization = useCustomization();
     const {
         form,
@@ -559,34 +526,84 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
     const tierKey = `tier${selectedTierIndex + 1}`;
     const selectedTierFlavors = tierFlavors[tierKey];
     const baseFlavor = selectedTierFlavors?.[0] || DEFAULT_FLAVOR;
-    const flavorTextureKeys = useMemo(() => [...new Set(
-        [baseFlavor, ...(selectedTierFlavors || [])]
-            .map((flavorName) => flavorTextureMap[flavorName] || "choco")
-    )], [baseFlavor, selectedTierFlavors, flavorTextureMap]);
+    const flavorTextureKeys = useMemo(
+        () => getFlavorTextureKeys([baseFlavor, ...(selectedTierFlavors || [])], flavorTextureMap),
+        [baseFlavor, selectedTierFlavors, flavorTextureMap]
+    );
     const flavorTextureUrls = useMemo(() => ({
-        ...Object.fromEntries(flavorTextureKeys.flatMap((key) => Object.entries(TEXTURE_URLS[key]).map(
-            ([property, url]) => [`${key}_${property}`, url]
-        ))),
+        ...getFlavorTextureUrls(flavorTextureKeys),
         ...(cherry ? { cherry: TIER1_CHERRY_TEXTURE } : {}),
     }), [flavorTextureKeys, cherry]);
-    const loadedFlavorTextures = useTexture(flavorTextureUrls);
+    const textureRequest = loadCakeTextureSet(flavorTextureUrls);
+    useGLTF.preload(activeTierUrl);
+    const loadedTier = useGLTF(activeTierUrl);
+    const loadedFlavorTextures = use(textureRequest);
+
+    // Both assets are ready before the cloned scene can be committed.
+    const activeTier = useMemo(() => {
+        const copyMaterial = (material) => material.clone();
+        const scene = loadedTier.scene.clone(true);
+        scene.traverse((object) => {
+            if (object.isMesh) object.material = Array.isArray(object.material)
+                ? object.material.map(copyMaterial) : copyMaterial(object.material);
+        });
+        return { ...loadedTier, scene, materials: Object.fromEntries(Object.entries(loadedTier.materials).map(([name, material]) => [name, copyMaterial(material)])) };
+    }, [loadedTier]);
+    const { nodes, materials } = activeTier;
+
+    useEffect(() => {
+        const remainingKeys = Object.keys(CAKE_TEXTURE_URLS).filter((key) => !flavorTextureKeys.includes(key));
+        if (!remainingKeys.length) return undefined;
+
+        let isCancelled = false;
+        let idleCallbackId;
+        let timeoutId;
+        const preloadRemainingTextures = () => {
+            if (isCancelled) return;
+            preloadCakeTextureKeys(remainingKeys).catch((error) => {
+                console.warn("Could not preload remaining cake textures.", error);
+            });
+        };
+
+        if (typeof window.requestIdleCallback === "function") {
+            idleCallbackId = window.requestIdleCallback(preloadRemainingTextures);
+        } else {
+            timeoutId = window.setTimeout(preloadRemainingTextures, 0);
+        }
+
+        return () => {
+            isCancelled = true;
+            if (idleCallbackId !== undefined) window.cancelIdleCallback?.(idleCallbackId);
+            if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+        };
+    }, [flavorTextureKeys]);
 
     const textureSetsByKey = useMemo(() => Object.fromEntries(
-        flavorTextureKeys.map((key) => [
-            key,
-            Object.fromEntries(Object.keys(TEXTURE_URLS[key]).map((property) => [
+        flavorTextureKeys.map((key) => {
+            const textureSet = Object.fromEntries(Object.keys(CAKE_TEXTURE_URLS[key]).map((property) => [
                 property,
                 loadedFlavorTextures[`${key}_${property}`],
-            ])),
-        ])
+            ]));
+            const hasFailedTexture = Object.values(textureSet).some((texture) => !texture);
+            return [key, hasFailedTexture ? {} : textureSet];
+        })
     ), [flavorTextureKeys, loadedFlavorTextures]);
     const cherryTexture = loadedFlavorTextures.cherry || null;
-    useLayoutEffect(() => {
-        if (!cherryTexture) return;
-        cherryTexture.colorSpace = THREE.SRGBColorSpace;
-        cherryTexture.needsUpdate = true;
-    }, [cherryTexture]);
     const activeTierScene = activeTier.scene;
+
+    useEffect(() => () => {
+        const materialsToDispose = new Set();
+        const collectMaterial = (material) => {
+            (Array.isArray(material) ? material : [material]).forEach((item) => {
+                if (item) materialsToDispose.add(item);
+            });
+        };
+        activeTier.scene.traverse((object) => {
+            if (object.isMesh) collectMaterial(object.material);
+        });
+        Object.values(activeTier.materials).forEach(collectMaterial);
+        materialsToDispose.forEach((material) => material.dispose());
+    }, [activeTier]);
 
     const activeTierBounds = useMemo(() => {
         if (!activeTierScene) return null;
@@ -704,11 +721,14 @@ export function CakeTierScene({ selectedTierIndex, autoSpin, cakeGroupRef, contr
         sprinkles,
     ]);
 
-    useLayoutEffect(() => {
+    useMemo(() => {
         applyMaterialsToScene(activeTier.scene, {
             ...matProps,
             tierIndex: selectedTierIndex,
         });
+    }, [activeTier, matProps, selectedTierIndex]);
+
+    useLayoutEffect(() => {
         onReady?.(true);
     }, [activeTier, matProps, selectedTierIndex, onReady]);
 
